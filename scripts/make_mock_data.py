@@ -21,6 +21,12 @@ def main() -> int:
         default=PROJECT_ROOT / "config" / "stimulus_multisine_broadband.yaml",
     )
     parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "data" / "mock")
+    parser.add_argument(
+        "--recording-delay-samples",
+        type=int,
+        default=0,
+        help="Prefix every simulated recording with this many zero samples.",
+    )
     parser.add_argument("--overwrite", action="store_true")
     arguments = parser.parse_args()
     config = load_config(
@@ -31,6 +37,7 @@ def main() -> int:
         arguments.output_root,
         config["stimulus"],
         random_state=int(config["random_state"]),
+        recording_delay_samples=arguments.recording_delay_samples,
         overwrite=arguments.overwrite,
     )
     print(f"Generated mock manifest: {manifest}")
@@ -40,4 +47,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

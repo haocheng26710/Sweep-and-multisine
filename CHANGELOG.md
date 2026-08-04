@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.3 — P8-A simulated synchronization and magnitude recovery (unreleased)
+
+- Incremented the configuration schema to 2.2.0 while keeping measurement and feature schemas unchanged.
+- Added normalized preamble cross-correlation, manifest-driven transient discard, and complete-period extraction.
+- Added per-period tone FFT transfer recovery with explicit complex-spectrum or power averaging.
+- Added sparse-tone `SpectrumData` output with `relative_unreliable` phase and no dense interpolation.
+- Added stimulus/recording hash, tone-set, nominal sample-rate, period, and manifest-layout consistency failures.
+- Added configurable non-period-aligned delay to S3 mock recordings; all P8-A inputs remain simulated software-validation data.
+
 ## 2.0.0-dev.2 — P1 REW import (unreleased)
 
 - Incremented the measurement schema to 2.2.0 while keeping config and feature schemas unchanged.

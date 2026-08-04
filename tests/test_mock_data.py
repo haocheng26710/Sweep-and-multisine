@@ -33,9 +33,11 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
         configurations=["U4ENC"],
         angles_deg=[0, 90],
         random_state=123,
+        recording_delay_samples=1379,
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["mock_only"] is True
+    assert manifest["recording_delay_samples"] == 1379
     assert len(manifest["samples"]) == 4
     for sample in manifest["samples"]:
         assert sample["data_origin"] == "simulated"
@@ -55,5 +57,8 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
     for sidecar_path in (tmp_path / "multisine").glob("*.json"):
         sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
         assert sidecar["mock_only"] is True
+        assert sidecar["recording_delay_samples"] == 1379
+        assert sidecar["period_samples"] == stimulus["period_samples"]
+        assert sidecar["common_sampling_clock"] is False
         assert sidecar["stimulus_hash"]
         assert sidecar["tone_set_id"] == stimulus["tone_set_id"]

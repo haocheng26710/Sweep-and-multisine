@@ -4,12 +4,12 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-A, the provenance guard, and the first P1 REW import slice are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, and format-validated REW frequency-response TXT import.
+DEV-A, the provenance guard, P1 REW import, and the simulated P8-A multisine magnitude-recovery slice are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, format-validated REW import, and preamble-synchronized sparse-tone transfer recovery.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
-- P8 synchronization/transfer estimation begins in DEV-B.
+- P8-A is software-validation-only; clock drift correction and complete tone QC remain in P8-B.
 - P2–P6 FeatureSet analysis and P9 begin in DEV-C.
 - Mock data are prohibited as research evidence.
 
@@ -88,6 +88,12 @@ Generate matching mock sweep and multisine inputs:
 python scripts/make_mock_data.py
 ```
 
+To exercise a non-period-aligned recording start:
+
+```powershell
+python scripts/make_mock_data.py --recording-delay-samples 1379
+```
+
 Run tests:
 
 ```powershell
@@ -103,6 +109,14 @@ phi_m = -pi * m * (m - 1) / M
 ```
 
 Every configured tone must lie on an integer DFT bin of the configured period. The complete WAV consists of pre-silence, an optional synchronization preamble, a gap, complete settling periods, complete analysis periods, and post-silence. Fade is applied only to the preamble; no fade or window modifies an analysis period. The exact formula, sample boundaries, crest factor, target peak, schema versions, and WAV SHA-256 are written to the manifest.
+
+## P8-A simulated multisine magnitude recovery
+
+`load_multisine_measurement(recording_path, stimulus_manifest_path, meta, run_purpose=..., period_averaging=...)` uses the P7 stimulus WAV and manifest. It locates the known preamble by normalized cross-correlation, discards the manifest-declared initial periods, and extracts exactly the declared number of complete stable periods.
+
+Each period is transformed independently. At every manifest tone bin the transfer is `H(f_k) = Y(f_k) / X(f_k)`. `period_averaging` is explicit: `complex_spectrum` averages the complex per-period transfer, while `power` returns the RMS transfer magnitude. The result is a `sparse_tones` `SpectrumData`; off-tone bins are not interpolated into a dense physical response.
+
+P8-A verifies recording and stimulus hashes, stimulus ID, tone set, nominal sample rate, period length, and manifest layout across metadata, sidecar, WAV, and manifest. It accepts only `simulated` inputs under `software_validation`. Without a proven shared clock its phase status is always `relative_unreliable`. Clock drift, missing-tone, clipping, and leakage QC remain explicitly `unavailable` until P8-B.
 
 ## Measurement names and metadata
 

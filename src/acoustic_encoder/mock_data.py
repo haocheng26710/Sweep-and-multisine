@@ -91,6 +91,7 @@ def _simulate_recording(
     angle_deg: float,
     configuration: str,
     random_state: int,
+    recording_delay_samples: int,
 ) -> tuple[int, FloatArray]:
     sample_rate, audio = _read_wav_float(stimulus_wav)
     frequency = np.fft.rfftfreq(audio.size, d=1.0 / sample_rate)
@@ -101,6 +102,9 @@ def _simulate_recording(
     recording += generator.normal(0.0, 2.0e-5, size=recording.size)
     if np.max(np.abs(recording)) >= 1.0:
         raise RuntimeError("Mock recording clipped; lower the synthetic transfer gain")
+    if recording_delay_samples < 0:
+        raise ValueError("recording_delay_samples cannot be negative")
+    recording = np.pad(recording, (recording_delay_samples, 0))
     return sample_rate, recording
 
 
@@ -119,6 +123,7 @@ def generate_dual_mode_mock(
     configurations: Iterable[str] = ("U4SYM", "U4ENC"),
     angles_deg: Iterable[int] = (0, 90, 180, 270),
     random_state: int = 20260804,
+    recording_delay_samples: int = 0,
     overwrite: bool = False,
 ) -> Path:
     """Generate matching mock sweep TXT and multisine WAV inputs."""
@@ -165,6 +170,7 @@ def generate_dual_mode_mock(
                 angle_deg=float(angle),
                 configuration=configuration,
                 random_state=random_state + sample_counter,
+                recording_delay_samples=recording_delay_samples,
             )
             audio_path = audio_root / f"{base_name}_MS.wav"
             audio_path.parent.mkdir(parents=True, exist_ok=True)
@@ -201,6 +207,9 @@ def generate_dual_mode_mock(
                 **multisine_meta.to_dict(),
                 "mock_only": True,
                 "sample_rate_hz": sample_rate,
+                "period_samples": int(stimulus_config["period_samples"]),
+                "recording_delay_samples": recording_delay_samples,
+                "common_sampling_clock": False,
                 "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
                 "recording_sha256": audio_sha256,
                 "known_transfer_csv": truth_path.as_posix(),
@@ -239,6 +248,7 @@ def generate_dual_mode_mock(
         "mock_only": True,
         "scientific_use": "PROHIBITED: generated data only validate software behavior.",
         "known_system": "known_transfer_db in acoustic_encoder.mock_data",
+        "recording_delay_samples": recording_delay_samples,
         "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
         "samples": sample_records,
     }

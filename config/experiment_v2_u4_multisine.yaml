@@ -11,6 +11,7 @@ experiment:
 
 multisine_estimation:
   synchronization_method: preamble_cross_correlation
+  period_averaging: complex_spectrum
   stable_period_count: 8
   discard_initial_period_count: 2
   clock_drift:
@@ -26,4 +27,3 @@ multisine_estimation:
 features:
   feature_kind: tone_measurement_from_multisine
   normalization: subtract_mean_db
-

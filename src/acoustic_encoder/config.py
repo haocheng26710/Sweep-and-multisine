@@ -123,6 +123,17 @@ def validate_config(config: Mapping[str, Any]) -> None:
         raise ConfigError("smoothing boundary must be reflect, nearest, or truncate")
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
+    if "multisine_estimation" in config:
+        estimation = config["multisine_estimation"]
+        if estimation.get("synchronization_method") != "preamble_cross_correlation":
+            raise ConfigError(
+                "multisine_estimation.synchronization_method must be "
+                "preamble_cross_correlation"
+            )
+        if estimation.get("period_averaging") not in {"complex_spectrum", "power"}:
+            raise ConfigError(
+                "multisine_estimation.period_averaging must be complex_spectrum or power"
+            )
 
 
 def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:

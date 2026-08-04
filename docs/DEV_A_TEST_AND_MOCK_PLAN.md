@@ -27,10 +27,20 @@ Mock data exist only to test software. They cannot support any claim about the a
 - Synthetic format/error fixtures plus byte-immutable regressions for `Artist 3 + Q2070Si`, `REL Sub, No EQ`, and `BW M1`.
 - External references with no fabricated experiment identity and enforced `software_validation`-only use.
 
+## Implemented in the P8-A multisine slice
+
+- Configurable S3 leading recording delay, including non-period-aligned capture starts.
+- Known-preamble normalized cross-correlation, manifest-driven transient-period discard, and exact stable-period extraction.
+- Per-period FFT and `Y/X` transfer calculation at the P7 stimulus tones.
+- Explicit complex-spectrum or power period averaging and sparse-tone `SpectrumData` output.
+- Hash, stimulus, tone-set, nominal sample-rate, period, and manifest-layout consistency gates.
+- `relative_unreliable` phase without a proven shared clock and explicit `unavailable` status for deferred P8-B QC.
+- Known-`H(f)` magnitude recovery regression with a provisional synthetic-only tolerance of 0.05 dB.
+
 ## Deferred to DEV-B/DEV-C
 
 - Project-specific `real_experiment` REW fixtures and complete pipeline routing beyond the P1 adapter.
-- P8 synchronization, delay/drift detection, transfer recovery, missing tone and clipping QC.
+- P8-B clock drift correction, missing-tone detection, clipping/leakage/SNR QC, and final phase policy.
 - P3 matched FeatureSet construction, P4/P5 metrics/classification, P9 selection, and leakage tests.
 - Complete T0–T3 dry-runs and S2 failure reports.
 

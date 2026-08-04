@@ -32,6 +32,12 @@ Measurement schema 2.2 permits experiment-identity fields to be null only for `e
 
 `simulated` and `real_experiment` metadata retain the original required experiment fields. Existing 2.1 external-reference artifacts must be re-created from their immutable source and provenance record rather than filled with placeholder experiment values.
 
+## Configuration schema 2.1 to 2.2
+
+Configuration schema 2.2 makes P8-A synchronization and period aggregation explicit. A multisine estimation block must use `synchronization_method: preamble_cross_correlation` and select `period_averaging: complex_spectrum` or `power`. No averaging mode is inferred from older multisine artifacts.
+
+P8-A remains limited to `simulated` / `software_validation`. Existing real multisine recordings are not upgraded into research inputs by this migration; their clock relationship, provenance, sidecar linkage, and P8-B QC must be established separately.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
