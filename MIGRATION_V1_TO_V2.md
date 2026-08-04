@@ -38,6 +38,14 @@ Configuration schema 2.2 makes P8-A synchronization and period aggregation expli
 
 P8-A remains limited to `simulated` / `software_validation`. Existing real multisine recordings are not upgraded into research inputs by this migration; their clock relationship, provenance, sidecar linkage, and P8-B QC must be established separately.
 
+## Configuration and measurement schema 2.2 to 2.3
+
+Configuration schema 2.3 validates the complete `multisine_estimation.clock_drift` block. `warning_ppm` and `exclude_candidate_ppm` must be finite and satisfy `0 < warning_ppm < exclude_candidate_ppm`; `correction` must be `disabled` or `enabled`. Threshold equality is inclusive: warning begins at `warning_ppm`, and exclusion candidacy begins at `exclude_candidate_ppm`.
+
+Measurement schema 2.3 adds the structured `SpectrumData.quality_metrics.clock_drift` view used by P8-B1. It records the signed estimate, configured thresholds, pre-correction decision, correction method and ratio, residual estimate, fit errors, pre/post magnitude change, final decision, and phase-state decision. A `drift_corrected` phase is not evidence of a shared sampling clock and is never migrated to `common_clock`.
+
+P8-B1 remains restricted to `simulated` / `software_validation`. Existing 2.2 real recordings are not silently corrected or made scientifically eligible; they still require explicit real-experiment provenance, the research hard gate, and the remaining P8-B2 tone-quality checks.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:

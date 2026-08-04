@@ -4,12 +4,12 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-A, the provenance guard, P1 REW import, and the simulated P8-A multisine magnitude-recovery slice are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, format-validated REW import, and preamble-synchronized sparse-tone transfer recovery.
+DEV-A, the provenance guard, P1 REW import, P8-A multisine magnitude recovery, and P8-B1 clock-drift handling are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, format-validated REW import, and auditable preamble-synchronized sparse-tone transfer recovery.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
-- P8-A is software-validation-only; clock drift correction and complete tone QC remain in P8-B.
+- P8-B1 remains software-validation-only; clipping, tone SNR, leakage, missing-tone, and off-tone-energy QC remain in P8-B2.
 - P2–P6 FeatureSet analysis and P9 begin in DEV-C.
 - Mock data are prohibited as research evidence.
 
@@ -94,6 +94,12 @@ To exercise a non-period-aligned recording start:
 python scripts/make_mock_data.py --recording-delay-samples 1379
 ```
 
+To exercise signed sampling-clock drift independently of that fixed delay:
+
+```powershell
+python scripts/make_mock_data.py --recording-delay-samples 1379 --sampling-clock-drift-ppm 80
+```
+
 Run tests:
 
 ```powershell
@@ -110,13 +116,17 @@ phi_m = -pi * m * (m - 1) / M
 
 Every configured tone must lie on an integer DFT bin of the configured period. The complete WAV consists of pre-silence, an optional synchronization preamble, a gap, complete settling periods, complete analysis periods, and post-silence. Fade is applied only to the preamble; no fade or window modifies an analysis period. The exact formula, sample boundaries, crest factor, target peak, schema versions, and WAV SHA-256 are written to the manifest.
 
-## P8-A simulated multisine magnitude recovery
+## P8-A/P8-B1 simulated multisine estimation
 
 `load_multisine_measurement(recording_path, stimulus_manifest_path, meta, run_purpose=..., period_averaging=...)` uses the P7 stimulus WAV and manifest. It locates the known preamble by normalized cross-correlation, discards the manifest-declared initial periods, and extracts exactly the declared number of complete stable periods.
 
 Each period is transformed independently. At every manifest tone bin the transfer is `H(f_k) = Y(f_k) / X(f_k)`. `period_averaging` is explicit: `complex_spectrum` averages the complex per-period transfer, while `power` returns the RMS transfer magnitude. The result is a `sparse_tones` `SpectrumData`; off-tone bins are not interpolated into a dense physical response.
 
-P8-A verifies recording and stimulus hashes, stimulus ID, tone set, nominal sample rate, period length, and manifest layout across metadata, sidecar, WAV, and manifest. It accepts only `simulated` inputs under `software_validation`. Without a proven shared clock its phase status is always `relative_unreliable`. Clock drift, missing-tone, clipping, and leakage QC remain explicitly `unavailable` until P8-B.
+P8-A verifies recording and stimulus hashes, stimulus ID, tone set, nominal sample rate, period length, and manifest layout across metadata, sidecar, WAV, and manifest. It accepts only `simulated` inputs under `software_validation`.
+
+P8-B1 optionally accepts the resolved `multisine_estimation.clock_drift` mapping. It estimates signed drift from the phase advance between adjacent stable periods. With correction disabled, configured warning and exclusion-candidate thresholds are reported but phase remains `relative_unreliable`. With correction enabled, the recording time axis is resampled, preamble synchronization and tone estimation are repeated, and the estimated drift, correction ratio, residual drift, fit errors, and pre/post magnitude change are recorded under `SpectrumData.quality_metrics.clock_drift`. Only successful correction with residual QC below the warning threshold can produce `phase_status=drift_corrected`; this status is never represented as `common_clock`.
+
+Missing-tone, clipping, SNR, leakage, off-tone-energy, and complete tone-quality outputs remain explicitly unavailable until P8-B2. Sparse tones are never interpolated into a dense physical response.
 
 ## Measurement names and metadata
 
@@ -165,6 +175,6 @@ Run purpose is independently explicit: `software_validation` is the safe default
 - Tone selection, calibration, standardization, PCA, templates, and tuning use training data only.
 - Session, reposition round, assembly, and acquisition block boundaries are explicit.
 - Multisine phase is not used by default unless a common clock or recorded drift correction passes QC.
-- Missing provenance is never inferred from a filename, source format, or neighboring metadata. Schema 2.0/2.1 artifacts must be reclassified from their source records before use with measurement schema 2.2.
+- Missing provenance is never inferred from a filename, source format, or neighboring metadata. Older artifacts must be reclassified from their source records before use with measurement schema 2.3.
 
 See `MIGRATION_V1_TO_V2.md` and `docs/DEV_A_TEST_AND_MOCK_PLAN.md` for migration and stage details.

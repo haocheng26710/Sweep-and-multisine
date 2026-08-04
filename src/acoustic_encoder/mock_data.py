@@ -10,6 +10,7 @@ from typing import Any, Iterable, Mapping
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.interpolate import CubicSpline
 from scipy.io import wavfile
 
 from .schemas import (
@@ -92,6 +93,7 @@ def _simulate_recording(
     configuration: str,
     random_state: int,
     recording_delay_samples: int,
+    sampling_clock_drift_ppm: float,
 ) -> tuple[int, FloatArray]:
     sample_rate, audio = _read_wav_float(stimulus_wav)
     frequency = np.fft.rfftfreq(audio.size, d=1.0 / sample_rate)
@@ -100,6 +102,19 @@ def _simulate_recording(
     recording = np.fft.irfft(np.fft.rfft(audio) * transfer_linear, n=audio.size)
     generator = np.random.default_rng(random_state)
     recording += generator.normal(0.0, 2.0e-5, size=recording.size)
+    if not np.isfinite(sampling_clock_drift_ppm):
+        raise ValueError("sampling_clock_drift_ppm must be finite")
+    clock_ratio = 1.0 + sampling_clock_drift_ppm * 1.0e-6
+    if clock_ratio <= 0.0:
+        raise ValueError("sampling_clock_drift_ppm produces a non-positive clock ratio")
+    if sampling_clock_drift_ppm != 0.0:
+        output_count = int(np.floor((recording.size - 1) * clock_ratio)) + 1
+        source_coordinate = np.arange(output_count, dtype=np.float64) / clock_ratio
+        recording = CubicSpline(
+            np.arange(recording.size, dtype=np.float64),
+            recording,
+            bc_type="natural",
+        )(source_coordinate)
     if np.max(np.abs(recording)) >= 1.0:
         raise RuntimeError("Mock recording clipped; lower the synthetic transfer gain")
     if recording_delay_samples < 0:
@@ -124,6 +139,7 @@ def generate_dual_mode_mock(
     angles_deg: Iterable[int] = (0, 90, 180, 270),
     random_state: int = 20260804,
     recording_delay_samples: int = 0,
+    sampling_clock_drift_ppm: float = 0.0,
     overwrite: bool = False,
 ) -> Path:
     """Generate matching mock sweep TXT and multisine WAV inputs."""
@@ -171,6 +187,7 @@ def generate_dual_mode_mock(
                 configuration=configuration,
                 random_state=random_state + sample_counter,
                 recording_delay_samples=recording_delay_samples,
+                sampling_clock_drift_ppm=sampling_clock_drift_ppm,
             )
             audio_path = audio_root / f"{base_name}_MS.wav"
             audio_path.parent.mkdir(parents=True, exist_ok=True)
@@ -209,6 +226,12 @@ def generate_dual_mode_mock(
                 "sample_rate_hz": sample_rate,
                 "period_samples": int(stimulus_config["period_samples"]),
                 "recording_delay_samples": recording_delay_samples,
+                "sampling_clock_drift_ppm": sampling_clock_drift_ppm,
+                "clock_drift_simulation_method": (
+                    "none"
+                    if sampling_clock_drift_ppm == 0.0
+                    else "cubic_spline_time_axis_resampling"
+                ),
                 "common_sampling_clock": False,
                 "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
                 "recording_sha256": audio_sha256,
@@ -244,11 +267,12 @@ def generate_dual_mode_mock(
 
     manifest = {
         **SCHEMA_VERSION_QUARTET,
-        "mock_schema_version": "1.0.0",
+        "mock_schema_version": "1.1.0",
         "mock_only": True,
         "scientific_use": "PROHIBITED: generated data only validate software behavior.",
         "known_system": "known_transfer_db in acoustic_encoder.mock_data",
         "recording_delay_samples": recording_delay_samples,
+        "sampling_clock_drift_ppm": sampling_clock_drift_ppm,
         "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
         "samples": sample_records,
     }

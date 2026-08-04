@@ -101,10 +101,73 @@ def test_unknown_multisine_synchronization_method_is_rejected(tmp_path) -> None:
         load_config(path)
 
 
-def test_p8a_uses_incremented_config_schema_version() -> None:
+def test_unknown_clock_drift_correction_mode_is_rejected(tmp_path) -> None:
+    path = tmp_path / "bad-clock-correction.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "measurement_mode": "schroeder_multisine",
+                "multisine_estimation": {
+                    "synchronization_method": "preamble_cross_correlation",
+                    "period_averaging": "complex_spectrum",
+                    "clock_drift": {
+                        "warning_ppm": 20,
+                        "exclude_candidate_ppm": 100,
+                        "correction": "automatic",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="clock_drift.correction"):
+        load_config(path)
+
+
+@pytest.mark.parametrize(
+    ("warning_ppm", "exclude_candidate_ppm"),
+    [
+        (0, 100),
+        (-1, 100),
+        (20, 20),
+        (100, 20),
+        (float("nan"), 100),
+        (20, float("inf")),
+    ],
+)
+def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
+    tmp_path,
+    warning_ppm: float,
+    exclude_candidate_ppm: float,
+) -> None:
+    path = tmp_path / "bad-clock-thresholds.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "measurement_mode": "schroeder_multisine",
+                "multisine_estimation": {
+                    "synchronization_method": "preamble_cross_correlation",
+                    "period_averaging": "complex_spectrum",
+                    "clock_drift": {
+                        "warning_ppm": warning_ppm,
+                        "exclude_candidate_ppm": exclude_candidate_ppm,
+                        "correction": "disabled",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="0 < warning_ppm < exclude_candidate_ppm"):
+        load_config(path)
+
+
+def test_p8b1_uses_incremented_config_and_measurement_schema_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.3",
-        "config_schema_version": "2.2.0",
-        "measurement_schema_version": "2.2.0",
+        "pipeline_version": "2.0.0-dev.4",
+        "config_schema_version": "2.3.0",
+        "measurement_schema_version": "2.3.0",
         "feature_schema_version": "2.0.0",
     }

@@ -27,6 +27,15 @@ def main() -> int:
         default=0,
         help="Prefix every simulated recording with this many zero samples.",
     )
+    parser.add_argument(
+        "--sampling-clock-drift-ppm",
+        type=float,
+        default=0.0,
+        help=(
+            "Simulate signed output/input sampling-clock drift; positive values "
+            "produce more recording samples per physical interval."
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true")
     arguments = parser.parse_args()
     config = load_config(
@@ -38,6 +47,7 @@ def main() -> int:
         config["stimulus"],
         random_state=int(config["random_state"]),
         recording_delay_samples=arguments.recording_delay_samples,
+        sampling_clock_drift_ppm=arguments.sampling_clock_drift_ppm,
         overwrite=arguments.overwrite,
     )
     print(f"Generated mock manifest: {manifest}")

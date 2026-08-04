@@ -11,6 +11,7 @@ from scipy.io import wavfile
 
 from acoustic_encoder.config import load_config
 from acoustic_encoder.io_multisine import (
+    MultisineClockDriftError,
     MultisineConsistencyError,
     MultisineImportError,
     MultisineSynchronizationError,
@@ -30,7 +31,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MAGNITUDE_TOLERANCE_DB = 0.05
 
 
-def simulated_case(tmp_path, *, include_preamble: bool = True):
+def simulated_case(
+    tmp_path,
+    *,
+    include_preamble: bool = True,
+    sampling_clock_drift_ppm: float = 0.0,
+    stable_period_count: int | None = None,
+):
     resolved = load_config(
         PROJECT_ROOT / "config" / "stimulus_multisine_broadband.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
@@ -38,6 +45,8 @@ def simulated_case(tmp_path, *, include_preamble: bool = True):
     stimulus = deepcopy(resolved["stimulus"])
     if not include_preamble:
         stimulus["preamble"] = {"type": "none"}
+    if stable_period_count is not None:
+        stimulus["stable_period_count"] = stable_period_count
     delay_samples = 1379
     mock_manifest_path = generate_dual_mode_mock(
         tmp_path,
@@ -46,6 +55,7 @@ def simulated_case(tmp_path, *, include_preamble: bool = True):
         angles_deg=[0],
         random_state=123,
         recording_delay_samples=delay_samples,
+        sampling_clock_drift_ppm=sampling_clock_drift_ppm,
     )
     mock_manifest = json.loads(mock_manifest_path.read_text(encoding="utf-8"))
     meta = MeasurementMeta.from_dict(
@@ -57,6 +67,14 @@ def simulated_case(tmp_path, *, include_preamble: bool = True):
     )
     stimulus_manifest_path = Path(mock_manifest["stimulus_manifest"])
     return stimulus, delay_samples, meta, stimulus_manifest_path
+
+
+def _clock_drift_config(*, correction: str) -> dict[str, float | str]:
+    return {
+        "warning_ppm": 20.0,
+        "exclude_candidate_ppm": 100.0,
+        "correction": correction,
+    }
 
 
 def test_simulated_multisine_recovers_known_transfer_after_nonperiod_delay(
@@ -84,6 +102,223 @@ def test_simulated_multisine_recovers_known_transfer_after_nonperiod_delay(
         delay_samples + round(stimulus["pre_silence_s"] * stimulus["sample_rate_hz"])
     )
     assert np.max(np.abs(spectrum.magnitude_db - expected_db)) <= MAGNITUDE_TOLERANCE_DB
+
+
+def test_clock_drift_disabled_warns_without_upgrading_phase(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=50.0,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config=_clock_drift_config(correction="disabled"),
+    )
+
+    drift_qc = spectrum.quality_metrics["clock_drift"]
+    assert drift_qc["pre_correction"]["signed_drift_ppm"] == pytest.approx(
+        50.0,
+        abs=1.0,
+    )
+    assert drift_qc["pre_correction"]["decision"] == "warning"
+    assert drift_qc["correction"]["applied"] is False
+    assert drift_qc["final_decision"] == "warning"
+    assert spectrum.phase_status is PhaseStatus.RELATIVE_UNRELIABLE
+
+
+def test_zero_clock_drift_is_estimated_as_valid(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(tmp_path)
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config=_clock_drift_config(correction="disabled"),
+    )
+
+    pre = spectrum.quality_metrics["clock_drift"]["pre_correction"]
+    assert pre["signed_drift_ppm"] == pytest.approx(0.0, abs=1.0)
+    assert pre["decision"] == "valid"
+    assert spectrum.phase_status is PhaseStatus.RELATIVE_UNRELIABLE
+
+
+@pytest.mark.parametrize(
+    ("sampling_clock_drift_ppm", "expected_decision"),
+    [(10.0, "valid"), (120.0, "exclude_candidate")],
+)
+def test_clock_drift_disabled_applies_configured_decision_without_correction(
+    tmp_path,
+    sampling_clock_drift_ppm: float,
+    expected_decision: str,
+) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=sampling_clock_drift_ppm,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config=_clock_drift_config(correction="disabled"),
+    )
+
+    drift_qc = spectrum.quality_metrics["clock_drift"]
+    assert drift_qc["pre_correction"]["decision"] == expected_decision
+    assert drift_qc["final_decision"] == expected_decision
+    assert drift_qc["correction"]["applied"] is False
+    assert spectrum.phase_status is PhaseStatus.RELATIVE_UNRELIABLE
+    assert spectrum.phase_status is not PhaseStatus.COMMON_CLOCK
+
+
+def test_clock_drift_enabled_corrects_and_reestimates_tone_transfer(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=80.0,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config=_clock_drift_config(correction="enabled"),
+    )
+
+    expected_db = known_transfer_db(
+        spectrum.frequency_hz,
+        angle_deg=meta.angle_deg,
+        configuration=meta.configuration,
+    )
+    drift_qc = spectrum.quality_metrics["clock_drift"]
+    assert drift_qc["pre_correction"]["signed_drift_ppm"] == pytest.approx(
+        80.0,
+        abs=1.0,
+    )
+    assert drift_qc["correction"]["applied"] is True
+    assert drift_qc["correction"]["successful"] is True
+    assert drift_qc["correction"]["method"] == (
+        "quintic_spline_time_axis_resampling"
+    )
+    assert drift_qc["correction"]["ratio"] == pytest.approx(
+        1.0 / (1.0 + drift_qc["pre_correction"]["signed_drift_ppm"] * 1.0e-6),
+    )
+    assert abs(drift_qc["post_correction"]["signed_residual_drift_ppm"]) <= 1.0
+    assert drift_qc["post_correction"]["decision"] == "valid"
+    assert drift_qc["final_decision"] == "valid"
+    assert spectrum.phase_status is PhaseStatus.DRIFT_CORRECTED
+    assert np.max(np.abs(spectrum.magnitude_db - expected_db)) <= MAGNITUDE_TOLERANCE_DB
+
+
+def test_clock_drift_enabled_corrects_negative_drift(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=-80.0,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config=_clock_drift_config(correction="enabled"),
+    )
+
+    expected_db = known_transfer_db(
+        spectrum.frequency_hz,
+        angle_deg=meta.angle_deg,
+        configuration=meta.configuration,
+    )
+    drift_qc = spectrum.quality_metrics["clock_drift"]
+    assert drift_qc["pre_correction"]["signed_drift_ppm"] == pytest.approx(
+        -80.0,
+        abs=1.0,
+    )
+    assert abs(drift_qc["post_correction"]["signed_residual_drift_ppm"]) <= 1.0
+    assert drift_qc["correction"]["successful"] is True
+    assert spectrum.phase_status is PhaseStatus.DRIFT_CORRECTED
+    assert np.max(np.abs(spectrum.magnitude_db - expected_db)) <= MAGNITUDE_TOLERANCE_DB
+
+
+def test_clock_correction_does_not_claim_phase_for_power_averaging(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=50.0,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="power",
+        clock_drift_config=_clock_drift_config(correction="enabled"),
+    )
+
+    assert spectrum.quality_metrics["clock_drift"]["correction"]["successful"] is True
+    assert spectrum.phase_rad is None
+    assert spectrum.phase_status is PhaseStatus.RELATIVE_UNRELIABLE
+    assert spectrum.phase_status is not PhaseStatus.COMMON_CLOCK
+
+
+def test_clock_correction_keeps_phase_unreliable_when_residual_qc_fails(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        sampling_clock_drift_ppm=80.0,
+    )
+
+    spectrum = load_multisine_measurement(
+        meta.source_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        period_averaging="complex_spectrum",
+        clock_drift_config={
+            "warning_ppm": 1.0e-9,
+            "exclude_candidate_ppm": 0.1,
+            "correction": "enabled",
+        },
+    )
+
+    drift_qc = spectrum.quality_metrics["clock_drift"]
+    assert drift_qc["correction"]["applied"] is True
+    assert drift_qc["correction"]["successful"] is False
+    assert drift_qc["post_correction"]["decision"] in {
+        "warning",
+        "exclude_candidate",
+    }
+    assert drift_qc["correction"]["failure_reason"] == (
+        "residual_drift_not_below_warning_threshold"
+    )
+    assert spectrum.phase_status is PhaseStatus.RELATIVE_UNRELIABLE
+    assert spectrum.phase_status is not PhaseStatus.COMMON_CLOCK
+
+
+def test_clock_drift_estimation_fails_explicitly_with_one_stable_period(tmp_path) -> None:
+    _, _, meta, stimulus_manifest_path = simulated_case(
+        tmp_path,
+        stable_period_count=1,
+    )
+
+    with pytest.raises(MultisineClockDriftError, match="at least two complete periods"):
+        load_multisine_measurement(
+            meta.source_path,
+            stimulus_manifest_path,
+            meta,
+            run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+            period_averaging="complex_spectrum",
+            clock_drift_config=_clock_drift_config(correction="disabled"),
+        )
 
 
 def test_power_period_averaging_recovers_magnitude_without_claiming_phase(

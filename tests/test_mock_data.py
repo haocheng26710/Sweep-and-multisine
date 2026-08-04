@@ -14,7 +14,7 @@ from acoustic_encoder.mock_data import generate_dual_mode_mock
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
+def _test_stimulus() -> dict:
     resolved = load_config(
         PROJECT_ROOT / "config" / "stimulus_multisine_broadband.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
@@ -27,6 +27,11 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
     }
     stimulus["discard_initial_period_count"] = 1
     stimulus["stable_period_count"] = 2
+    return stimulus
+
+
+def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
+    stimulus = _test_stimulus()
     manifest_path = generate_dual_mode_mock(
         tmp_path,
         stimulus,
@@ -62,3 +67,61 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
         assert sidecar["common_sampling_clock"] is False
         assert sidecar["stimulus_hash"]
         assert sidecar["tone_set_id"] == stimulus["tone_set_id"]
+
+
+def test_s3_positive_clock_drift_stretches_time_axis_and_is_auditable(tmp_path) -> None:
+    stimulus = _test_stimulus()
+    common = {
+        "stimulus_config": stimulus,
+        "configurations": ["U4ENC"],
+        "angles_deg": [0],
+        "random_state": 123,
+        "recording_delay_samples": 1379,
+    }
+    zero_manifest_path = generate_dual_mode_mock(tmp_path / "zero", **common)
+    positive_manifest_path = generate_dual_mode_mock(
+        tmp_path / "positive",
+        sampling_clock_drift_ppm=100.0,
+        **common,
+    )
+    zero_manifest = json.loads(zero_manifest_path.read_text(encoding="utf-8"))
+    positive_manifest = json.loads(positive_manifest_path.read_text(encoding="utf-8"))
+    zero_audio_path = next((tmp_path / "zero" / "multisine").glob("*.wav"))
+    positive_audio_path = next((tmp_path / "positive" / "multisine").glob("*.wav"))
+    _, zero_audio = wavfile.read(zero_audio_path)
+    _, positive_audio = wavfile.read(positive_audio_path)
+    sidecar = json.loads(positive_audio_path.with_suffix(".json").read_text(encoding="utf-8"))
+
+    assert positive_audio.size > zero_audio.size
+    assert positive_manifest["sampling_clock_drift_ppm"] == 100.0
+    assert positive_manifest["recording_delay_samples"] == 1379
+    assert zero_manifest["sampling_clock_drift_ppm"] == 0.0
+    assert sidecar["sampling_clock_drift_ppm"] == 100.0
+    assert sidecar["clock_drift_simulation_method"] == "cubic_spline_time_axis_resampling"
+    assert sidecar["common_sampling_clock"] is False
+
+
+def test_s3_negative_clock_drift_compresses_time_axis(tmp_path) -> None:
+    stimulus = _test_stimulus()
+    common = {
+        "stimulus_config": stimulus,
+        "configurations": ["U4ENC"],
+        "angles_deg": [0],
+        "random_state": 123,
+        "recording_delay_samples": 1379,
+    }
+    generate_dual_mode_mock(tmp_path / "zero", **common)
+    generate_dual_mode_mock(
+        tmp_path / "negative",
+        sampling_clock_drift_ppm=-100.0,
+        **common,
+    )
+    zero_audio_path = next((tmp_path / "zero" / "multisine").glob("*.wav"))
+    negative_audio_path = next((tmp_path / "negative" / "multisine").glob("*.wav"))
+    _, zero_audio = wavfile.read(zero_audio_path)
+    _, negative_audio = wavfile.read(negative_audio_path)
+    sidecar = json.loads(negative_audio_path.with_suffix(".json").read_text(encoding="utf-8"))
+
+    assert negative_audio.size < zero_audio.size
+    assert sidecar["sampling_clock_drift_ppm"] == -100.0
+    assert sidecar["recording_delay_samples"] == 1379

@@ -1,7 +1,7 @@
-pipeline_version: 2.0.0-dev.3
+pipeline_version: 2.0.0-dev.4
 schema_versions:
-  config: 2.2.0
-  measurement: 2.2.0
+  config: 2.3.0
+  measurement: 2.3.0
   feature: 2.0.0
 
 measurement_mode: rew_sweep

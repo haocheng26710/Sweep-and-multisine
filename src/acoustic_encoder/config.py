@@ -134,6 +134,31 @@ def validate_config(config: Mapping[str, Any]) -> None:
             raise ConfigError(
                 "multisine_estimation.period_averaging must be complex_spectrum or power"
             )
+        clock_drift = estimation.get("clock_drift")
+        if clock_drift is not None:
+            if not isinstance(clock_drift, Mapping):
+                raise ConfigError("multisine_estimation.clock_drift must be a mapping")
+            if clock_drift.get("correction") not in {"disabled", "enabled"}:
+                raise ConfigError(
+                    "multisine_estimation.clock_drift.correction must be disabled or enabled"
+                )
+            try:
+                warning_ppm = float(clock_drift["warning_ppm"])
+                exclude_ppm = float(clock_drift["exclude_candidate_ppm"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ConfigError(
+                    "multisine_estimation.clock_drift requires numeric warning_ppm "
+                    "and exclude_candidate_ppm"
+                ) from exc
+            if not (
+                np.isfinite(warning_ppm)
+                and np.isfinite(exclude_ppm)
+                and 0.0 < warning_ppm < exclude_ppm
+            ):
+                raise ConfigError(
+                    "multisine_estimation.clock_drift requires "
+                    "0 < warning_ppm < exclude_candidate_ppm"
+                )
 
 
 def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:
