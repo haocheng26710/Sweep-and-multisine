@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 
@@ -36,6 +37,15 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["mock_only"] is True
     assert len(manifest["samples"]) == 4
+    for sample in manifest["samples"]:
+        assert sample["data_origin"] == "simulated"
+        assert sample["dataset_role"] == "software_validation"
+        assert sample["eligible_for_scientific_analysis"] is False
+        assert len(sample["source_sha256"]) == 64
+        assert sample["source_sha256"] == hashlib.sha256(
+            Path(sample["source_path"]).read_bytes()
+        ).hexdigest()
+        assert sample["provenance_uri"].endswith("mock_manifest.json")
     assert len(list((tmp_path / "rew").glob("*.txt"))) == 2
     audio_paths = sorted((tmp_path / "multisine").glob("*.wav"))
     assert len(audio_paths) == 2
@@ -47,4 +57,3 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
         assert sidecar["mock_only"] is True
         assert sidecar["stimulus_hash"]
         assert sidecar["tone_set_id"] == stimulus["tone_set_id"]
-

@@ -4,7 +4,7 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-A is implemented. It provides the project skeleton, versioned canonical schemas, configuration validation, a deterministic P7 Schroeder-phase multisine generator, matching dual-input mock data, and initial tests.
+DEV-A and the first provenance guard slice are implemented. They provide the project skeleton, versioned canonical schemas, configuration validation, a deterministic P7 Schroeder-phase multisine generator, matching dual-input mock data, and a research hard gate.
 
 It does **not** yet claim to analyze real measurements:
 
@@ -133,6 +133,18 @@ Before DEV-B freezes P1, provide 1–3 real REW Frequency Response TXT exports. 
 
 Do not rename or edit these examples. The parser will use them as immutable test fixtures and will send ambiguous files to manual review rather than guessing.
 
+## Provenance and research hard gate
+
+Every `MeasurementMeta` explicitly records one of three data origins:
+
+- `external_reference`: official sample data used only as a `parser_fixture`;
+- `simulated`: generated data used only for `software_validation`;
+- `real_experiment`: experiment data declared as a `research_input`.
+
+The metadata also records the raw input SHA-256, a provenance record URI, and `eligible_for_scientific_analysis`. These values are validated as one schema; a mock format cannot be relabelled as real data, and non-real data cannot be marked scientifically eligible.
+
+Run purpose is independently explicit: `software_validation` is the safe default, while `research_analysis` passes the hard gate only when at least one input is present and every input is an eligible `real_experiment`. Official reference curves and simulated data can validate parsing or software behavior, but cannot support scientific conclusions.
+
 ## Scientific safeguards
 
 - Raw inputs are read-only and run outputs never overwrite an existing run.
@@ -141,6 +153,6 @@ Do not rename or edit these examples. The parser will use them as immutable test
 - Tone selection, calibration, standardization, PCA, templates, and tuning use training data only.
 - Session, reposition round, assembly, and acquisition block boundaries are explicit.
 - Multisine phase is not used by default unless a common clock or recorded drift correction passes QC.
+- Missing provenance is never inferred from a filename, source format, or neighboring metadata. Schema 2.0 artifacts must be reclassified from their source records before use with schema 2.1.
 
 See `MIGRATION_V1_TO_V2.md` and `docs/DEV_A_TEST_AND_MOCK_PLAN.md` for migration and stage details.
-

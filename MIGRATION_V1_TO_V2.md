@@ -12,6 +12,20 @@ measurement_mode: rew_sweep
 
 The source YAML is never rewritten. The resolved run configuration records a migration warning and the V2 schema versions.
 
+An older configuration without `run_purpose` resolves in memory to the safe default:
+
+```yaml
+run_purpose: software_validation
+```
+
+`research_analysis` must be selected explicitly and is still subject to the per-measurement research hard gate.
+
+## Measurement schema 2.0 to 2.1
+
+Measurement schema 2.1 adds required `data_origin`, `dataset_role`, `source_sha256`, `provenance_uri`, and `eligible_for_scientific_analysis` fields. Missing provenance is never inferred. In particular, an old `rew_txt` path is ambiguous between an external parser fixture and a real experiment, so it must be reclassified from its immutable source record and hashed before import.
+
+The only scientifically eligible origin is `real_experiment`. `external_reference` remains parser/format validation data and `simulated` remains software-validation data.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -29,4 +43,3 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 ## Outputs
 
 V1 outputs remain read-only. V2 will always create a new `outputs/<run_id>/` and refuse to overwrite an existing run directory.
-

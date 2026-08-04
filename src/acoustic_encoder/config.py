@@ -9,6 +9,7 @@ from typing import Any, Mapping
 import numpy as np
 import yaml
 
+from .research_gate import RunPurpose, normalize_run_purpose
 from .schemas import MeasurementMode, normalize_measurement_mode
 from .version import (
     CONFIG_SCHEMA_VERSION,
@@ -61,6 +62,7 @@ def load_config(
             "Legacy config had no measurement_mode; resolved as rew_sweep without modifying the source YAML."
         )
     resolved = deep_merge(defaults, provided)
+    resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
         resolved.get("measurement_mode", MeasurementMode.REW_SWEEP.value)
     ).value
@@ -79,6 +81,12 @@ def load_config(
 
 
 def validate_config(config: Mapping[str, Any]) -> None:
+    try:
+        normalize_run_purpose(config["run_purpose"])
+    except (KeyError, ValueError) as exc:
+        raise ConfigError(
+            "run_purpose must be software_validation or research_analysis"
+        ) from exc
     try:
         normalize_measurement_mode(config["measurement_mode"])
     except (KeyError, ValueError) as exc:

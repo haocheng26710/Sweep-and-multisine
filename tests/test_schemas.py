@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import numpy as np
 import pytest
 
 from acoustic_encoder.schemas import (
+    DataOrigin,
+    DatasetRole,
     FeatureKind,
     FeatureSet,
     MeasurementMeta,
@@ -37,6 +40,11 @@ def sweep_meta() -> MeasurementMeta:
         measurement_mode=MeasurementMode.REW_SWEEP,
         source_format=SourceFormat.MOCK_DENSE,
         source_path="data/mock/example.txt",
+        data_origin=DataOrigin.SIMULATED,
+        dataset_role=DatasetRole.SOFTWARE_VALIDATION,
+        source_sha256="0" * 64,
+        provenance_uri="data/mock/mock_manifest.json",
+        eligible_for_scientific_analysis=False,
         date_time=datetime(2026, 8, 4, 12, 0, tzinfo=UTC),
     )
 
@@ -93,6 +101,11 @@ def test_multisine_meta_requires_manifest_linkage() -> None:
             measurement_mode=MeasurementMode.SCHROEDER_MULTISINE,
             source_format=SourceFormat.MULTISINE_WAV,
             source_path="recording.wav",
+            data_origin=DataOrigin.REAL_EXPERIMENT,
+            dataset_role=DatasetRole.RESEARCH_INPUT,
+            source_sha256="0" * 64,
+            provenance_uri="experiment_log/E8.json",
+            eligible_for_scientific_analysis=True,
         )
 
 
@@ -108,3 +121,39 @@ def test_spectrum_rejects_unsorted_frequency() -> None:
             meta=sweep_meta(),
         )
 
+
+def test_simulated_measurement_cannot_be_scientifically_eligible() -> None:
+    with pytest.raises(ValueError, match="real_experiment"):
+        MeasurementMeta(
+            sample_id="bad-simulated-eligibility",
+            **SCHEMA_VERSION_QUARTET,
+            device_version="V2",
+            configuration="U4ENC",
+            angle_deg=0.0,
+            session_id="S01",
+            repeat_type="CONT",
+            repeat_id="R01",
+            experiment_step="MOCK_DEV_A",
+            measurement_mode=MeasurementMode.REW_SWEEP,
+            source_format=SourceFormat.MOCK_DENSE,
+            source_path="data/mock/example.txt",
+            data_origin=DataOrigin.SIMULATED,
+            dataset_role=DatasetRole.SOFTWARE_VALIDATION,
+            source_sha256="0" * 64,
+            provenance_uri="mock_manifest.json",
+            eligible_for_scientific_analysis=True,
+        )
+
+
+def test_provenance_fields_use_incremented_measurement_schema() -> None:
+    payload = sweep_meta().to_dict()
+    assert payload["measurement_schema_version"] == "2.1.0"
+    assert payload["data_origin"] == "simulated"
+    assert payload["dataset_role"] == "software_validation"
+    assert payload["source_sha256"] == "0" * 64
+    assert payload["eligible_for_scientific_analysis"] is False
+
+
+def test_measurement_mode_rejects_incompatible_source_format() -> None:
+    with pytest.raises(ValueError, match="measurement_mode"):
+        replace(sweep_meta(), source_format=SourceFormat.MOCK_AUDIO)

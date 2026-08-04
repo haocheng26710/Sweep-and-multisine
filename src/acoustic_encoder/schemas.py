@@ -62,6 +62,18 @@ class SourceFormat(str, Enum):
     MOCK_AUDIO = "mock_audio"
 
 
+class DataOrigin(str, Enum):
+    EXTERNAL_REFERENCE = "external_reference"
+    SIMULATED = "simulated"
+    REAL_EXPERIMENT = "real_experiment"
+
+
+class DatasetRole(str, Enum):
+    PARSER_FIXTURE = "parser_fixture"
+    SOFTWARE_VALIDATION = "software_validation"
+    RESEARCH_INPUT = "research_input"
+
+
 def normalize_measurement_mode(value: str | MeasurementMode) -> MeasurementMode:
     """Normalize the sole accepted UI alias without leaking it into artifacts."""
     if isinstance(value, MeasurementMode):
@@ -113,6 +125,11 @@ class MeasurementMeta:
     measurement_mode: MeasurementMode
     source_format: SourceFormat
     source_path: str
+    data_origin: DataOrigin
+    dataset_role: DatasetRole
+    source_sha256: str
+    provenance_uri: str
+    eligible_for_scientific_analysis: bool
     reposition_round_id: str | None = None
     assembly_id: str | None = None
     acquisition_block_id: str | None = None
@@ -141,6 +158,7 @@ class MeasurementMeta:
             "repeat_id": self.repeat_id,
             "experiment_step": self.experiment_step,
             "source_path": self.source_path,
+            "provenance_uri": self.provenance_uri,
         }
         missing = [name for name, value in required_text.items() if not str(value).strip()]
         if missing:
@@ -151,6 +169,51 @@ class MeasurementMeta:
             raise ValueError("date_time must include a timezone")
         if not self.valid and not self.exclusion_reason:
             raise ValueError("exclusion_reason is required when valid is false")
+        if (
+            len(self.source_sha256) != 64
+            or self.source_sha256 != self.source_sha256.lower()
+            or any(character not in "0123456789abcdef" for character in self.source_sha256)
+        ):
+            raise ValueError("source_sha256 must be a lowercase 64-character SHA-256 digest")
+        expected_roles = {
+            DataOrigin.EXTERNAL_REFERENCE: DatasetRole.PARSER_FIXTURE,
+            DataOrigin.SIMULATED: DatasetRole.SOFTWARE_VALIDATION,
+            DataOrigin.REAL_EXPERIMENT: DatasetRole.RESEARCH_INPUT,
+        }
+        if self.dataset_role is not expected_roles.get(self.data_origin):
+            raise ValueError(
+                f"dataset_role {self.dataset_role!r} is incompatible with "
+                f"data_origin {self.data_origin!r}"
+            )
+        mode_formats = {
+            MeasurementMode.REW_SWEEP: {SourceFormat.REW_TXT, SourceFormat.MOCK_DENSE},
+            MeasurementMode.SCHROEDER_MULTISINE: {
+                SourceFormat.MULTISINE_WAV,
+                SourceFormat.MOCK_AUDIO,
+            },
+        }
+        if self.source_format not in mode_formats[self.measurement_mode]:
+            raise ValueError(
+                f"source_format {self.source_format.value!r} is incompatible with "
+                f"measurement_mode {self.measurement_mode.value!r}"
+            )
+        allowed_formats = {
+            DataOrigin.EXTERNAL_REFERENCE: {SourceFormat.REW_TXT},
+            DataOrigin.SIMULATED: {SourceFormat.MOCK_DENSE, SourceFormat.MOCK_AUDIO},
+            DataOrigin.REAL_EXPERIMENT: {SourceFormat.REW_TXT, SourceFormat.MULTISINE_WAV},
+        }
+        if self.source_format not in allowed_formats[self.data_origin]:
+            raise ValueError(
+                f"source_format {self.source_format.value!r} is incompatible with "
+                f"data_origin {self.data_origin.value!r}"
+            )
+        if (
+            self.eligible_for_scientific_analysis
+            and self.data_origin is not DataOrigin.REAL_EXPERIMENT
+        ):
+            raise ValueError(
+                "eligible_for_scientific_analysis requires data_origin='real_experiment'"
+            )
         if self.measurement_mode is MeasurementMode.SCHROEDER_MULTISINE:
             required_multisine = {
                 "stimulus_id": self.stimulus_id,
@@ -171,6 +234,8 @@ class MeasurementMeta:
         values = dict(payload)
         values["measurement_mode"] = normalize_measurement_mode(values["measurement_mode"])
         values["source_format"] = SourceFormat(values["source_format"])
+        values["data_origin"] = DataOrigin(values["data_origin"])
+        values["dataset_role"] = DatasetRole(values["dataset_role"])
         values["qc_status"] = QCStatus(values.get("qc_status", QCStatus.VALID.value))
         if values.get("date_time"):
             values["date_time"] = datetime.fromisoformat(values["date_time"])
@@ -388,4 +453,3 @@ def load_feature_set(base_path: str | Path) -> FeatureSet:
             ),
             meta=MeasurementMeta.from_dict(payload["meta"]),
         )
-

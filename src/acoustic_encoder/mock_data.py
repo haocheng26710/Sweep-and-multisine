@@ -13,6 +13,8 @@ from numpy.typing import NDArray
 from scipy.io import wavfile
 
 from .schemas import (
+    DataOrigin,
+    DatasetRole,
     MeasurementMeta,
     MeasurementMode,
     QCStatus,
@@ -167,6 +169,7 @@ def generate_dual_mode_mock(
             audio_path = audio_root / f"{base_name}_MS.wav"
             audio_path.parent.mkdir(parents=True, exist_ok=True)
             wavfile.write(audio_path, sample_rate, recording.astype(np.float32))
+            audio_sha256 = _sha256(audio_path)
             sidecar_path = audio_path.with_suffix(".json")
             multisine_meta = MeasurementMeta(
                 sample_id=multisine_sample_id,
@@ -185,6 +188,11 @@ def generate_dual_mode_mock(
                 tone_set_id=str(stimulus_config["tone_set_id"]),
                 source_format=SourceFormat.MOCK_AUDIO,
                 source_path=audio_path.as_posix(),
+                data_origin=DataOrigin.SIMULATED,
+                dataset_role=DatasetRole.SOFTWARE_VALIDATION,
+                source_sha256=audio_sha256,
+                provenance_uri=manifest_path.as_posix(),
+                eligible_for_scientific_analysis=False,
                 sidecar_path=sidecar_path.as_posix(),
                 audio_channel=0,
                 qc_status=QCStatus.VALID,
@@ -194,7 +202,7 @@ def generate_dual_mode_mock(
                 "mock_only": True,
                 "sample_rate_hz": sample_rate,
                 "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
-                "recording_sha256": _sha256(audio_path),
+                "recording_sha256": audio_sha256,
                 "known_transfer_csv": truth_path.as_posix(),
             }
             sidecar_path.write_text(
@@ -215,6 +223,11 @@ def generate_dual_mode_mock(
                 measurement_mode=MeasurementMode.REW_SWEEP,
                 source_format=SourceFormat.MOCK_DENSE,
                 source_path=sweep_path.as_posix(),
+                data_origin=DataOrigin.SIMULATED,
+                dataset_role=DatasetRole.SOFTWARE_VALIDATION,
+                source_sha256=_sha256(sweep_path),
+                provenance_uri=manifest_path.as_posix(),
+                eligible_for_scientific_analysis=False,
                 qc_status=QCStatus.VALID,
             )
             sample_records.extend([sweep_meta.to_dict(), multisine_meta.to_dict()])
@@ -234,4 +247,3 @@ def generate_dual_mode_mock(
         encoding="utf-8",
     )
     return manifest_path
-
