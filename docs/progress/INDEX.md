@@ -1,0 +1,10 @@
+# 开发进度索引
+
+本目录记录可由 Git 提交、测试输出和项目文档复核的增量步骤。状态“完成”仅表示该软件切片及其验证完成，不表示已获得真实实验结果或可以形成科研结论。
+
+| 步骤 | 日期 | 状态 | 报告 | Git commit |
+|---|---|---|---|---|
+| DEV-B0 — 数据来源 schema 与 research hard gate | 2026-08-04 | 完成 | [DEV-B0_PROVENANCE_RESEARCH_GATE.md](./DEV-B0_PROVENANCE_RESEARCH_GATE.md) | `163ab40` |
+| DEV-B1 — P1 REW Frequency Response TXT 导入 | 2026-08-04 | 完成 | [DEV-B1_P1_REW_TXT_IMPORT.md](./DEV-B1_P1_REW_TXT_IMPORT.md) | `45719bf` |
+
+当前科研资格边界：仓库中用于上述步骤的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema 和 research hard gate 的合格 `real_experiment` 才能进入 `research_analysis`。
