@@ -1,0 +1,29 @@
+measurement_mode: schroeder_multisine
+stimulus_id: ms_broadband_1k_8k_100hz_v1
+tone_set_id: broadband_1k_8k_100hz_v1
+sample_rate_hz: 48000
+
+experiment:
+  device_version: V2
+  configurations: [U4SYM, U4ENC]
+  angles_deg: [0, 90, 180, 270]
+  require_explicit_group_ids: true
+
+multisine_estimation:
+  synchronization_method: preamble_cross_correlation
+  stable_period_count: 8
+  discard_initial_period_count: 2
+  clock_drift:
+    warning_ppm: 20
+    exclude_candidate_ppm: 100
+    correction: disabled
+  tone_quality:
+    minimum_snr_db: 20
+    maximum_leakage_ratio: 0.05
+    maximum_period_variance_db2: 1.0
+  phase_policy: magnitude_only_unless_clock_qc_passes
+
+features:
+  feature_kind: tone_measurement_from_multisine
+  normalization: subtract_mean_db
+

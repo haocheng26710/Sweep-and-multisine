@@ -1,0 +1,36 @@
+pipeline_version: 2.0.0-dev.0
+schema_versions:
+  config: 2.0.0
+  measurement: 2.0.0
+  feature: 2.0.0
+
+measurement_mode: rew_sweep
+random_state: 20260804
+
+paths:
+  rew_txt: data/exported_txt
+  multisine_audio: data/raw_audio/multisine
+  metadata: data/metadata/measurements.csv
+  outputs: outputs
+
+preprocessing:
+  analysis_band_hz: [1000, 8000]
+  common_grid_step_hz: 10
+  interpolation: linear
+  normalization_band_hz: [1000, 8000]
+  normalization: none
+  smoothing:
+    method: none
+    boundary: reflect
+
+quality_control:
+  empty_file: exclude_candidate
+  missing_phase: warning
+  rew_headroom_when_absent: unavailable
+  rew_noise_floor_when_absent: unavailable
+
+output:
+  refuse_existing_run: true
+  save_config_snapshot: true
+  save_input_hashes: true
+

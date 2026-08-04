@@ -1,0 +1,32 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+work/
+
+# Raw measurements, generated stimuli, processed artifacts, and run outputs.
+data/exported_txt/**
+data/raw_mdat/**
+data/raw_audio/**
+data/stimuli/**
+data/processed/**
+data/mock/**
+outputs/*
+
+# Keep directory placeholders and templates.
+!data/exported_txt/
+!data/raw_mdat/
+!data/raw_audio/
+!data/raw_audio/**/
+!data/stimuli/
+!data/stimuli/**/
+!data/processed/
+!data/processed/**/
+!data/mock/
+!data/**/.gitkeep
+!data/metadata/measurements.csv
