@@ -26,6 +26,12 @@ Measurement schema 2.1 adds required `data_origin`, `dataset_role`, `source_sha2
 
 The only scientifically eligible origin is `real_experiment`. `external_reference` remains parser/format validation data and `simulated` remains software-validation data.
 
+## Measurement schema 2.1 to 2.2
+
+Measurement schema 2.2 permits experiment-identity fields to be null only for `external_reference` data and actively rejects those fields when populated on an external reference. This prevents official sample curve names from being recast as project `device_version`, `configuration`, `angle_deg`, `session_id`, `repeat_type`, `repeat_id`, grouping IDs, or `experiment_step`.
+
+`simulated` and `real_experiment` metadata retain the original required experiment fields. Existing 2.1 external-reference artifacts must be re-created from their immutable source and provenance record rather than filled with placeholder experiment values.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -34,7 +40,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-During DEV-A this command validates and resolves configuration only. P1 execution begins after real REW TXT fixtures are available.
+The command still validates and resolves configuration only. The P1 module now provides direct, tested REW TXT import; routing it through the complete P2–P6 run remains a later stage.
 
 ## New grouping fields
 

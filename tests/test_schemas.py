@@ -49,6 +49,28 @@ def sweep_meta() -> MeasurementMeta:
     )
 
 
+def external_reference_meta() -> MeasurementMeta:
+    return MeasurementMeta(
+        sample_id="rew-official-reference-001",
+        **SCHEMA_VERSION_QUARTET,
+        device_version=None,
+        configuration=None,
+        angle_deg=None,
+        session_id=None,
+        repeat_type=None,
+        repeat_id=None,
+        experiment_step=None,
+        measurement_mode=MeasurementMode.REW_SWEEP,
+        source_format=SourceFormat.REW_TXT,
+        source_path="tests/fixtures/rew/reference.txt",
+        data_origin=DataOrigin.EXTERNAL_REFERENCE,
+        dataset_role=DatasetRole.PARSER_FIXTURE,
+        source_sha256="0" * 64,
+        provenance_uri="tests/fixtures/rew/external_reference/manifest.json",
+        eligible_for_scientific_analysis=False,
+    )
+
+
 def test_spectrum_and_feature_round_trip(tmp_path) -> None:
     meta = sweep_meta()
     frequency = np.array([1000.0, 1010.0, 1020.0])
@@ -147,7 +169,7 @@ def test_simulated_measurement_cannot_be_scientifically_eligible() -> None:
 
 def test_provenance_fields_use_incremented_measurement_schema() -> None:
     payload = sweep_meta().to_dict()
-    assert payload["measurement_schema_version"] == "2.1.0"
+    assert payload["measurement_schema_version"] == "2.2.0"
     assert payload["data_origin"] == "simulated"
     assert payload["dataset_role"] == "software_validation"
     assert payload["source_sha256"] == "0" * 64
@@ -157,3 +179,18 @@ def test_provenance_fields_use_incremented_measurement_schema() -> None:
 def test_measurement_mode_rejects_incompatible_source_format() -> None:
     with pytest.raises(ValueError, match="measurement_mode"):
         replace(sweep_meta(), source_format=SourceFormat.MOCK_AUDIO)
+
+
+def test_external_reference_has_no_experiment_identity_metadata() -> None:
+    meta = external_reference_meta()
+
+    assert meta.configuration is None
+    assert meta.angle_deg is None
+    assert meta.session_id is None
+    assert meta.repeat_type is None
+    assert meta.repeat_id is None
+
+
+def test_external_reference_rejects_fabricated_experiment_identity() -> None:
+    with pytest.raises(ValueError, match="external_reference.*experiment identity"):
+        replace(external_reference_meta(), configuration="U4ENC")

@@ -18,13 +18,22 @@ Mock data exist only to test software. They cannot support any claim about the a
 - A research hard gate that rejects empty runs, official reference fixtures, simulated inputs, and real inputs not explicitly eligible for scientific analysis.
 - Mock TXT/WAV metadata carrying the actual source SHA-256 and structured `simulated` / `software_validation` declarations in addition to the legacy `mock_only` marker.
 
+## Implemented in the P1 REW import slice
+
+- Flexible `*`/`#` comments and whitespace, TAB, comma, or semicolon numeric delimiters without a frozen literal header string.
+- Two-column magnitude-only and three-column magnitude/phase imports returning dense `SpectrumData`.
+- Explicit rejection of empty, malformed, mixed-column, non-finite, duplicate/decreasing, too-short, impedance, hash-mismatched, and unresolved-manual-review inputs.
+- REW headroom, noise floor, and raw waveform QC recorded as `unavailable` rather than inferred.
+- Synthetic format/error fixtures plus byte-immutable regressions for `Artist 3 + Q2070Si`, `REL Sub, No EQ`, and `BW M1`.
+- External references with no fabricated experiment identity and enforced `software_validation`-only use.
+
 ## Deferred to DEV-B/DEV-C
 
-- Real REW parser fixtures and P1 import tests.
+- Project-specific `real_experiment` REW fixtures and complete pipeline routing beyond the P1 adapter.
 - P8 synchronization, delay/drift detection, transfer recovery, missing tone and clipping QC.
 - P3 matched FeatureSet construction, P4/P5 metrics/classification, P9 selection, and leakage tests.
 - Complete T0–T3 dry-runs and S2 failure reports.
 
-## Required real REW samples
+## Remaining real-experiment gate
 
-Before freezing P1, provide 1–3 actual REW Frequency Response TXT exports. Prefer one with phase, one without phase, and any sample containing the real comment/header variation. The mock CSV-like TXT deliberately does not define the real parser format.
+The three official sample exports validate format only and remain `external_reference`. Before scientific analysis, provide unedited REW Frequency Response TXT exports from this project together with explicit experiment metadata and provenance. A real two-column no-phase export should be retained as an immutable regression if that form occurs in the project workflow.

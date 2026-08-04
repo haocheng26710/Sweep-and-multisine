@@ -1,0 +1,34 @@
+{
+  "fixture_schema_version": "1.0.0",
+  "provenance_uri": "tests/fixtures/rew/external_reference/manifest.json",
+  "source_description": "User-provided REW TXT exports from official sample measurements; parser and format validation only.",
+  "data_origin": "external_reference",
+  "dataset_role": "parser_fixture",
+  "eligible_for_scientific_analysis": false,
+  "files": [
+    {
+      "file_name": "Artist 3 + Q2070Si.txt",
+      "sample_id": "rew-reference-f06000bd7bc1",
+      "sha256": "f06000bd7bc11923a23dc7d54e9c72d0d6e55c3804755c5cb8583bc13131454d",
+      "expected_point_count": 1289,
+      "first_frequency_hz": 2.197266,
+      "last_frequency_hz": 24027.117375
+    },
+    {
+      "file_name": "REL Sub, No EQ.txt",
+      "sample_id": "rew-reference-29bcfb447d7c",
+      "sha256": "29bcfb447d7c1087df2ef217f324f3a0f86645896f357e5faa7bc1ef618279c9",
+      "expected_point_count": 589,
+      "first_frequency_hz": 2.018738,
+      "last_frequency_hz": 199.855042
+    },
+    {
+      "file_name": "BW M1.txt",
+      "sample_id": "rew-reference-cc863c23f0f4",
+      "sha256": "cc863c23f0f4ebf3cc4d875f9a511b76b1d3e20a391ffc7a47745d8f53365447",
+      "expected_point_count": 1289,
+      "first_frequency_hz": 2.018738,
+      "last_frequency_hz": 22074.914088
+    }
+  ]
+}

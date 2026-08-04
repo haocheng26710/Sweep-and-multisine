@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.2 — P1 REW import (unreleased)
+
+- Incremented the measurement schema to 2.2.0 while keeping config and feature schemas unchanged.
+- Added flexible, hash-checked REW frequency-response TXT import returning dense `SpectrumData`.
+- Added explicit malformed-input, impedance, unknown-type, and manual-review error paths.
+- Added synthetic parser fixtures and three byte-immutable external-reference regressions.
+- Prevented external references from carrying fabricated experiment identity metadata.
+
 ## 2.0.0-dev.1 — provenance guard (unreleased)
 
 - Incremented configuration and measurement schemas to 2.1.0.

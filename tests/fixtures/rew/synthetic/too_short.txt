@@ -1,0 +1,5 @@
+# Frequency Hz, acoustic SPL dB
+100 70
+200 71
+300 72
+400 73

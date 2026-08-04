@@ -1,0 +1,7 @@
+# Flexible REW export
+* Frequency Hz, acoustic SPL dB, phase degrees
+100	70	-20
+200	71	-10
+300	72	0
+400	73	10
+500	74	20

@@ -4,11 +4,11 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-A and the first provenance guard slice are implemented. They provide the project skeleton, versioned canonical schemas, configuration validation, a deterministic P7 Schroeder-phase multisine generator, matching dual-input mock data, and a research hard gate.
+DEV-A, the provenance guard, and the first P1 REW import slice are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, and format-validated REW frequency-response TXT import.
 
 It does **not** yet claim to analyze real measurements:
 
-- The REW parser is deliberately not frozen before real TXT samples are supplied.
+- The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 synchronization/transfer estimation begins in DEV-B.
 - P2–P6 FeatureSet analysis and P9 begin in DEV-C.
 - Mock data are prohibited as research evidence.
@@ -123,15 +123,13 @@ Each multisine WAV should have a sidecar containing `stimulus_id`, stimulus hash
 
 Missing `reposition_round_id`, `assembly_id`, or `acquisition_block_id` is never inferred. A validation scheme that needs a missing group is reported as unavailable.
 
-## Real REW sample gate
+## P1 REW frequency-response import
 
-Before DEV-B freezes P1, provide 1–3 real REW Frequency Response TXT exports. Prefer:
+`load_rew_measurement(path, meta, run_purpose=...)` accepts two-column frequency/magnitude and three-column frequency/magnitude/phase exports. Comment lines may begin with `*` or `#`; numeric fields may be separated by spaces, TABs, commas, or semicolons. The parser discovers the numeric block and uses semantic SPL/impedance markers rather than matching one literal REW header.
 
-1. one export containing phase;
-2. one without phase, if that occurs in practice;
-3. any export showing a different real comment, delimiter, or column-name form.
+P1 requires a matching source SHA-256, at least five finite strictly increasing frequencies, consistent column count, and metadata with no unresolved manual-review reasons. Impedance exports are rejected from the acoustic SPL path. Unknown data types stop for manual review rather than being guessed from the filename.
 
-Do not rename or edit these examples. The parser will use them as immutable test fixtures and will send ambiguous files to manual review rather than guessing.
+Three user-provided exports from REW official sample measurements are copied byte-for-byte under `tests/fixtures/rew/external_reference/` and locked by `manifest.json`: `Artist 3 + Q2070Si.txt`, `REL Sub, No EQ.txt`, and `BW M1.txt`. They validate parser format only. They are not project experiments and carry no fabricated device, configuration, angle, session, repeat, or experiment-step metadata.
 
 ## Provenance and research hard gate
 
@@ -153,6 +151,6 @@ Run purpose is independently explicit: `software_validation` is the safe default
 - Tone selection, calibration, standardization, PCA, templates, and tuning use training data only.
 - Session, reposition round, assembly, and acquisition block boundaries are explicit.
 - Multisine phase is not used by default unless a common clock or recorded drift correction passes QC.
-- Missing provenance is never inferred from a filename, source format, or neighboring metadata. Schema 2.0 artifacts must be reclassified from their source records before use with schema 2.1.
+- Missing provenance is never inferred from a filename, source format, or neighboring metadata. Schema 2.0/2.1 artifacts must be reclassified from their source records before use with measurement schema 2.2.
 
 See `MIGRATION_V1_TO_V2.md` and `docs/DEV_A_TEST_AND_MOCK_PLAN.md` for migration and stage details.

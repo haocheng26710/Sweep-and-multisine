@@ -6,3 +6,5 @@
 *.json text eol=lf
 *.csv text eol=lf
 
+# Preserve uploaded REW reference exports byte-for-byte for SHA-256 regression checks.
+tests/fixtures/rew/external_reference/*.txt -text

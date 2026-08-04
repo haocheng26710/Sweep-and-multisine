@@ -1,0 +1,7 @@
+* Measurement data exported by REW
+* Frequency Hz; Impedance ohms; Phase degrees
+100;8.0;-20
+200;8.1;-10
+300;8.2;0
+400;8.3;10
+500;8.4;20

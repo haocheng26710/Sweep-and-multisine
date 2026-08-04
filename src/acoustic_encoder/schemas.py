@@ -115,13 +115,13 @@ class MeasurementMeta:
     config_schema_version: str
     measurement_schema_version: str
     feature_schema_version: str
-    device_version: str
-    configuration: str
-    angle_deg: float
-    session_id: str
-    repeat_type: str
-    repeat_id: str
-    experiment_step: str
+    device_version: str | None
+    configuration: str | None
+    angle_deg: float | None
+    session_id: str | None
+    repeat_type: str | None
+    repeat_id: str | None
+    experiment_step: str | None
     measurement_mode: MeasurementMode
     source_format: SourceFormat
     source_path: str
@@ -151,20 +151,59 @@ class MeasurementMeta:
             "config_schema_version": self.config_schema_version,
             "measurement_schema_version": self.measurement_schema_version,
             "feature_schema_version": self.feature_schema_version,
-            "device_version": self.device_version,
-            "configuration": self.configuration,
-            "session_id": self.session_id,
-            "repeat_type": self.repeat_type,
-            "repeat_id": self.repeat_id,
-            "experiment_step": self.experiment_step,
             "source_path": self.source_path,
             "provenance_uri": self.provenance_uri,
         }
         missing = [name for name, value in required_text.items() if not str(value).strip()]
         if missing:
             raise ValueError(f"MeasurementMeta required fields are empty: {missing}")
-        if not np.isfinite(self.angle_deg) or not 0.0 <= self.angle_deg < 360.0:
-            raise ValueError("angle_deg must be finite and in [0, 360)")
+        experiment_identity = {
+            "device_version": self.device_version,
+            "configuration": self.configuration,
+            "angle_deg": self.angle_deg,
+            "session_id": self.session_id,
+            "repeat_type": self.repeat_type,
+            "repeat_id": self.repeat_id,
+            "reposition_round_id": self.reposition_round_id,
+            "assembly_id": self.assembly_id,
+            "acquisition_block_id": self.acquisition_block_id,
+            "experiment_step": self.experiment_step,
+        }
+        if self.data_origin is DataOrigin.EXTERNAL_REFERENCE:
+            present = [name for name, value in experiment_identity.items() if value is not None]
+            if present:
+                raise ValueError(
+                    "external_reference must not contain experiment identity fields: "
+                    f"{present}"
+                )
+        else:
+            required_experiment_text = {
+                name: value
+                for name, value in experiment_identity.items()
+                if name
+                in {
+                    "device_version",
+                    "configuration",
+                    "session_id",
+                    "repeat_type",
+                    "repeat_id",
+                    "experiment_step",
+                }
+            }
+            missing_experiment = [
+                name
+                for name, value in required_experiment_text.items()
+                if value is None or not str(value).strip()
+            ]
+            if missing_experiment:
+                raise ValueError(
+                    "MeasurementMeta experiment fields are required: "
+                    f"{missing_experiment}"
+                )
+            if self.angle_deg is None or not np.isfinite(self.angle_deg):
+                raise ValueError("angle_deg must be finite and in [0, 360)")
+            if not 0.0 <= self.angle_deg < 360.0:
+                raise ValueError("angle_deg must be finite and in [0, 360)")
         if self.date_time is not None and self.date_time.tzinfo is None:
             raise ValueError("date_time must include a timezone")
         if not self.valid and not self.exclusion_reason:

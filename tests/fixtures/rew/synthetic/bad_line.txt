@@ -1,0 +1,7 @@
+# Frequency Hz, acoustic SPL dB
+100 70
+200 71
+this is not numeric data
+300 72
+400 73
+500 74
