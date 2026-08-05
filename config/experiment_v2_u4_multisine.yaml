@@ -19,9 +19,37 @@ multisine_estimation:
     exclude_candidate_ppm: 100
     correction: disabled
   tone_quality:
-    minimum_snr_db: 20
-    maximum_leakage_ratio: 0.05
-    maximum_period_variance_db2: 1.0
+    neighborhood:
+      tone_guard_bins: 1
+      leakage_radius_bins: 3
+      noise_inner_radius_bins: 4
+      noise_outer_radius_bins: 8
+      minimum_noise_bins: 4
+      minimum_leakage_bins: 2
+    clipping:
+      sample_threshold_fraction_full_scale: 0.999
+      warning_fraction: 0.000001
+      exclude_candidate_fraction: 0.001
+      record_longest_run: true
+    snr:
+      method: median_local_non_excited_bin_power
+      warning_below_db: 30
+      exclude_candidate_below_db: 20
+    leakage:
+      warning_ratio: 0.01
+      exclude_candidate_ratio: 0.05
+    missing_tone:
+      minimum_snr_db: 20
+      minimum_magnitude_db: -80
+    period_stability:
+      method: complex_relative_variance
+      minimum_periods: 3
+      warning_variance_ratio: 0.005
+      exclude_candidate_variance_ratio: 0.02
+    non_excited_energy:
+      minimum_bin_count: 16
+      warning_ratio: 0.01
+      exclude_candidate_ratio: 0.05
   phase_policy: magnitude_only_unless_clock_qc_passes
 
 features:

@@ -46,6 +46,14 @@ Measurement schema 2.3 adds the structured `SpectrumData.quality_metrics.clock_d
 
 P8-B1 remains restricted to `simulated` / `software_validation`. Existing 2.2 real recordings are not silently corrected or made scientifically eligible; they still require explicit real-experiment provenance, the research hard gate, and the remaining P8-B2 tone-quality checks.
 
+## Configuration and measurement schema 2.3 to 2.4
+
+Configuration schema 2.4 replaces the provisional three-key `tone_quality` block with explicit sections for FFT neighborhoods, clipping, local-bin SNR, leakage, missing-tone decisions, period stability, and non-excited energy. Every numeric threshold must be finite; bin counts and radii are validated; warning/exclusion order is enforced. Configuration 2.3 version markers are migrated to 2.4 in memory and produce a migration warning without rewriting the source YAML. A multisine configuration must still supply the full 2.4 `tone_quality` block before P8-B2 analysis.
+
+Measurement schema 2.4 adds structured P8-B2 content under `SpectrumData.quality_metrics`: exact per-tone metrics/status/reasons, clipping counts and fractions, missing-tone summary, non-excited energy, aggregation policy, and the resolved QC configuration. CSV files remain views; the serialized `SpectrumData` is authoritative. Tone values are retained, `MeasurementMeta.valid` is not changed automatically, and `valid_mask` identifies tone-level exclusion candidates without converting sparse tones into a dense response.
+
+P8-B2 does not make an older or simulated recording scientifically eligible. The only current P8 path remains `simulated` / `software_validation` / `eligible_for_scientific_analysis=false`; real-experiment QC thresholds must be frozen under a separate approved validation step.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:

@@ -169,7 +169,7 @@ def test_simulated_measurement_cannot_be_scientifically_eligible() -> None:
 
 def test_provenance_fields_use_current_measurement_schema() -> None:
     payload = sweep_meta().to_dict()
-    assert payload["measurement_schema_version"] == "2.3.0"
+    assert payload["measurement_schema_version"] == "2.4.0"
     assert payload["data_origin"] == "simulated"
     assert payload["dataset_role"] == "software_validation"
     assert payload["source_sha256"] == "0" * 64

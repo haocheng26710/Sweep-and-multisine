@@ -11,12 +11,17 @@ from scipy.signal import correlate
 
 FloatArray = NDArray[np.float64]
 ComplexArray = NDArray[np.complex128]
+IntArray = NDArray[np.int64]
 
 
 @dataclass(frozen=True, slots=True)
 class PeriodTransferEstimate:
     frequency_hz: FloatArray
+    tone_bins: IntArray
     transfer_by_period: ComplexArray
+    spectrum_by_period: ComplexArray
+    analysis_periods: FloatArray
+    normalized_correlation: FloatArray
     preamble_start_sample: int
     first_period_start_sample: int
     analysis_start_sample: int
@@ -91,10 +96,15 @@ def estimate_period_transfers(
     sample_rate = int(manifest["sample_rate_hz"])
     bins = np.rint(frequencies * period_samples / sample_rate).astype(int)
     reference_fft = np.fft.rfft(reference_period)[bins]
-    recording_fft = np.fft.rfft(periods, axis=1)[:, bins]
+    spectrum_by_period = np.fft.rfft(periods, axis=1)
+    recording_fft = spectrum_by_period[:, bins]
     return PeriodTransferEstimate(
         frequency_hz=frequencies,
+        tone_bins=bins,
         transfer_by_period=recording_fft / reference_fft[None, :],
+        spectrum_by_period=spectrum_by_period,
+        analysis_periods=periods,
+        normalized_correlation=normalized_correlation,
         preamble_start_sample=preamble_start,
         first_period_start_sample=first_period_start,
         analysis_start_sample=analysis_start,

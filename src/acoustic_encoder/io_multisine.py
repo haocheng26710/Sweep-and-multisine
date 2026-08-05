@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -16,7 +17,12 @@ from .clock_drift import (
     correct_recording_time_axis,
     estimate_clock_drift,
 )
-from .multisine_estimation import estimate_period_transfers
+from .multisine_estimation import PeriodTransferEstimate, estimate_period_transfers
+from .multisine_qc import (
+    MultisineQCAnalysis,
+    analyze_clipping,
+    evaluate_tone_and_audio_quality,
+)
 from .research_gate import RunPurpose, normalize_run_purpose
 from .schemas import (
     DataOrigin,
@@ -127,16 +133,41 @@ def _aggregate_period_transfers(
     return magnitude, None
 
 
-def _read_wav_float(path: Path) -> tuple[int, np.ndarray]:
+@dataclass(frozen=True, slots=True)
+class _DecodedWav:
+    sample_rate_hz: int
+    audio: np.ndarray
+    sample_format: str
+
+
+@dataclass(frozen=True, slots=True)
+class _BaseMultisineAnalysis:
+    spectrum: SpectrumData
+    estimate: PeriodTransferEstimate
+    recording_audio: np.ndarray
+    recording_sample_format: str
+
+
+def _read_wav_float(path: Path, *, channel: int = 0) -> _DecodedWav:
     sample_rate, values = wavfile.read(path)
-    if np.issubdtype(values.dtype, np.integer):
+    sample_format = values.dtype.name
+    if values.ndim == 2:
+        if channel < 0 or channel >= values.shape[1]:
+            raise MultisineImportError(
+                f"Multisine WAV channel {channel} is unavailable: {path}"
+            )
+        values = values[:, channel]
+    elif values.ndim != 1:
+        raise MultisineImportError(f"Unsupported Multisine WAV layout: {path}")
+    if np.issubdtype(values.dtype, np.unsignedinteger):
+        midpoint = (float(np.iinfo(values.dtype).max) + 1.0) / 2.0
+        audio = (values.astype(np.float64) - midpoint) / midpoint
+    elif np.issubdtype(values.dtype, np.signedinteger):
         scale = max(abs(np.iinfo(values.dtype).min), np.iinfo(values.dtype).max)
         audio = values.astype(np.float64) / scale
     else:
         audio = values.astype(np.float64)
-    if audio.ndim != 1:
-        raise MultisineImportError(f"Multisine WAV must be mono: {path}")
-    return int(sample_rate), audio
+    return _DecodedWav(int(sample_rate), audio, sample_format)
 
 
 def _clock_drift_snapshot(
@@ -157,7 +188,7 @@ def _clock_drift_snapshot(
     }
 
 
-def load_multisine_measurement(
+def _process_multisine_measurement(
     recording_path: str | Path,
     stimulus_manifest_path: str | Path,
     meta: MeasurementMeta,
@@ -165,8 +196,7 @@ def load_multisine_measurement(
     run_purpose: str | RunPurpose,
     period_averaging: str,
     clock_drift_config: Mapping[str, Any] | None = None,
-) -> SpectrumData:
-    """Return a software-validation sparse tone transfer from one recording."""
+) -> _BaseMultisineAnalysis:
     _require_p8a_scope(run_purpose, meta)
     if period_averaging not in {"complex_spectrum", "power"}:
         raise MultisineImportError(
@@ -182,8 +212,12 @@ def load_multisine_measurement(
     _validate_manifest_layout(manifest)
     _validate_artifact_linkage(recording, stimulus_path, manifest, sidecar, meta)
 
-    recording_rate, recording_audio = _read_wav_float(recording)
-    stimulus_rate, stimulus_audio = _read_wav_float(stimulus_path)
+    recording_wav = _read_wav_float(recording, channel=int(meta.audio_channel))
+    stimulus_wav = _read_wav_float(stimulus_path)
+    recording_rate = recording_wav.sample_rate_hz
+    recording_audio = recording_wav.audio
+    stimulus_rate = stimulus_wav.sample_rate_hz
+    stimulus_audio = stimulus_wav.audio
     manifest_rate = int(manifest["sample_rate_hz"])
     if recording_rate != stimulus_rate or recording_rate != manifest_rate:
         raise MultisineConsistencyError("Multisine sample rate mismatch")
@@ -326,7 +360,7 @@ def load_multisine_measurement(
             "final_decision": final_decision.value,
             "phase_status": phase_status.value,
         }
-    return SpectrumData(
+    spectrum = SpectrumData(
         frequency_hz=estimate.frequency_hz,
         magnitude_db=20.0 * np.log10(magnitude_linear),
         magnitude_linear=magnitude_linear,
@@ -351,4 +385,108 @@ def load_multisine_measurement(
             "leakage": "unavailable",
         },
         meta=meta,
+    )
+    return _BaseMultisineAnalysis(
+        spectrum=spectrum,
+        estimate=estimate,
+        recording_audio=recording_audio,
+        recording_sample_format=recording_wav.sample_format,
+    )
+
+
+def load_multisine_measurement(
+    recording_path: str | Path,
+    stimulus_manifest_path: str | Path,
+    meta: MeasurementMeta,
+    *,
+    run_purpose: str | RunPurpose,
+    period_averaging: str,
+    clock_drift_config: Mapping[str, Any] | None = None,
+) -> SpectrumData:
+    """Return a software-validation sparse tone transfer from one recording."""
+    return _process_multisine_measurement(
+        recording_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=run_purpose,
+        period_averaging=period_averaging,
+        clock_drift_config=clock_drift_config,
+    ).spectrum
+
+
+def analyze_multisine_measurement(
+    recording_path: str | Path,
+    stimulus_manifest_path: str | Path,
+    meta: MeasurementMeta,
+    *,
+    run_purpose: str | RunPurpose,
+    period_averaging: str,
+    clock_drift_config: Mapping[str, Any] | None,
+    tone_quality_config: Mapping[str, Any],
+) -> MultisineQCAnalysis:
+    """Return the sparse transfer plus non-destructive P8-B2 QC evidence."""
+    base = _process_multisine_measurement(
+        recording_path,
+        stimulus_manifest_path,
+        meta,
+        run_purpose=run_purpose,
+        period_averaging=period_averaging,
+        clock_drift_config=clock_drift_config,
+    )
+    clipping_metrics = analyze_clipping(
+        base.recording_audio,
+        tone_quality_config["clipping"],
+        channel=int(meta.audio_channel),
+        sample_format=base.recording_sample_format,
+    )
+    records, measurement_qc, valid_mask = evaluate_tone_and_audio_quality(
+        base.estimate,
+        base.spectrum.magnitude_db,
+        tone_quality_config,
+        clipping_metrics=clipping_metrics,
+        clock_drift_metrics=base.spectrum.quality_metrics["clock_drift"],
+    )
+    quality_metrics = dict(base.spectrum.quality_metrics)
+    quality_metrics.update(
+        {
+            "p8_qc": measurement_qc,
+            "tone_quality": [record.to_dict() for record in records],
+            "clipping": clipping_metrics,
+            "missing_tones": {
+                "count": measurement_qc["missing_tone_count"],
+                "unavailable_count": measurement_qc[
+                    "missing_tone_unavailable_count"
+                ],
+            },
+            "leakage": {
+                "method": "local_non_excited_bin_energy_over_tone_bin_energy",
+                "guard_bins": int(
+                    tone_quality_config["neighborhood"]["tone_guard_bins"]
+                ),
+                "radius_bins": int(
+                    tone_quality_config["neighborhood"]["leakage_radius_bins"]
+                ),
+            },
+            "non_excited_energy": measurement_qc["non_excited_energy"],
+        }
+    )
+    spectrum = SpectrumData(
+        frequency_hz=base.spectrum.frequency_hz,
+        magnitude_db=base.spectrum.magnitude_db,
+        magnitude_linear=base.spectrum.magnitude_linear,
+        magnitude_quantity=base.spectrum.magnitude_quantity,
+        magnitude_reference=base.spectrum.magnitude_reference,
+        phase_rad=base.spectrum.phase_rad,
+        valid_mask=valid_mask,
+        representation=base.spectrum.representation,
+        phase_status=base.spectrum.phase_status,
+        quality_metrics=quality_metrics,
+        meta=base.spectrum.meta,
+    )
+    return MultisineQCAnalysis(
+        spectrum=spectrum,
+        tone_quality=records,
+        measurement_qc=measurement_qc,
+        estimate=base.estimate,
+        clipping_metrics=clipping_metrics,
     )

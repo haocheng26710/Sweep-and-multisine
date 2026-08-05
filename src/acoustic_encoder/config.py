@@ -62,6 +62,22 @@ def load_config(
             "Legacy config had no measurement_mode; resolved as rew_sweep without modifying the source YAML."
         )
     resolved = deep_merge(defaults, provided)
+    versions = resolved.get("schema_versions", {})
+    if (
+        versions.get("config") == "2.3.0"
+        and versions.get("measurement") == "2.3.0"
+        and versions.get("feature") == FEATURE_SCHEMA_VERSION
+    ):
+        resolved["pipeline_version"] = PIPELINE_VERSION
+        resolved["schema_versions"] = {
+            "config": CONFIG_SCHEMA_VERSION,
+            "measurement": MEASUREMENT_SCHEMA_VERSION,
+            "feature": FEATURE_SCHEMA_VERSION,
+        }
+        migration_warnings.append(
+            "P8-B1 config/measurement schema 2.3.0 was migrated in memory "
+            "to P8-B2 schema 2.4.0; the source YAML was not modified."
+        )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
         resolved.get("measurement_mode", MeasurementMode.REW_SWEEP.value)
@@ -159,6 +175,167 @@ def validate_config(config: Mapping[str, Any]) -> None:
                     "multisine_estimation.clock_drift requires "
                     "0 < warning_ppm < exclude_candidate_ppm"
                 )
+        tone_quality = estimation.get("tone_quality")
+        if tone_quality is not None:
+            validate_tone_quality_config(tone_quality)
+
+
+def _finite_number(mapping: Mapping[str, Any], key: str, label: str) -> float:
+    try:
+        value = float(mapping[key])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ConfigError(f"{label} must be numeric") from exc
+    if not np.isfinite(value):
+        raise ConfigError(f"{label} must be finite")
+    return value
+
+
+def _positive_integer(mapping: Mapping[str, Any], key: str, label: str) -> int:
+    value = mapping.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ConfigError(f"{label} must be a positive integer")
+    return value
+
+
+def _ratio_thresholds(
+    mapping: Mapping[str, Any],
+    *,
+    warning_key: str,
+    exclude_key: str,
+    label: str,
+    upper_bound: float | None = None,
+) -> tuple[float, float]:
+    warning = _finite_number(mapping, warning_key, f"{label} warning")
+    exclude = _finite_number(mapping, exclude_key, f"{label} exclude_candidate")
+    valid = 0.0 <= warning < exclude
+    if upper_bound is not None:
+        valid = valid and exclude <= upper_bound
+    if not valid:
+        suffix = f" <= {upper_bound:g}" if upper_bound is not None else ""
+        raise ConfigError(
+            f"{label} warning/exclude thresholds require "
+            f"0 <= warning < exclude_candidate{suffix}"
+        )
+    return warning, exclude
+
+
+def validate_tone_quality_config(quality: Mapping[str, Any]) -> None:
+    """Validate every P8-B2 threshold and FFT-neighborhood definition."""
+    if not isinstance(quality, Mapping):
+        raise ConfigError("multisine_estimation.tone_quality must be a mapping")
+    required_sections = (
+        "neighborhood",
+        "clipping",
+        "snr",
+        "leakage",
+        "missing_tone",
+        "period_stability",
+        "non_excited_energy",
+    )
+    missing = [name for name in required_sections if not isinstance(quality.get(name), Mapping)]
+    if missing:
+        raise ConfigError(f"multisine_estimation.tone_quality sections are missing: {missing}")
+
+    neighborhood = quality["neighborhood"]
+    guard = neighborhood.get("tone_guard_bins")
+    if isinstance(guard, bool) or not isinstance(guard, int) or guard < 0:
+        raise ConfigError("tone_guard_bins must be a non-negative integer")
+    leakage_radius = _positive_integer(
+        neighborhood, "leakage_radius_bins", "leakage_radius_bins"
+    )
+    noise_inner = _positive_integer(
+        neighborhood, "noise_inner_radius_bins", "noise_inner_radius_bins"
+    )
+    noise_outer = _positive_integer(
+        neighborhood, "noise_outer_radius_bins", "noise_outer_radius_bins"
+    )
+    if not guard < leakage_radius < noise_inner <= noise_outer:
+        raise ConfigError(
+            "tone-quality neighborhood radii require "
+            "tone_guard < leakage_radius < noise_inner <= noise_outer"
+        )
+    _positive_integer(neighborhood, "minimum_noise_bins", "minimum_noise_bins")
+    _positive_integer(
+        neighborhood, "minimum_leakage_bins", "minimum_leakage_bins"
+    )
+
+    clipping = quality["clipping"]
+    sample_threshold = _finite_number(
+        clipping,
+        "sample_threshold_fraction_full_scale",
+        "sample_threshold_fraction_full_scale",
+    )
+    if not 0.0 < sample_threshold <= 1.0:
+        raise ConfigError(
+            "sample_threshold_fraction_full_scale must lie in (0, 1]"
+        )
+    _ratio_thresholds(
+        clipping,
+        warning_key="warning_fraction",
+        exclude_key="exclude_candidate_fraction",
+        label="clipping",
+        upper_bound=1.0,
+    )
+    if not isinstance(clipping.get("record_longest_run"), bool):
+        raise ConfigError("clipping.record_longest_run must be boolean")
+
+    snr = quality["snr"]
+    if snr.get("method") != "median_local_non_excited_bin_power":
+        raise ConfigError(
+            "tone_quality.snr.method must be median_local_non_excited_bin_power"
+        )
+    snr_warning = _finite_number(snr, "warning_below_db", "SNR warning")
+    snr_exclude = _finite_number(
+        snr, "exclude_candidate_below_db", "SNR exclude_candidate"
+    )
+    if not snr_warning > snr_exclude:
+        raise ConfigError(
+            "SNR warning/exclude thresholds require warning_below_db > "
+            "exclude_candidate_below_db"
+        )
+
+    _ratio_thresholds(
+        quality["leakage"],
+        warning_key="warning_ratio",
+        exclude_key="exclude_candidate_ratio",
+        label="leakage",
+    )
+    missing_tone = quality["missing_tone"]
+    _finite_number(missing_tone, "minimum_snr_db", "missing-tone minimum_snr_db")
+    _finite_number(
+        missing_tone, "minimum_magnitude_db", "missing-tone minimum_magnitude_db"
+    )
+
+    stability = quality["period_stability"]
+    if stability.get("method") not in {
+        "complex_relative_variance",
+        "power_relative_variance",
+    }:
+        raise ConfigError(
+            "period_stability.method must be complex_relative_variance or "
+            "power_relative_variance"
+        )
+    minimum_periods = _positive_integer(
+        stability, "minimum_periods", "minimum_periods"
+    )
+    if minimum_periods < 2:
+        raise ConfigError("period_stability.minimum_periods must be at least 2")
+    _ratio_thresholds(
+        stability,
+        warning_key="warning_variance_ratio",
+        exclude_key="exclude_candidate_variance_ratio",
+        label="period stability",
+    )
+
+    off_tone = quality["non_excited_energy"]
+    _positive_integer(off_tone, "minimum_bin_count", "non-excited minimum_bin_count")
+    _ratio_thresholds(
+        off_tone,
+        warning_key="warning_ratio",
+        exclude_key="exclude_candidate_ratio",
+        label="non-excited energy",
+        upper_bound=1.0,
+    )
 
 
 def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:

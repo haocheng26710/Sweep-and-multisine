@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from acoustic_encoder.config import ConfigError, load_config
+from acoustic_encoder.config import ConfigError, load_config, validate_config
 from acoustic_encoder.version import SCHEMA_VERSION_QUARTET
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -164,10 +164,100 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_p8b1_uses_incremented_config_and_measurement_schema_versions() -> None:
+def test_p8b2_uses_incremented_config_and_measurement_schema_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.4",
-        "config_schema_version": "2.3.0",
-        "measurement_schema_version": "2.3.0",
+        "pipeline_version": "2.0.0-dev.5",
+        "config_schema_version": "2.4.0",
+        "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.0.0",
     }
+
+
+def test_multisine_tone_quality_thresholds_are_resolved_from_yaml() -> None:
+    resolved = load_config(
+        PROJECT_ROOT / "config" / "experiment_v2_u4_multisine.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+
+    quality = resolved["multisine_estimation"]["tone_quality"]
+    assert quality["neighborhood"] == {
+        "tone_guard_bins": 1,
+        "leakage_radius_bins": 3,
+        "noise_inner_radius_bins": 4,
+        "noise_outer_radius_bins": 8,
+        "minimum_noise_bins": 4,
+        "minimum_leakage_bins": 2,
+    }
+    assert quality["snr"]["warning_below_db"] == 30
+    assert quality["snr"]["exclude_candidate_below_db"] == 20
+    assert quality["leakage"]["warning_ratio"] == 0.01
+    assert quality["leakage"]["exclude_candidate_ratio"] == 0.05
+    assert quality["non_excited_energy"]["exclude_candidate_ratio"] == 0.05
+
+
+@pytest.mark.parametrize(
+    ("keys", "bad_value", "match"),
+    [
+        (("neighborhood", "tone_guard_bins"), -1, "tone_guard_bins"),
+        (("neighborhood", "leakage_radius_bins"), 1, "neighborhood radii"),
+        (("neighborhood", "minimum_noise_bins"), 0, "minimum_noise_bins"),
+        (
+            ("clipping", "sample_threshold_fraction_full_scale"),
+            1.1,
+            "sample_threshold_fraction_full_scale",
+        ),
+        (("clipping", "warning_fraction"), 0.1, "clipping warning"),
+        (("snr", "warning_below_db"), 10, "SNR warning"),
+        (("leakage", "warning_ratio"), 0.1, "leakage warning"),
+        (("period_stability", "minimum_periods"), 1, "minimum_periods"),
+        (
+            ("period_stability", "warning_variance_ratio"),
+            0.1,
+            "period stability warning",
+        ),
+        (
+            ("non_excited_energy", "warning_ratio"),
+            float("nan"),
+            "non-excited energy",
+        ),
+    ],
+)
+def test_invalid_multisine_tone_quality_config_is_rejected(
+    keys: tuple[str, str],
+    bad_value: float,
+    match: str,
+) -> None:
+    resolved = load_config(
+        PROJECT_ROOT / "config" / "experiment_v2_u4_multisine.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+    resolved["multisine_estimation"]["tone_quality"][keys[0]][keys[1]] = bad_value
+
+    with pytest.raises(ConfigError, match=match):
+        validate_config(resolved)
+
+
+def test_p8b1_config_versions_migrate_in_memory_without_rewriting(tmp_path) -> None:
+    path = tmp_path / "p8b1.yaml"
+    payload = {
+        "measurement_mode": "rew_sweep",
+        "schema_versions": {
+            "config": "2.3.0",
+            "measurement": "2.3.0",
+            "feature": "2.0.0",
+        },
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(
+        path,
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+
+    assert resolved["schema_versions"] == {
+        "config": "2.4.0",
+        "measurement": "2.4.0",
+        "feature": "2.0.0",
+    }
+    assert any("2.3.0" in warning for warning in resolved["_runtime"]["migration_warnings"])
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
