@@ -63,11 +63,16 @@ def load_config(
         )
     resolved = deep_merge(defaults, provided)
     versions = resolved.get("schema_versions", {})
-    if (
-        versions.get("config") == "2.3.0"
-        and versions.get("measurement") == "2.3.0"
-        and versions.get("feature") == FEATURE_SCHEMA_VERSION
-    ):
+    prior_versions = (
+        versions.get("config"),
+        versions.get("measurement"),
+        versions.get("feature"),
+    )
+    if prior_versions in {
+        ("2.3.0", "2.3.0", FEATURE_SCHEMA_VERSION),
+        ("2.4.0", "2.4.0", FEATURE_SCHEMA_VERSION),
+    }:
+        old_config_version = str(versions["config"])
         resolved["pipeline_version"] = PIPELINE_VERSION
         resolved["schema_versions"] = {
             "config": CONFIG_SCHEMA_VERSION,
@@ -75,8 +80,9 @@ def load_config(
             "feature": FEATURE_SCHEMA_VERSION,
         }
         migration_warnings.append(
-            "P8-B1 config/measurement schema 2.3.0 was migrated in memory "
-            "to P8-B2 schema 2.4.0; the source YAML was not modified."
+            f"Pre-DEV-B5 config schema {old_config_version} was migrated in memory "
+            f"to config schema {CONFIG_SCHEMA_VERSION} and measurement schema "
+            f"{MEASUREMENT_SCHEMA_VERSION}; the source YAML was not modified."
         )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
@@ -121,6 +127,12 @@ def validate_config(config: Mapping[str, Any]) -> None:
     random_state = config.get("random_state", 0)
     if not isinstance(random_state, int) or random_state < 0:
         raise ConfigError("random_state must be a non-negative integer")
+    paths = config.get("paths", {})
+    if not isinstance(paths, Mapping):
+        raise ConfigError("paths must be a mapping")
+    for path_name in ("stimuli", "outputs"):
+        if path_name in paths and not str(paths[path_name]).strip():
+            raise ConfigError(f"paths.{path_name} must be a non-empty path")
     preprocessing = config.get("preprocessing", {})
     band = preprocessing.get("analysis_band_hz", [1000, 8000])
     if len(band) != 2 or not 0 < float(band[0]) < float(band[1]):

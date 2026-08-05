@@ -342,6 +342,10 @@ def generate_dual_mode_mock(
                 "mock_only": True,
                 "sample_rate_hz": sample_rate,
                 "period_samples": int(stimulus_config["period_samples"]),
+                "stable_period_count": int(stimulus_config["stable_period_count"]),
+                "discard_initial_period_count": int(
+                    stimulus_config["discard_initial_period_count"]
+                ),
                 "recording_delay_samples": recording_delay_samples,
                 "sampling_clock_drift_ppm": sampling_clock_drift_ppm,
                 "recording_wav_format": recording_wav_format,
@@ -391,7 +395,7 @@ def generate_dual_mode_mock(
 
     manifest = {
         **SCHEMA_VERSION_QUARTET,
-        "mock_schema_version": "1.2.0",
+        "mock_schema_version": "1.3.0",
         "mock_only": True,
         "scientific_use": "PROHIBITED: generated data only validate software behavior.",
         "known_system": "known_transfer_db in acoustic_encoder.mock_data",

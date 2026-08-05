@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-A establishes compatibility rules; later stages will add tested P1 adapters.
+This document is intentionally incremental. DEV-B now closes the tested P1 dual-input entry path; P2–P6 and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -54,6 +54,14 @@ Measurement schema 2.4 adds structured P8-B2 content under `SpectrumData.quality
 
 P8-B2 does not make an older or simulated recording scientifically eligible. The only current P8 path remains `simulated` / `software_validation` / `eligible_for_scientific_analysis=false`; real-experiment QC thresholds must be frozen under a separate approved validation step.
 
+## Configuration schema 2.4 to 2.5
+
+Configuration schema 2.5 adds the canonical stimulus-root path used by the P1 multisine adapter: `paths.stimuli`. The adapter resolves `<paths.stimuli>/<stimulus_id>/stimulus_manifest.json` and rejects a non-canonical explicit manifest or stale sidecar pointer. It does not infer stimulus identity, tone set, period, or channel from the recording filename.
+
+Configuration 2.3/measurement 2.3 and configuration 2.4/measurement 2.4 version markers migrate in memory to configuration 2.5/measurement 2.4. The source YAML is not rewritten. Measurement schema remains 2.4 because DEV-B5 changes orchestration and run-manifest contracts, not `MeasurementMeta` or `SpectrumData` fields. Pipeline version is `2.0.0-dev.6`; S3 mock schema is 1.3 because sidecars now explicitly include stable and discarded period counts.
+
+The DEV-B run manifest has its own schema version (`1.0.0`). It records the version quartet, Git state, normalized mode, provenance, stimulus and recording identity, config/input/artifact hashes, phase/QC state, timestamps, random state, failure details, and explicit P1/P7/P8/P2-P6 stage gates.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -62,7 +70,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-The command still validates and resolves configuration only. The P1 module now provides direct, tested REW TXT import; routing it through the complete P2–P6 run remains a later stage.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it now routes REW through the P1 REW adapter or multisine through the P1/P8 adapter and writes a canonical run bundle. P2–P6 remain an explicit `not_implemented` stage gate.
 
 ## New grouping fields
 
@@ -70,4 +78,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. V2 will always create a new `outputs/<run_id>/` and refuse to overwrite an existing run directory.
+V1 outputs remain read-only. DEV-B5 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.

@@ -164,10 +164,10 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_p8b2_uses_incremented_config_and_measurement_schema_versions() -> None:
+def test_dev_b5_uses_incremented_pipeline_and_config_schema_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.5",
-        "config_schema_version": "2.4.0",
+        "pipeline_version": "2.0.0-dev.6",
+        "config_schema_version": "2.5.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.0.0",
     }
@@ -237,13 +237,21 @@ def test_invalid_multisine_tone_quality_config_is_rejected(
         validate_config(resolved)
 
 
-def test_p8b1_config_versions_migrate_in_memory_without_rewriting(tmp_path) -> None:
-    path = tmp_path / "p8b1.yaml"
+@pytest.mark.parametrize(
+    ("old_config", "old_measurement"),
+    [("2.3.0", "2.3.0"), ("2.4.0", "2.4.0")],
+)
+def test_pre_dev_b5_config_versions_migrate_without_rewriting(
+    tmp_path,
+    old_config,
+    old_measurement,
+) -> None:
+    path = tmp_path / "pre-dev-b5.yaml"
     payload = {
         "measurement_mode": "rew_sweep",
         "schema_versions": {
-            "config": "2.3.0",
-            "measurement": "2.3.0",
+            "config": old_config,
+            "measurement": old_measurement,
             "feature": "2.0.0",
         },
     }
@@ -255,9 +263,9 @@ def test_p8b1_config_versions_migrate_in_memory_without_rewriting(tmp_path) -> N
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.4.0",
+        "config": "2.5.0",
         "measurement": "2.4.0",
         "feature": "2.0.0",
     }
-    assert any("2.3.0" in warning for warning in resolved["_runtime"]["migration_warnings"])
+    assert any(old_config in warning for warning in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload

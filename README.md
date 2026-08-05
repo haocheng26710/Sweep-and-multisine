@@ -4,7 +4,7 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-A, the provenance guard, P1 REW import, P8-A multisine magnitude recovery, P8-B1 clock-drift handling, and P8-B2 tone/audio QC are implemented. They provide versioned canonical schemas, configuration validation, deterministic P7 generation, matching dual-input mock data, a research hard gate, format-validated REW import, auditable preamble-synchronized sparse-tone transfer recovery, and non-destructive digital/per-tone quality evidence.
+DEV-B is complete as a software-validation entry-point slice. In addition to the provenance guard, P1 REW import, P7 generation, and P8 synchronization/drift/tone-QC chain, the repository now has a P1 multisine adapter, a dual-input dispatcher, and a hash-audited run bundle shared by the unified and mode-locked commands.
 
 It does **not** yet claim to analyze real measurements:
 
@@ -18,9 +18,9 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 ## Architecture
 
 ```text
-REW TXT ----------------> dense SpectrumData ----+
-                                                  +--> FeatureSet --> P4/P5/report
-Multisine WAV --> P8 --> sparse SpectrumData ----+
+REW TXT ----> P1 REW adapter ----------------> dense SpectrumData ---+
+                                                                    +--> P2-P6 stage gate
+WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones -+
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -60,7 +60,7 @@ An editable package install is optional because the provided scripts add `src/` 
 python -m pip install -e .
 ```
 
-## DEV-A commands
+## DEV-B commands
 
 Validate the unchanged sweep command and resolved configuration:
 
@@ -106,6 +106,20 @@ Run tests:
 python -m pytest
 ```
 
+Execute one canonical multisine validation run (the configured `paths.stimuli` must contain the sidecar-declared `stimulus_id`):
+
+```powershell
+python scripts/run_pipeline.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
+```
+
+The mode-locked command uses the same dispatcher and executor:
+
+```powershell
+python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
+```
+
+Both commands stop at the explicit `P2_P6=not_implemented` stage gate. They do not claim that FeatureSet, metrics, classification, HR, or reporting ran.
+
 ## P7 signal definition
 
 For `M` tones sorted by ascending frequency, tone ordinal `m = 0, ..., M-1` uses:
@@ -130,13 +144,19 @@ P8-B2 uses the final stable periods from P8-B1 and the original selected WAV cha
 
 All P8-B2 thresholds and FFT neighborhoods are under `multisine_estimation.tone_quality` in YAML. `analyze_multisine_measurement(...)` returns the authoritative sparse `SpectrumData`, per-tone records, measurement QC, the final period estimate, and clipping evidence. `write_multisine_qc_outputs(...)` writes `transfer_tones.csv`, `tone_quality.csv`, `clock_drift_qc.csv`, `measurement_qc.csv`, the serialized spectrum, `synchronization_diagnostic.png`, and `period_consistency.png`. Sparse tones are never interpolated into a dense physical response.
 
-One software-validation run can be written with:
+The lower-level P8 diagnostic writer remains available for focused P8 development:
 
 ```powershell
 python scripts/run_multisine_qc.py --recording <recording.wav> --stimulus-manifest <stimulus_manifest.json> --sidecar <recording.json> --output-directory outputs/<run_id>
 ```
 
-The runner still passes through the provenance/maturity gate and refuses non-simulated P8 input at this stage.
+It is not the canonical DEV-B run lifecycle. Canonical validation runs use `run_pipeline.py` or `analyze_multisine.py`, refuse an existing run directory, isolate output by `data_origin/run_purpose`, and write `config_snapshot.yaml`, `run_manifest.json`, input/artifact hashes, the measurement index, all P8 CSV/NPZ/JSON/PNG artifacts, and explicit downstream stage gates.
+
+## P1 multisine adapter and unified dispatcher
+
+`acoustic_encoder.p1_adapters.load_multisine_measurement(recording_wav, sidecar_metadata, stimulus_manifest, resolved_config)` reads the sidecar, resolves `data/stimuli/<stimulus_id>/stimulus_manifest.json` from `paths.stimuli`, validates IDs, hashes, tone set, sample rate, period counts, channel, and source format, then delegates synchronization, clock drift, transfer estimation, and QC to the existing P8 implementation. It returns the same canonical `SpectrumData` type as the REW adapter, with `representation=sparse_tones`.
+
+The dispatcher selects only from normalized `measurement_mode=rew_sweep` or `schroeder_multisine`. It never infers stimulus parameters from a WAV filename. Missing or inconsistent sidecars/manifests fail explicitly; declared manual-review reasons stop before P8. `phase_status` is authoritative in `SpectrumData`; CSV fields are derived views.
 
 ## Measurement names and metadata
 
@@ -186,5 +206,6 @@ Run purpose is independently explicit: `software_validation` is the safe default
 - Session, reposition round, assembly, and acquisition block boundaries are explicit.
 - Multisine phase is not used by default unless a common clock or recorded drift correction passes QC.
 - Missing provenance is never inferred from a filename, source format, or neighboring metadata. Older artifacts must be reclassified from their source records before use with measurement schema 2.4.
+- A completed DEV-B run is still not a scientific result. P8 accepts only `simulated/software_validation`, and official REW references remain `external_reference/parser_fixture`.
 
 See `MIGRATION_V1_TO_V2.md` and `docs/DEV_A_TEST_AND_MOCK_PLAN.md` for migration and stage details.

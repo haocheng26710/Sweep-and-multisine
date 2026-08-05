@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.5
+pipeline_version: 2.0.0-dev.6
 schema_versions:
-  config: 2.4.0
+  config: 2.5.0
   measurement: 2.4.0
   feature: 2.0.0
 
@@ -11,6 +11,7 @@ random_state: 20260804
 paths:
   rew_txt: data/exported_txt
   multisine_audio: data/raw_audio/multisine
+  stimuli: data/stimuli
   metadata: data/metadata/measurements.csv
   outputs: outputs
 

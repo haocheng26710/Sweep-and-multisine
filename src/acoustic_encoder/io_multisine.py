@@ -157,7 +157,12 @@ def _read_wav_float(path: Path, *, channel: int = 0) -> _DecodedWav:
                 f"Multisine WAV channel {channel} is unavailable: {path}"
             )
         values = values[:, channel]
-    elif values.ndim != 1:
+    elif values.ndim == 1:
+        if channel != 0:
+            raise MultisineImportError(
+                f"Multisine WAV channel {channel} is unavailable: {path}"
+            )
+    else:
         raise MultisineImportError(f"Unsupported Multisine WAV layout: {path}")
     if np.issubdtype(values.dtype, np.unsignedinteger):
         midpoint = (float(np.iinfo(values.dtype).max) + 1.0) / 2.0

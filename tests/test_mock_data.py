@@ -42,7 +42,7 @@ def test_dual_mode_mock_uses_matching_conditions(tmp_path) -> None:
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["mock_only"] is True
-    assert manifest["mock_schema_version"] == "1.2.0"
+    assert manifest["mock_schema_version"] == "1.3.0"
     assert manifest["recording_delay_samples"] == 1379
     assert manifest["recording_wav_format"] == "float32"
     assert manifest["additive_noise_std"] == 2.0e-5
