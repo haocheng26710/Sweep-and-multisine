@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2 adds dense sweep P3-A. P2-B, P3-B, sparse-tone features, P4–P6, and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2 adds dense sweep P3-A; DEV-C3 adds explicit dense smoothing. P2-B, matched/sparse-tone features, P4–P6, and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -84,6 +84,16 @@ Run-manifest schema 1.2 records the dense preprocessing status and ID. Successfu
 
 The canonical preprocessing hash is insensitive to YAML key order and numeric presentation. P3-A permits `dense_raw_spl` only for a source explicitly labelled `magnitude_quantity=spl`; transfer-ratio data are not migrated or relabelled as SPL. All P3-A thresholds remain software-validation provisional values, not frozen real-experiment policy.
 
+## Configuration schema 2.7 to 2.8 and preprocessing schema 1.0 to 1.1
+
+Configuration 2.8 and preprocessing 1.1 make the smoothing domain and method-specific fields explicit. The only current domain is `db`. Supported definitions are `none`; moving average with `window_hz`; Gaussian with `sigma_hz` and `truncate_sigma`; and fractional octave with positive integer `fraction_denominator` plus `weighting_definition=rectangular_uniform_linear_grid_db`. Every non-none method also requires `boundary` and `minimum_kernel_coverage`.
+
+The old ambiguous root key `smoothing_hz`, Gaussian `window_hz`, and fractional-octave `fraction` are rejected. A 2.7/preprocessing-1.0 configuration using `method=none` migrates in memory to 2.8/1.1 with `smoothing_domain=db` and a warning; its source YAML is not rewritten. A legacy non-none definition is rejected because no earlier non-none algorithm existed whose meaning could be preserved safely.
+
+The order is fixed as target analysis band, common-grid interpolation, per-valid-segment smoothing, sample-local normalization, and `FeatureSet`. No boundary method crosses `valid_mask=false`. Moving requested/effective sample widths, Gaussian effective kernel span, fractional-octave analytic bounds and snapped sample counts, boundary policy, coverage rule, and dB-domain semantics are included in preprocessing manifest 1.1 and `preprocessing_id`. `dense_raw_spl` now means smoothed but unnormalized.
+
+Pipeline version is `2.0.0-dev.9`; run-manifest schema 1.3 records P3-B as `not_requested`, `completed`/failure, or `not_applicable_sparse`. Feature and measurement schemas remain 2.1 and 2.4 because smoothing changes preprocessing semantics rather than the serialized `FeatureSet` or `SpectrumData` field layout.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -92,7 +102,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A; sparse tones record P3-A as not applicable. P3-B and P4–P6 remain explicit `not_implemented` stage gates.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A/P3-B; sparse tones record both stages as not applicable. P4–P6 remain explicit `not_implemented` stage gates.
 
 ## New grouping fields
 
@@ -100,4 +110,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-C2 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3-A bundle; failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.
+V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics; failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.

@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.8
+pipeline_version: 2.0.0-dev.9
 schema_versions:
-  config: 2.7.0
+  config: 2.8.0
   measurement: 2.4.0
   feature: 2.1.0
 
@@ -16,7 +16,7 @@ paths:
   outputs: outputs
 
 preprocessing:
-  schema_version: 1.0.0
+  schema_version: 1.1.0
   provisional: true
   analysis_band_hz: [1000, 8000]
   common_grid_step_hz: 10
@@ -26,6 +26,7 @@ preprocessing:
   normalization_band_hz: [1000, 8000]
   minimum_normalization_points: 2
   minimum_zscore_std_db: 1.0e-9
+  smoothing_domain: db
   smoothing:
     method: none
 

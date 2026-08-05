@@ -5,12 +5,16 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from acoustic_encoder.preprocessing import build_dense_grid, preprocessing_id
+from acoustic_encoder.preprocessing import (
+    build_dense_grid,
+    canonical_preprocessing_config,
+    preprocessing_id,
+)
 
 
 def _config() -> dict:
     return {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "analysis_band_hz": [1000, 8000],
         "common_grid_step_hz": 10,
         "interpolation": "linear",
@@ -19,6 +23,7 @@ def _config() -> dict:
         "normalization_band_hz": [1000, 8000],
         "minimum_normalization_points": 2,
         "minimum_zscore_std_db": 1.0e-9,
+        "smoothing_domain": "db",
         "smoothing": {"method": "none"},
     }
 
@@ -69,3 +74,42 @@ def test_preprocessing_id_ignores_numeric_presentation_and_irrelevant_none_bound
     reformatted["smoothing"] = {"boundary": "reflect", "method": "none"}
 
     assert preprocessing_id(reformatted) == preprocessing_id(config)
+
+
+def test_preprocessing_id_changes_with_complete_smoothing_definition() -> None:
+    none = _config()
+    moving = deepcopy(none)
+    moving["smoothing"] = {
+        "method": "moving_average_linear_hz",
+        "window_hz": 50,
+        "boundary": "reflect",
+        "minimum_kernel_coverage": 0.5,
+    }
+    wider = deepcopy(moving)
+    wider["smoothing"]["window_hz"] = 100
+    nearest = deepcopy(moving)
+    nearest["smoothing"]["boundary"] = "nearest"
+
+    assert len(
+        {
+            preprocessing_id(none),
+            preprocessing_id(moving),
+            preprocessing_id(wider),
+            preprocessing_id(nearest),
+        }
+    ) == 4
+
+    reordered_smoothing = deepcopy(moving)
+    reordered_smoothing["smoothing"] = {
+        key: moving["smoothing"][key]
+        for key in reversed(tuple(moving["smoothing"]))
+    }
+    assert preprocessing_id(reordered_smoothing) == preprocessing_id(moving)
+
+    canonical = canonical_preprocessing_config(moving)
+    assert canonical["smoothing_definition"]["effective"][
+        "kernel_sample_count"
+    ] == "5"
+    assert canonical["smoothing_definition"]["effective"][
+        "effective_window_hz"
+    ] == "50"

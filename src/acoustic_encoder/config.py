@@ -25,7 +25,7 @@ class ConfigError(ValueError):
 
 
 _P3_PREPROCESSING_DEFAULTS: dict[str, Any] = {
-    "schema_version": "1.0.0",
+    "schema_version": "1.1.0",
     "provisional": True,
     "analysis_band_hz": [1000, 8000],
     "common_grid_step_hz": 10,
@@ -35,6 +35,7 @@ _P3_PREPROCESSING_DEFAULTS: dict[str, Any] = {
     "normalization_band_hz": [1000, 8000],
     "minimum_normalization_points": 2,
     "minimum_zscore_std_db": 1.0e-9,
+    "smoothing_domain": "db",
     "smoothing": {"method": "none"},
 }
 
@@ -103,8 +104,17 @@ def load_config(
         ("2.4.0", "2.4.0", "2.0.0"),
         ("2.5.0", "2.4.0", "2.0.0"),
         ("2.6.0", "2.4.0", "2.0.0"),
+        ("2.7.0", "2.4.0", "2.1.0"),
     }:
         old_config_version = str(versions["config"])
+        smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
+        if not isinstance(smoothing, Mapping) or smoothing.get("method") != "none":
+            raise ConfigError(
+                "Legacy non-none smoothing was never implemented and cannot be "
+                "migrated safely; choose an explicit DEV-C3 smoothing definition"
+            )
+        resolved["preprocessing"]["schema_version"] = "1.1.0"
+        resolved["preprocessing"]["smoothing_domain"] = "db"
         resolved["pipeline_version"] = PIPELINE_VERSION
         resolved["schema_versions"] = {
             "config": CONFIG_SCHEMA_VERSION,
@@ -112,7 +122,7 @@ def load_config(
             "feature": FEATURE_SCHEMA_VERSION,
         }
         migration_warnings.append(
-            f"Pre-DEV-B5 config schema {old_config_version} was migrated in memory "
+            f"Legacy config schema {old_config_version} was migrated in memory "
             f"to config schema {CONFIG_SCHEMA_VERSION} and measurement schema "
             f"{MEASUREMENT_SCHEMA_VERSION}; the source YAML was not modified."
         )
@@ -168,18 +178,6 @@ def validate_config(config: Mapping[str, Any]) -> None:
     preprocessing = config.get("preprocessing")
     validate_preprocessing_config(preprocessing)
     assert isinstance(preprocessing, Mapping)
-    smoothing = preprocessing.get("smoothing", {"method": "none"})
-    method = smoothing.get("method")
-    allowed = {"none", "moving_average_linear_hz", "gaussian_linear_hz", "fractional_octave"}
-    if method not in allowed:
-        raise ConfigError(f"Unsupported smoothing method: {method!r}")
-    if method in {"moving_average_linear_hz", "gaussian_linear_hz"}:
-        if float(smoothing.get("window_hz", 0)) <= 0:
-            raise ConfigError(f"{method} requires a positive window_hz")
-    if method == "fractional_octave" and float(smoothing.get("fraction", 0)) <= 0:
-        raise ConfigError("fractional_octave requires a positive fraction")
-    if method != "none" and smoothing.get("boundary") not in {"reflect", "nearest", "truncate"}:
-        raise ConfigError("smoothing boundary must be reflect, nearest, or truncate")
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
     if "multisine_estimation" in config:
@@ -226,11 +224,11 @@ def validate_config(config: Mapping[str, Any]) -> None:
 
 
 def validate_preprocessing_config(preprocessing: Any) -> None:
-    """Validate the complete, provisional P3-A preprocessing contract."""
+    """Validate the complete, provisional dense-P3 preprocessing contract."""
     if not isinstance(preprocessing, Mapping):
         raise ConfigError("preprocessing must be a mapping")
-    if preprocessing.get("schema_version") != "1.0.0":
-        raise ConfigError("preprocessing.schema_version must be 1.0.0")
+    if preprocessing.get("schema_version") != "1.1.0":
+        raise ConfigError("preprocessing.schema_version must be 1.1.0")
     if not isinstance(preprocessing.get("provisional"), bool):
         raise ConfigError("preprocessing.provisional must be boolean")
     band = preprocessing.get("analysis_band_hz")
@@ -309,6 +307,77 @@ def validate_preprocessing_config(preprocessing: Any) -> None:
     )
     if minimum_std <= 0.0:
         raise ConfigError("preprocessing.minimum_zscore_std_db must be positive")
+    if "smoothing_hz" in preprocessing:
+        raise ConfigError(
+            "preprocessing.smoothing_hz is ambiguous; choose an explicit smoothing method"
+        )
+    if preprocessing.get("smoothing_domain") != "db":
+        raise ConfigError("preprocessing.smoothing_domain must be db")
+    smoothing = preprocessing.get("smoothing")
+    if not isinstance(smoothing, Mapping):
+        raise ConfigError("preprocessing.smoothing must be a mapping")
+    method = smoothing.get("method")
+    expected_fields = {
+        "none": {"method"},
+        "moving_average_linear_hz": {
+            "method", "window_hz", "boundary", "minimum_kernel_coverage",
+        },
+        "gaussian_linear_hz": {
+            "method", "sigma_hz", "truncate_sigma", "boundary",
+            "minimum_kernel_coverage",
+        },
+        "fractional_octave": {
+            "method", "fraction_denominator", "boundary",
+            "minimum_kernel_coverage", "weighting_definition",
+        },
+    }
+    if method not in expected_fields:
+        raise ConfigError(f"Unsupported smoothing method: {method!r}")
+    actual_fields = set(smoothing)
+    expected = expected_fields[str(method)]
+    if actual_fields != expected:
+        if method == "none":
+            raise ConfigError("smoothing method none only accepts the method field")
+        missing = sorted(expected - actual_fields)
+        unexpected = sorted(actual_fields - expected)
+        raise ConfigError(
+            f"smoothing method {method} requires exact fields; "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+    if method == "none":
+        return
+    if smoothing.get("boundary") not in {"reflect", "nearest", "truncate"}:
+        raise ConfigError("smoothing boundary must be reflect, nearest, or truncate")
+    coverage = _finite_number(
+        smoothing,
+        "minimum_kernel_coverage",
+        "smoothing.minimum_kernel_coverage",
+    )
+    if not 0.0 < coverage <= 1.0:
+        raise ConfigError("smoothing.minimum_kernel_coverage must lie in (0, 1]")
+    if method == "moving_average_linear_hz":
+        if _finite_number(smoothing, "window_hz", "smoothing.window_hz") <= 0.0:
+            raise ConfigError("smoothing.window_hz must be positive")
+    elif method == "gaussian_linear_hz":
+        if _finite_number(smoothing, "sigma_hz", "smoothing.sigma_hz") <= 0.0:
+            raise ConfigError("smoothing.sigma_hz must be positive")
+        if _finite_number(
+            smoothing, "truncate_sigma", "smoothing.truncate_sigma"
+        ) <= 0.0:
+            raise ConfigError("smoothing.truncate_sigma must be positive")
+    else:
+        _positive_integer(
+            smoothing,
+            "fraction_denominator",
+            "smoothing.fraction_denominator",
+        )
+        if smoothing.get("weighting_definition") != (
+            "rectangular_uniform_linear_grid_db"
+        ):
+            raise ConfigError(
+                "fractional_octave weighting_definition must be "
+                "rectangular_uniform_linear_grid_db"
+            )
 
 
 def validate_quality_control_config(quality: Any) -> None:
@@ -409,6 +478,8 @@ def validate_quality_control_config(quality: Any) -> None:
 
 
 def _finite_number(mapping: Mapping[str, Any], key: str, label: str) -> float:
+    if isinstance(mapping.get(key), bool):
+        raise ConfigError(f"{label} must be numeric")
     try:
         value = float(mapping[key])
     except (KeyError, TypeError, ValueError) as exc:

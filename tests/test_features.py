@@ -32,7 +32,7 @@ from acoustic_encoder.version import SCHEMA_VERSION_QUARTET
 
 def _preprocessing_config() -> dict:
     return {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "analysis_band_hz": [1000, 1040],
         "common_grid_step_hz": 10,
         "interpolation": "linear",
@@ -41,6 +41,7 @@ def _preprocessing_config() -> dict:
         "normalization_band_hz": [1000, 1040],
         "minimum_normalization_points": 2,
         "minimum_zscore_std_db": 1.0e-9,
+        "smoothing_domain": "db",
         "smoothing": {"method": "none"},
     }
 
@@ -364,10 +365,42 @@ def test_insufficient_normalization_points_preserve_raw_and_fail_normalized_kind
     }
 
 
-def test_non_none_smoothing_is_an_explicit_not_implemented_failure() -> None:
+def test_smoothing_precedes_sample_local_normalization() -> None:
+    spectrum = _dense_spectrum(magnitude_db=np.array([0.0, 0.0, 9.0, 0.0, 0.0]))
+    config = _preprocessing_config()
+    config["smoothing"] = {
+        "method": "moving_average_linear_hz",
+        "window_hz": 30,
+        "boundary": "truncate",
+        "minimum_kernel_coverage": 0.5,
+    }
+
+    result = build_dense_feature_sets(
+        spectrum,
+        _measurement_qc(spectrum),
+        config,
+    )
+
+    raw = result.feature_sets[FeatureKind.DENSE_RAW_SPL]
+    demeaned = result.feature_sets[FeatureKind.DENSE_DEMEANED_DB]
+    zscore = result.feature_sets[FeatureKind.DENSE_ZSCORE]
+    np.testing.assert_allclose(raw.values, [0.0, 3.0, 3.0, 3.0, 0.0])
+    np.testing.assert_allclose(demeaned.values, raw.values - np.mean(raw.values))
+    assert np.isclose(np.mean(zscore.values), 0.0)
+    assert np.isclose(np.std(zscore.values), 1.0)
+    np.testing.assert_array_equal(raw.valid_mask, demeaned.valid_mask)
+    np.testing.assert_array_equal(raw.valid_mask, zscore.valid_mask)
+
+
+def test_smoothing_coverage_failure_is_structured_without_feature_artifacts() -> None:
     spectrum = _dense_spectrum()
     config = _preprocessing_config()
-    config["smoothing"] = {"method": "gaussian_linear_hz", "window_hz": 50}
+    config["smoothing"] = {
+        "method": "moving_average_linear_hz",
+        "window_hz": 50,
+        "boundary": "truncate",
+        "minimum_kernel_coverage": 1.0,
+    }
 
     result = build_dense_feature_sets(
         spectrum,
@@ -377,10 +410,12 @@ def test_non_none_smoothing_is_an_explicit_not_implemented_failure() -> None:
 
     assert result.processing_status == "failed"
     assert result.feature_sets == {}
+    assert result.interpolated_valid_grid_fraction == 1.0
+    assert result.valid_grid_fraction == 0.2
+    assert result.smoothing_definition["method"] == "moving_average_linear_hz"
     assert {failure.reason for failure in result.failures} == {
-        "smoothing_not_implemented"
+        "minimum_valid_grid_fraction_not_met"
     }
-    assert "gaussian_linear_hz" in result.failures[0].message
 
 
 def test_qc_exclude_and_human_invalid_are_preserved_without_deleting_features() -> None:

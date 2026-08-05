@@ -1,0 +1,11 @@
+measurement_mode: rew_sweep
+run_purpose: software_validation
+
+preprocessing:
+  smoothing_domain: db
+  smoothing:
+    method: fractional_octave
+    fraction_denominator: 3
+    boundary: truncate
+    minimum_kernel_coverage: 0.4
+    weighting_definition: rectangular_uniform_linear_grid_db

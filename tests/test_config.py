@@ -36,7 +36,7 @@ def test_ambiguous_smoothing_is_rejected(tmp_path) -> None:
         ),
         encoding="utf-8",
     )
-    with pytest.raises(ConfigError, match="positive window_hz"):
+    with pytest.raises(ConfigError, match="sigma_hz"):
         load_config(path)
 
 
@@ -166,8 +166,8 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
 
 def test_dev_c2_uses_incremented_pipeline_config_and_feature_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.8",
-        "config_schema_version": "2.7.0",
+        "pipeline_version": "2.0.0-dev.9",
+        "config_schema_version": "2.8.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.1.0",
     }
@@ -178,7 +178,7 @@ def test_dense_preprocessing_defaults_are_complete_and_provisional() -> None:
 
     preprocessing = resolved["preprocessing"]
     assert preprocessing == {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "provisional": True,
         "analysis_band_hz": [1000, 8000],
         "common_grid_step_hz": 10,
@@ -188,8 +188,97 @@ def test_dense_preprocessing_defaults_are_complete_and_provisional() -> None:
         "normalization_band_hz": [1000, 8000],
         "minimum_normalization_points": 2,
         "minimum_zscore_std_db": 1.0e-9,
+        "smoothing_domain": "db",
         "smoothing": {"method": "none"},
     }
+
+
+def test_dev_c3_fractional_octave_validation_config_resolves() -> None:
+    resolved = load_config(
+        PROJECT_ROOT / "config" / "validation_dev_c3_fractional_octave.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+
+    assert resolved["preprocessing"]["smoothing"] == {
+        "method": "fractional_octave",
+        "fraction_denominator": 3,
+        "boundary": "truncate",
+        "minimum_kernel_coverage": 0.4,
+        "weighting_definition": "rectangular_uniform_linear_grid_db",
+    }
+
+
+@pytest.mark.parametrize(
+    ("smoothing", "match"),
+    [
+        (
+            {"method": "gaussian_linear_hz", "window_hz": 50, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "sigma_hz",
+        ),
+        (
+            {"method": "fractional_octave", "fraction": 3, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "fraction_denominator",
+        ),
+        ({"method": "none", "boundary": "reflect"}, "only accepts"),
+    ],
+)
+def test_ambiguous_or_method_incompatible_smoothing_fields_are_rejected(
+    smoothing: dict,
+    match: str,
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["preprocessing"]["smoothing"] = smoothing
+
+    with pytest.raises(ConfigError, match=match):
+        validate_config(resolved)
+
+
+@pytest.mark.parametrize(
+    ("smoothing", "match"),
+    [
+        (
+            {"method": "moving_average_linear_hz", "window_hz": 0, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "window_hz",
+        ),
+        (
+            {"method": "gaussian_linear_hz", "sigma_hz": 0, "truncate_sigma": 3, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "sigma_hz",
+        ),
+        (
+            {"method": "gaussian_linear_hz", "sigma_hz": 20, "truncate_sigma": 0, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "truncate_sigma",
+        ),
+        (
+            {"method": "fractional_octave", "fraction_denominator": 0, "boundary": "reflect", "minimum_kernel_coverage": 0.5, "weighting_definition": "rectangular_uniform_linear_grid_db"},
+            "fraction_denominator",
+        ),
+        (
+            {"method": "moving_average_linear_hz", "window_hz": 50, "boundary": "wrap", "minimum_kernel_coverage": 0.5},
+            "boundary",
+        ),
+        (
+            {"method": "moving_average_linear_hz", "window_hz": 50, "boundary": "reflect", "minimum_kernel_coverage": 0},
+            "minimum_kernel_coverage",
+        ),
+        (
+            {"method": "moving_average_linear_hz", "window_hz": True, "boundary": "reflect", "minimum_kernel_coverage": 0.5},
+            "window_hz",
+        ),
+        (
+            {"method": "fractional_octave", "fraction_denominator": 3, "boundary": "reflect", "minimum_kernel_coverage": 0.5, "weighting_definition": "gaussian"},
+            "weighting_definition",
+        ),
+    ],
+)
+def test_smoothing_parameter_ranges_and_enums_are_validated(
+    smoothing: dict,
+    match: str,
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["preprocessing"]["smoothing"] = smoothing
+
+    with pytest.raises(ConfigError, match=match):
+        validate_config(resolved)
 
 
 @pytest.mark.parametrize(
@@ -379,9 +468,72 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.7.0",
+            "config": "2.8.0",
         "measurement": "2.4.0",
         "feature": "2.1.0",
     }
     assert any(old_config in warning for warning in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> None:
+    path = tmp_path / "dev-c2.yaml"
+    payload = {
+        "measurement_mode": "rew_sweep",
+        "schema_versions": {
+            "config": "2.7.0",
+            "measurement": "2.4.0",
+            "feature": "2.1.0",
+        },
+        "preprocessing": {
+            "schema_version": "1.0.0",
+            "smoothing": {"method": "none"},
+        },
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"]["config"] == "2.8.0"
+    assert resolved["preprocessing"]["schema_version"] == "1.1.0"
+    assert resolved["preprocessing"]["smoothing_domain"] == "db"
+    assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
+    assert resolved["_runtime"]["migration_warnings"]
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+def test_legacy_non_none_smoothing_is_rejected_instead_of_reinterpreted(
+    tmp_path,
+) -> None:
+    path = tmp_path / "legacy-gaussian.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "measurement_mode": "rew_sweep",
+                "schema_versions": {
+                    "config": "2.7.0",
+                    "measurement": "2.4.0",
+                    "feature": "2.1.0",
+                },
+                "preprocessing": {
+                    "schema_version": "1.0.0",
+                    "smoothing": {
+                        "method": "gaussian_linear_hz",
+                        "window_hz": 50,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="cannot be migrated safely"):
+        load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+
+def test_legacy_root_smoothing_hz_is_explicitly_rejected() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["preprocessing"]["smoothing_hz"] = 50
+
+    with pytest.raises(ConfigError, match="smoothing_hz is ambiguous"):
+        validate_config(resolved)

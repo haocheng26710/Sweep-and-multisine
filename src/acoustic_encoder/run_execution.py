@@ -1,4 +1,4 @@
-"""Auditable shared run lifecycle for P1/P8, P2, and dense P3-A."""
+"""Auditable shared run lifecycle for P1/P8, P2, and dense P3."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from .schemas import (
 )
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.2.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.3.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,7 +215,7 @@ def execute_measurement_run(
     run_id: str,
     stimulus_manifest: str | Path | None = None,
 ) -> RunResult:
-    """Execute shared import/QC plus representation-aware P3-A once."""
+    """Execute shared import/QC plus representation-aware dense P3 once."""
     run_component = Path(run_id)
     if (
         not run_id.strip()
@@ -303,7 +303,7 @@ def execute_measurement_run(
                 "P8": "not_run",
                 "P2": "not_run",
                 "P3_A": "not_run",
-                "P3_B": "not_implemented",
+                "P3_B": "not_run",
                 "P4_P6": "not_implemented",
             },
             "failure": {
@@ -384,7 +384,7 @@ def execute_measurement_run(
                 "P8": "not_run",
                 "P2": "not_run",
                 "P3_A": "not_run",
-                "P3_B": "not_implemented",
+                "P3_B": "not_run",
                 "P4_P6": "not_implemented",
             },
             "failure": {
@@ -432,9 +432,16 @@ def execute_measurement_run(
         write_dense_feature_outputs(dense_processing, output / "processed")
         p3_status = dense_processing.processing_status
         p3_success = p3_status == "completed"
+        smoothing_method = str(
+            resolved_config["preprocessing"]["smoothing"]["method"]
+        )
+        p3_a_gate = p3_status if smoothing_method == "none" else "completed"
+        p3_b_gate = "not_requested" if smoothing_method == "none" else p3_status
     else:
         p3_status = "not_applicable_sparse"
         p3_success = True
+        p3_a_gate = "not_applicable_sparse"
+        p3_b_gate = "not_applicable_sparse"
     success = qc_status == "valid" and p3_success
 
     inputs = _known_inputs(
@@ -482,6 +489,10 @@ def execute_measurement_run(
                 "processing_status": dense_processing.processing_status,
                 "preprocessing_id": dense_processing.preprocessing_id,
                 "valid_grid_fraction": dense_processing.valid_grid_fraction,
+                "interpolated_valid_grid_fraction": (
+                    dense_processing.interpolated_valid_grid_fraction
+                ),
+                "smoothing": dense_processing.smoothing_definition,
                 "feature_kinds_written": sorted(
                     kind.value for kind in dense_processing.feature_sets
                 ),
@@ -494,6 +505,8 @@ def execute_measurement_run(
                 "processing_status": "not_applicable_sparse",
                 "preprocessing_id": None,
                 "valid_grid_fraction": None,
+                "interpolated_valid_grid_fraction": None,
+                "smoothing": None,
                 "feature_kinds_written": [],
                 "failure_reasons": [],
             }
@@ -513,8 +526,8 @@ def execute_measurement_run(
                 else "not_applicable"
             ),
             "P2": "completed",
-            "P3_A": p3_status,
-            "P3_B": "not_implemented",
+            "P3_A": p3_a_gate,
+            "P3_B": p3_b_gate,
             "P4_P6": "not_implemented",
         },
         "failure": None,

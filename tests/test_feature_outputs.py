@@ -75,7 +75,7 @@ def _case(magnitude_db: np.ndarray | None = None):
         scientifically_eligible=False,
     )
     config = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "analysis_band_hz": [1000, 1040],
         "common_grid_step_hz": 10,
         "interpolation": "linear",
@@ -84,6 +84,7 @@ def _case(magnitude_db: np.ndarray | None = None):
         "normalization_band_hz": [1000, 1040],
         "minimum_normalization_points": 2,
         "minimum_zscore_std_db": 1.0e-9,
+        "smoothing_domain": "db",
         "smoothing": {"method": "none"},
     }
     return build_dense_feature_sets(spectrum, qc, config)
@@ -124,6 +125,19 @@ def test_dense_feature_output_bundle_round_trips_and_hashes_every_artifact(
     assert manifest["preprocessing_id"] == result.preprocessing_id
     assert manifest["input"]["sample_id"] == result.sample_id
     assert manifest["source_magnitude"]["quantity"] == "spl"
+    assert manifest["processing_order"] == [
+        "select_analysis_band",
+        "interpolate_common_grid",
+        "smooth_contiguous_valid_segments",
+        "sample_local_normalization",
+        "build_feature_sets",
+    ]
+    assert manifest["smoothing"]["domain"] == "db"
+    assert manifest["smoothing"]["method"] == "none"
+    assert manifest["feature_semantics"]["dense_raw_spl"] == (
+        "smoothed_but_not_normalized"
+    )
+    assert manifest["normalization"]["input_stage"] == "smoothed_common_grid"
     assert manifest["provenance"]["data_origin"] == "simulated"
     assert manifest["provenance"]["run_purpose"] == "software_validation"
     assert manifest["provenance"]["eligible_for_scientific_analysis"] is False

@@ -145,11 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.2.0"
+    assert manifest["run_manifest_schema_version"] == "1.3.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.8",
-        "config_schema": "2.7.0",
+        "pipeline": "2.0.0-dev.9",
+        "config_schema": "2.8.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.1.0",
     }
@@ -174,7 +174,7 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["random_state"] == resolved["random_state"]
     assert manifest["stage_gate"]["P2"] == "completed"
     assert manifest["stage_gate"]["P3_A"] == "not_applicable_sparse"
-    assert manifest["stage_gate"]["P3_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P3_B"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P4_P6"] == "not_implemented"
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
@@ -218,6 +218,7 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
     assert result.run_manifest["stage_gate"]["P8"] == "not_applicable"
     assert result.run_manifest["stage_gate"]["P2"] == "completed"
     assert result.run_manifest["stage_gate"]["P3_A"] == "completed"
+    assert result.run_manifest["stage_gate"]["P3_B"] == "not_requested"
     assert result.run_manifest["preprocessing"]["processing_status"] == "completed"
     assert result.run_manifest["preprocessing"]["preprocessing_id"].startswith(
         "sha256:"
@@ -237,6 +238,31 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
         / f"{result.spectrum.meta.sample_id}.npz"
     ).is_file()
     assert load_spectrum(result.output_directory / "spectrum_data").meta == result.spectrum.meta
+
+
+def test_dense_non_none_smoothing_is_recorded_as_completed_p3_b(tmp_path) -> None:
+    metadata, resolved = _external_reference_rew_case(tmp_path)
+    resolved["preprocessing"]["smoothing"] = {
+        "method": "fractional_octave",
+        "fraction_denominator": 3,
+        "boundary": "truncate",
+        "minimum_kernel_coverage": 0.4,
+        "weighting_definition": "rectangular_uniform_linear_grid_db",
+    }
+
+    result = execute_measurement_run(
+        EXTERNAL_REW,
+        metadata,
+        resolved,
+        output_root=tmp_path / "outputs",
+        run_id="external-rew-smoothed",
+    )
+
+    assert result.run_manifest["stage_gate"]["P3_A"] == "completed"
+    assert result.run_manifest["stage_gate"]["P3_B"] == "completed"
+    assert result.run_manifest["preprocessing"]["smoothing"]["method"] == (
+        "fractional_octave"
+    )
 
 
 def test_official_rew_reference_is_blocked_from_research_partition(tmp_path) -> None:

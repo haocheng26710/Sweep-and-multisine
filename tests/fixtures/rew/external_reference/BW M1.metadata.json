@@ -1,0 +1,22 @@
+{
+  "sample_id": "rew-reference-cc863c23f0f4",
+  "pipeline_version": "2.0.0-dev.9",
+  "config_schema_version": "2.8.0",
+  "measurement_schema_version": "2.4.0",
+  "feature_schema_version": "2.1.0",
+  "device_version": null,
+  "configuration": null,
+  "angle_deg": null,
+  "session_id": null,
+  "repeat_type": null,
+  "repeat_id": null,
+  "experiment_step": null,
+  "measurement_mode": "rew_sweep",
+  "source_format": "rew_txt",
+  "source_path": "tests/fixtures/rew/external_reference/BW M1.txt",
+  "data_origin": "external_reference",
+  "dataset_role": "parser_fixture",
+  "source_sha256": "cc863c23f0f4ebf3cc4d875f9a511b76b1d3e20a391ffc7a47745d8f53365447",
+  "provenance_uri": "tests/fixtures/rew/external_reference/manifest.json",
+  "eligible_for_scientific_analysis": false
+}

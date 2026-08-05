@@ -1,4 +1,4 @@
-"""Auditable, non-overwriting output bundle for dense P3-A features."""
+"""Auditable, non-overwriting output bundle for dense P3 features."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .features import DenseFeatureProcessingResult
 from .preprocessing import canonical_preprocessing_config
 from .schemas import FeatureKind, artifact_sha256, save_feature_set
 
-PREPROCESSING_MANIFEST_SCHEMA_VERSION = "1.0.0"
+PREPROCESSING_MANIFEST_SCHEMA_VERSION = "1.1.0"
 FEATURE_INDEX_SCHEMA_VERSION = "1.0.0"
 
 _KINDS = (
@@ -57,13 +57,13 @@ def write_dense_feature_outputs(
     result: DenseFeatureProcessingResult,
     processed_directory: str | Path,
 ) -> dict[str, Path]:
-    """Write one immutable P3-A output bundle and return its named paths."""
+    """Write one immutable dense-P3 output bundle and return its named paths."""
     output = Path(processed_directory)
     try:
         output.mkdir(parents=True, exist_ok=False)
     except FileExistsError as exc:
         raise FileExistsError(
-            f"P3-A processed output directory already exists: {output}"
+            f"Dense-P3 processed output directory already exists: {output}"
         ) from exc
 
     written: dict[str, Path] = {}
@@ -217,13 +217,31 @@ def write_dense_feature_outputs(
             "sha256": qc_sha256,
             **result.measurement_qc.to_dict(),
         },
+        "processing_order": [
+            "select_analysis_band",
+            "interpolate_common_grid",
+            "smooth_contiguous_valid_segments",
+            "sample_local_normalization",
+            "build_feature_sets",
+        ],
         "grid": {
             "endpoint_policy": "inclusive_exact_decimal",
             "frequency_hz": result.grid_frequency_hz.tolist(),
             "feature_names": list(result.feature_names),
             "valid_grid_fraction": result.valid_grid_fraction,
+            "interpolated_valid_grid_fraction": (
+                result.interpolated_valid_grid_fraction
+            ),
+            "smoothed_valid_grid_fraction": result.valid_grid_fraction,
+        },
+        "smoothing": result.smoothing_definition,
+        "feature_semantics": {
+            "dense_raw_spl": "smoothed_but_not_normalized",
+            "dense_demeaned_db": "smoothed_then_sample_local_demeaned",
+            "dense_zscore": "smoothed_then_sample_local_zscore",
         },
         "normalization": {
+            "input_stage": "smoothed_common_grid",
             "demean_formula": "x - mean(valid normalization-band x)",
             "zscore_formula": "(x - mean) / population_std",
             "standard_deviation_ddof": 0,

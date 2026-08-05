@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2 adds P3-A for dense sweep spectra: deterministic common-grid interpolation and three sample-local dense `FeatureSet` variants, without rereading TXT/WAV or recomputing P1/P2/P8.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing, auditable dense smoothing, and three sample-local dense `FeatureSet` variants without rereading TXT/WAV or recomputing P1/P2/P8.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A and dense P3-A are implemented. Cross-measurement P2-B, P3-B smoothing, sparse-tone features, P4–P6, and P9 remain later slices.
+- P2-A and dense P3-A/P3-B are implemented. Cross-measurement P2-B, sparse-tone/matched-tone features, P4–P6, and P9 remain later slices.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -18,10 +18,10 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 ## Architecture
 
 ```text
-REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> dense P3-A
+REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> dense P3-A --> P3-B smoothing
 WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> P3-A not applicable
                                                                                          |
-                                                                                         +--> P3-B/P4-P6 gate
+                                                                                         +--> matched-tone P3-C/P4-P6 gate
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -119,7 +119,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A; sparse multisine inputs record `P3_A=not_applicable_sparse` and are never interpolated into a dense response. `P3_B` and `P4_P6` remain explicit `not_implemented` gates. The commands do not claim that cross-measurement QC, sparse-tone FeatureSet construction, metrics, classification, HR, or reporting ran.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. `P4_P6` remains `not_implemented`. The commands do not claim that cross-measurement QC, sparse-tone FeatureSet construction, metrics, classification, HR, or reporting ran.
 
 ## P7 signal definition
 
@@ -161,13 +161,17 @@ P2 records schema/provenance, valid-point count, frequency coverage, magnitude b
 
 All P2 thresholds live under `quality_control` in `config/default.yaml` and are explicitly provisional. Canonical runs write `quality_control.csv`, long-form `qc_checks.csv`, one-row `measurement_qc.csv`, and nested `quality_control.json` from the same result object. `SpectrumData` and `MeasurementMeta` remain authoritative; these files are audit views.
 
-## P3-A dense sweep features
+## P3-A/P3-B dense sweep features
 
 `build_dense_feature_sets(SpectrumData, MeasurementQCResult, preprocessing_config)` accepts only `representation=dense_spectrum`. It verifies that the P2 result belongs to the same sample, mode, origin, role, and human-validity record, then carries the complete P2/manual-review provenance into every output `FeatureSet`. P3 does not automatically remove warning, exclusion-candidate, or human-invalid samples; later selection policy remains a separate responsibility.
 
 The common grid is built from exact decimal endpoints and an exact step count, not floating-point `np.arange`. The default inclusive grid is 1000–8000 Hz at 10 Hz spacing (701 features). Linear interpolation uses only the immediate original neighbors when both are valid and their gap does not exceed `maximum_interpolation_gap_hz`; it never extrapolates or bridges an invalid point. Invalid output positions remain `valid_mask=false` with `NaN` values.
 
-P3-A emits `dense_raw_spl`, `dense_demeaned_db`, and `dense_zscore`. Raw SPL is allowed only when `magnitude_quantity=spl`; a transfer ratio is not renamed as physical SPL, although its sample-local de-meaned and z-score views may be generated. De-meaning and z-scoring use only valid points inside `normalization_band_hz`; z-score uses the population standard deviation (`ddof=0`). These are per-sample transforms, not training-set standardization. Only `smoothing.method=none` is implemented; moving-average, Gaussian, and fractional-octave smoothing remain P3-B.
+The fixed order is analysis-band target selection, common-grid interpolation, smoothing, sample-local normalization, then `FeatureSet`. Smoothing runs in dB and independently within each maximal contiguous valid segment; it never fills an invalid point with zero or borrows across a gap. `truncate` renormalizes physically available weights, `nearest` clamps to the same segment edge, and `reflect` mirrors inside the same segment without repeating its edge. A target becomes invalid when its pre-extension kernel coverage is below `minimum_kernel_coverage`.
+
+Supported methods are `none`, `moving_average_linear_hz`, `gaussian_linear_hz`, and `fractional_octave`. Moving-average Hz widths map to a centered odd sample count. Gaussian uses explicit `sigma_hz` and `truncate_sigma`. For 1/N-octave smoothing, bounds are `fc * 2**(-1/(2*N))` and `fc * 2**(1/(2*N))`; the current fixed weighting is uniform over included points on the linear common grid in dB. Requested and effective kernels, boundary policy, coverage, and formulas are stored in the preprocessing manifest and canonical hash.
+
+P3 emits `dense_raw_spl`, `dense_demeaned_db`, and `dense_zscore`. Here `raw` means smoothed but not normalized; it does not mean unsmoothed. Raw SPL is allowed only when `magnitude_quantity=spl`; a transfer ratio is not renamed as physical SPL, although its sample-local de-meaned and z-score views may be generated. De-meaning and z-scoring use only smoothed valid points inside `normalization_band_hz`; z-score uses population standard deviation (`ddof=0`). These are per-sample transforms, not training-set standardization.
 
 Dense canonical runs add `processed/feature_index.csv`, `feature_schema.json`, `preprocessing_manifest.json`, `preprocessing_failures.csv`, and NPZ/JSON pairs under `processed/features/<feature_kind>/`. The stable `preprocessing_id` is a SHA-256 of the canonical semantic configuration. Artifacts are hash-audited, use no pickle, round-trip through `FeatureSet`, and refuse an existing processed directory.
 

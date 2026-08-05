@@ -1,4 +1,4 @@
-"""P3-A construction of dense, sample-local FeatureSet objects."""
+"""P3-A/P3-B construction of dense, sample-local FeatureSet objects."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from .preprocessing import (
     build_dense_grid,
     interpolate_dense_grid,
     preprocessing_id,
+    smooth_dense_grid,
 )
 from .quality_control import MeasurementQCResult
 from .research_gate import enforce_research_gate
@@ -43,6 +44,8 @@ class DenseFeatureProcessingResult:
     failures: tuple[FeatureProcessingFailure, ...]
     warnings: tuple[str, ...]
     valid_grid_fraction: float
+    interpolated_valid_grid_fraction: float
+    smoothing_definition: Mapping[str, object]
     measurement_qc: MeasurementQCResult
     magnitude_quantity: str
     magnitude_reference: str | None
@@ -64,6 +67,8 @@ def _fail_all(
     feature_names: tuple[str, ...],
     prep_id: str,
     valid_grid_fraction: float,
+    interpolated_valid_grid_fraction: float,
+    smoothing_definition: Mapping[str, object],
     preprocessing_config: Mapping[str, object],
     *,
     reason: str,
@@ -82,6 +87,8 @@ def _fail_all(
         ),
         warnings=(),
         valid_grid_fraction=valid_grid_fraction,
+        interpolated_valid_grid_fraction=interpolated_valid_grid_fraction,
+        smoothing_definition=smoothing_definition,
         measurement_qc=measurement_qc,
         magnitude_quantity=spectrum.magnitude_quantity,
         magnitude_reference=spectrum.magnitude_reference,
@@ -136,9 +143,9 @@ def build_dense_feature_sets(
     measurement_qc: MeasurementQCResult,
     preprocessing_config: Mapping[str, object],
 ) -> DenseFeatureProcessingResult:
-    """Build the three P3-A dense features without reading source artifacts."""
+    """Build the three dense features without reading source artifacts."""
     if spectrum.representation is not Representation.DENSE_SPECTRUM:
-        raise ValueError("P3-A supports only dense_spectrum input")
+        raise ValueError("Dense P3 supports only dense_spectrum input")
     qc_linkage = {
         "sample_id": (
             measurement_qc.sample_id,
@@ -181,24 +188,7 @@ def build_dense_feature_sets(
     enforce_research_gate(measurement_qc.run_purpose, [spectrum.meta])
     grid = build_dense_grid(preprocessing_config)
     prep_id = preprocessing_id(preprocessing_config)
-    smoothing_method = str(preprocessing_config["smoothing"]["method"])  # type: ignore[index]
-    if smoothing_method != "none":
-        return _fail_all(
-            spectrum,
-            measurement_qc,
-            grid.frequency_hz,
-            grid.feature_names,
-            prep_id,
-            0.0,
-            preprocessing_config,
-            reason="smoothing_not_implemented",
-            message=(
-                "P3-A supports only smoothing.method=none; received "
-                f"{smoothing_method!r}"
-            ),
-        )
-
-    values, valid_mask = interpolate_dense_grid(
+    interpolated_values, interpolated_mask = interpolate_dense_grid(
         spectrum.frequency_hz,
         spectrum.magnitude_db,
         spectrum.valid_mask,
@@ -208,6 +198,15 @@ def build_dense_feature_sets(
             preprocessing_config["maximum_interpolation_gap_hz"]
         ),
     )
+    interpolated_fraction = float(np.mean(interpolated_mask))
+    smoothing_result = smooth_dense_grid(
+        grid.frequency_hz,
+        interpolated_values,
+        interpolated_mask,
+        preprocessing_config,
+    )
+    values = smoothing_result.values_db
+    valid_mask = smoothing_result.valid_mask
     valid_fraction = float(np.mean(valid_mask))
     minimum_fraction = float(preprocessing_config["minimum_valid_grid_fraction"])
     if valid_fraction < minimum_fraction:
@@ -218,6 +217,8 @@ def build_dense_feature_sets(
             grid.feature_names,
             prep_id,
             valid_fraction,
+            interpolated_fraction,
+            smoothing_result.definition,
             preprocessing_config,
             reason="minimum_valid_grid_fraction_not_met",
             message=(
@@ -287,6 +288,8 @@ def build_dense_feature_sets(
                 () if valid_fraction == 1.0 else ("partial_grid_coverage",)
             ),
             valid_grid_fraction=valid_fraction,
+            interpolated_valid_grid_fraction=interpolated_fraction,
+            smoothing_definition=smoothing_result.definition,
             measurement_qc=measurement_qc,
             magnitude_quantity=spectrum.magnitude_quantity,
             magnitude_reference=spectrum.magnitude_reference,
@@ -338,6 +341,8 @@ def build_dense_feature_sets(
         failures=tuple(failures),
         warnings=(() if valid_fraction == 1.0 else ("partial_grid_coverage",)),
         valid_grid_fraction=valid_fraction,
+        interpolated_valid_grid_fraction=interpolated_fraction,
+        smoothing_definition=smoothing_result.definition,
         measurement_qc=measurement_qc,
         magnitude_quantity=spectrum.magnitude_quantity,
         magnitude_reference=spectrum.magnitude_reference,
