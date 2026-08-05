@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC; DEV-C7 adds provisional band/configuration/cross-mode P4-B metrics. P5/P6 and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC; DEV-C7 adds provisional band/configuration/cross-mode P4-B metrics; DEV-C8 adds provisional grouped P5-A direction classification. P5-B/P6 and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -138,6 +138,14 @@ P4-B has independent version-1.0 schemas for `ComparisonAnalysisScope`, its expl
 
 Band metrics use one scope-fixed common-valid mask and the authoritative P4-A pair/effective-rank/morphology-gain formulas. Cross-mode metrics require explicit one-to-one `match_pair_id` and controlled metadata/state identity. Absolute bias is always multisine minus sweep and is unavailable without compatible dB normalization/reference/calibration; no calibration is learned or applied. Reliability uses qualified development/training REPOS pairs only, rejects final_test, and produces supplemental mean-one weights without selecting tones or mutating FeatureSets. Tone selection, bridge/calibration workflow, P5/P6, and scientific conclusions remain outside P4-B.
 
+## Configuration schema 2.12 to 2.13 and P5-A classification schema 1.0
+
+Configuration 2.13 adds an explicit provisional `classification` contract: predefined bands, LOSO/LORO/LOAO protocols, three fixed baseline models, minimum training features/per-direction samples/prediction coverage, training-fold-only standardization, disabled PCA, and sealed final-test policy. Legacy `classification.validation` migrates only in memory to `classification.protocols` with a warning; ambiguous additional fields are rejected. Measurement and FeatureSet schemas remain 2.4 and 2.2. Pipeline version is `2.0.0-dev.14`; single-measurement run-manifest schema 1.8 separates `P5_A=classification_scope_required` from the still-unimplemented P5-B and P6 gates.
+
+P5-A introduces version-1.0 `ClassificationScope`, explicit FeatureSet input manifest, typed result, and classification manifest. Scope order, FeatureSet content hashes, P2-A links, exact P2-B result/scope hash, cohort role, provenance, measurement mode, configuration, preprocessing and tone contract are hard gates. No directory discovery or raw-data processing occurs.
+
+Each fold fixes its feature mask from the declared frequency band and training `valid_mask` intersection. Standardization, templates, centroids and logistic regression fit only the training fold. A test sample missing a required feature becomes unavailable; no test-informed mask shrink, fill, interpolation, PCA, hyperparameter search, or band/model selection is permitted. `final_test` remains present in audit but sealed from every fold. Sweep and multisine classifications are separate single-mode runs.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -154,4 +162,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics. DEV-C4 paired runs add matched FeatureSet artifacts. DEV-C6 writes dataset QC views under `outputs/<data_origin>/<run_purpose>/<run_id>/dataset_qc/`. DEV-C7 writes explicit-scope comparison views under `outputs/<data_origin>/<run_purpose>/<run_id>/comparison_metrics/`. Both record input/output SHA-256 and manifest self-hashes. Failure paths retain available input/failure evidence without writing a false success marker.
+V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics. DEV-C4 paired runs add matched FeatureSet artifacts. DEV-C6 writes dataset QC views under `outputs/<data_origin>/<run_purpose>/<run_id>/dataset_qc/`. DEV-C7 writes explicit-scope comparison views under `outputs/<data_origin>/<run_purpose>/<run_id>/comparison_metrics/`. DEV-C8 writes separate-mode grouped classification views under `outputs/<data_origin>/<run_purpose>/<run_id>/classification/`. These bundles record input/output SHA-256 and manifest self-hashes. Failure paths retain available input/failure evidence without writing a false success marker.

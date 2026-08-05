@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.14 — P5-A leakage-safe grouped direction classification (unreleased)
+
+- Incremented configuration schema to 2.13.0 and added a strict provisional classification contract with fixed protocols/models, fold-local standardization, disabled PCA, and sealed final-test policy.
+- Added hash-identified `ClassificationScope`, explicit persisted-FeatureSet inputs, exact P2-B linkage, single-mode contract gates, and research-provenance enforcement.
+- Added LOSO, REPOS-only LORO, and REASM-only LOAO folds with training-only masks, transforms, templates, centroids, and logistic regression; missing test features remain unavailable without mask shrink or filling.
+- Added stable prediction/fold/per-class/aggregate/confusion/audit CSVs, typed JSON, input/output/self hashes, immutable output directories, and failure manifests.
+- Added separate dense-sweep and multisine-tone software-validation E2E runs; both remain simulated and scientifically ineligible. P5-B/P6/P9 remain closed.
+
 ## 2.0.0-dev.13 — P4-B band, configuration, and cross-mode metrics (unreleased)
 
 - Incremented configuration schema to 2.12.0 and added strict provisional frequency-band, U4 comparison, cross-mode, and REPOS reliability policy.

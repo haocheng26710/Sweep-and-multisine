@@ -1,0 +1,16 @@
+pipeline_version: 2.0.0-dev.14
+schema_versions:
+  config: 2.13.0
+  measurement: 2.4.0
+  feature: 2.2.0
+measurement_mode: rew_sweep
+run_purpose: software_validation
+random_state: 20260806
+classification:
+  frequency_bands:
+    - {band_id: validation_1k_1p2k, f_min_hz: 1000, f_max_hz: 1200, boundary: closed, minimum_feature_count: 5}
+  protocols: [leave_one_session_out, leave_one_reposition_round_out, leave_one_assembly_out]
+  models: [nearest_template_correlation, nearest_centroid, logistic_regression]
+  minimum_training_features: 5
+  minimum_training_samples_per_direction: 1
+  minimum_prediction_coverage: 1.0

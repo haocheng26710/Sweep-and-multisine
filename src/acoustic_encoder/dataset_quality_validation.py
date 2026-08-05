@@ -28,7 +28,7 @@ from .quality_control import (
     measurement_qc_sha256,
 )
 from .research_gate import RunPurpose
-from .schemas import artifact_sha256, save_feature_set
+from .schemas import FeatureKind, artifact_sha256, save_feature_set
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +61,7 @@ def run_simulated_dataset_quality_validation(
     run_id: str,
     feature_count: int = 71,
     canonical_ready_fixture: bool = False,
+    feature_kind: FeatureKind = FeatureKind.DENSE_DEMEANED_DB,
 ) -> DatasetQCValidationResult:
     """Create explicit simulated inputs, then exercise the same P2-B CLI."""
     project_root = project_root.resolve()
@@ -76,6 +77,7 @@ def run_simulated_dataset_quality_validation(
         feature_count=feature_count,
         random_state=int(resolved["random_state"]),
         repeat_noise_scale=0.5,
+        feature_kind=feature_kind,
     )
     if canonical_ready_fixture:
         grouped_features: dict[tuple[Any, ...], list[Any]] = {}

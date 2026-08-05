@@ -195,6 +195,28 @@ _COMPARISON_METRICS_DEFAULTS: dict[str, Any] = {
     },
 }
 
+_CLASSIFICATION_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "frequency_bands": deepcopy(_COMPARISON_METRICS_DEFAULTS["frequency_bands"]),
+    "protocols": [
+        "leave_one_session_out",
+        "leave_one_reposition_round_out",
+        "leave_one_assembly_out",
+    ],
+    "models": [
+        "nearest_template_correlation",
+        "nearest_centroid",
+        "logistic_regression",
+    ],
+    "minimum_training_features": 5,
+    "minimum_training_samples_per_direction": 1,
+    "minimum_prediction_coverage": 1.0,
+    "standardization": "training_fold_only",
+    "pca": "disabled",
+    "final_test_policy": "sealed",
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -229,6 +251,18 @@ def load_config(
     defaults = _read_yaml(Path(default_path).resolve()) if default_path else {}
     provided = _read_yaml(config_path)
     migration_warnings: list[str] = []
+    legacy_classification = provided.get("classification")
+    if isinstance(legacy_classification, Mapping) and "validation" in legacy_classification:
+        if set(legacy_classification) != {"validation", "models"}:
+            raise ConfigError("legacy classification may contain only validation and models")
+        provided["classification"] = {
+            "protocols": list(legacy_classification["validation"]),
+            "models": list(legacy_classification["models"]),
+        }
+        migration_warnings.append(
+            "Legacy classification.validation was migrated in memory to "
+            "classification.protocols; no source YAML was modified."
+        )
     if "measurement_mode" not in provided and "measurement_mode" not in defaults:
         provided["measurement_mode"] = MeasurementMode.REW_SWEEP.value
         migration_warnings.append(
@@ -270,6 +304,13 @@ def load_config(
         _COMPARISON_METRICS_DEFAULTS,
         supplied_comparison_metrics,
     )
+    supplied_classification = resolved.get("classification", {})
+    if not isinstance(supplied_classification, Mapping):
+        raise ConfigError("classification must be a mapping")
+    resolved["classification"] = deep_merge(
+        _CLASSIFICATION_DEFAULTS,
+        supplied_classification,
+    )
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -293,6 +334,7 @@ def load_config(
         ("2.9.0", "2.4.0", "2.2.0"),
         ("2.10.0", "2.4.0", "2.2.0"),
         ("2.11.0", "2.4.0", "2.2.0"),
+        ("2.12.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -372,6 +414,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_direction_metrics_config(config.get("direction_metrics"))
     validate_dataset_quality_control_config(config.get("dataset_quality_control"))
     validate_comparison_metrics_config(config.get("comparison_metrics"))
+    validate_classification_config(config.get("classification"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -717,6 +760,51 @@ def validate_comparison_metrics_config(value: Any) -> None:
             raise ConfigError(f"comparison reliability {field} must be >= 1")
     if reliability.get("normalization") != "mean_one":
         raise ConfigError("comparison reliability normalization must be mean_one")
+
+
+def validate_classification_config(value: Any) -> None:
+    """Validate the fixed, provisional P5-A leakage-control contract."""
+    required = {
+        "schema_version", "provisional", "frequency_bands", "protocols", "models",
+        "minimum_training_features", "minimum_training_samples_per_direction",
+        "minimum_prediction_coverage", "standardization",
+        "pca", "final_test_policy",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ConfigError("classification fields are incomplete or ambiguous")
+    if value.get("schema_version") != "1.0.0" or not isinstance(value.get("provisional"), bool):
+        raise ConfigError("classification requires schema_version 1.0.0 and boolean provisional")
+    # Reuse the already-audited P4-B band validator by supplying inert legal sections.
+    validation_shell = deepcopy(_COMPARISON_METRICS_DEFAULTS)
+    validation_shell["frequency_bands"] = value.get("frequency_bands")
+    validate_comparison_metrics_config(validation_shell)
+    allowed_protocols = {
+        "leave_one_session_out", "leave_one_reposition_round_out", "leave_one_assembly_out"
+    }
+    allowed_models = {
+        "nearest_template_correlation", "nearest_centroid", "logistic_regression"
+    }
+    protocols = value.get("protocols")
+    models = value.get("models")
+    if not isinstance(protocols, list) or not protocols or len(set(protocols)) != len(protocols) or set(protocols) - allowed_protocols:
+        raise ConfigError("classification protocols are invalid")
+    if not isinstance(models, list) or not models or len(set(models)) != len(models) or set(models) - allowed_models:
+        raise ConfigError("classification models are invalid")
+    count = value.get("minimum_training_features")
+    if isinstance(count, bool) or not isinstance(count, int) or count < 2:
+        raise ConfigError("classification minimum_training_features must be an integer >= 2")
+    per_direction = value.get("minimum_training_samples_per_direction")
+    if isinstance(per_direction, bool) or not isinstance(per_direction, int) or per_direction < 1:
+        raise ConfigError("classification minimum_training_samples_per_direction must be an integer >= 1")
+    coverage = _finite_number(value, "minimum_prediction_coverage", "classification minimum_prediction_coverage")
+    if not 0.0 < coverage <= 1.0:
+        raise ConfigError("classification minimum_prediction_coverage must be in (0, 1]")
+    if value.get("standardization") != "training_fold_only":
+        raise ConfigError("classification standardization must be training_fold_only")
+    if value.get("pca") != "disabled":
+        raise ConfigError("classification PCA must remain disabled in P5-A")
+    if value.get("final_test_policy") != "sealed":
+        raise ConfigError("classification final_test_policy must be sealed")
 
 
 def validate_dataset_quality_control_config(value: Any) -> None:
