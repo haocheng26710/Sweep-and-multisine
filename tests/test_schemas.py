@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+import json
 
 import numpy as np
 import pytest
@@ -14,6 +15,7 @@ from acoustic_encoder.schemas import (
     MeasurementMeta,
     MeasurementMode,
     PhaseStatus,
+    QCStatus,
     Representation,
     SourceFormat,
     SpectrumData,
@@ -101,11 +103,29 @@ def test_spectrum_and_feature_round_trip(tmp_path) -> None:
         source_representation=spectrum.representation,
         preprocessing_id="prep-sha256-placeholder",
         meta=meta,
+        source_qc_status=QCStatus.WARNING,
+        source_qc_sha256="sha256:" + "a" * 64,
+        source_qc_warning_reasons=("fixture_warning",),
+        source_qc_eligible_for_downstream=True,
     )
     save_feature_set(feature, tmp_path / "feature")
     restored_feature = load_feature_set(tmp_path / "feature")
     np.testing.assert_allclose(restored_feature.values, feature.values)
     assert restored_feature.feature_names == feature.feature_names
+    assert restored_feature.source_qc_status is QCStatus.WARNING
+    assert restored_feature.source_qc_sha256 == "sha256:" + "a" * 64
+    assert restored_feature.source_qc_warning_reasons == ("fixture_warning",)
+
+    legacy_path = tmp_path / "feature.json"
+    legacy_payload = json.loads(legacy_path.read_text(encoding="utf-8"))
+    for key in tuple(legacy_payload):
+        if key.startswith("source_qc_"):
+            legacy_payload.pop(key)
+    legacy_path.write_text(json.dumps(legacy_payload), encoding="utf-8")
+    restored_legacy = load_feature_set(tmp_path / "feature")
+    assert restored_legacy.source_qc_status is None
+    assert restored_legacy.source_qc_sha256 is None
+    assert restored_legacy.source_qc_warning_reasons == ()
 
 
 def test_multisine_meta_requires_manifest_linkage() -> None:

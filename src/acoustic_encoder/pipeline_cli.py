@@ -44,8 +44,9 @@ def pipeline_main(
         if not arguments.validate_only:
             print(
                 "DEV-C stage gate: configuration is valid; provide --input, "
-                "--metadata, and --run-id to execute P1/P2/P8. "
-                "P2 is available; P3-P6 remain not implemented.",
+                "--metadata, and --run-id to execute P1/P2/P8 plus dense P3-A. "
+                "P3-A is not applicable to sparse tones; P3-B/P4-P6 remain "
+                "not implemented.",
                 file=sys.stderr,
             )
         return 0
@@ -82,7 +83,8 @@ def pipeline_main(
         )
     )
     print(
-        "DEV-C stage gate reached: P2 is available; P3-P6 remain not implemented.",
+        "DEV-C stage gate reached: dense P3-A is available; sparse P3-A is "
+        "not applicable; P3-B/P4-P6 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:

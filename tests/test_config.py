@@ -164,13 +164,59 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_dev_c1_uses_incremented_pipeline_and_config_schema_versions() -> None:
+def test_dev_c2_uses_incremented_pipeline_config_and_feature_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.7",
-        "config_schema_version": "2.6.0",
+        "pipeline_version": "2.0.0-dev.8",
+        "config_schema_version": "2.7.0",
         "measurement_schema_version": "2.4.0",
-        "feature_schema_version": "2.0.0",
+        "feature_schema_version": "2.1.0",
     }
+
+
+def test_dense_preprocessing_defaults_are_complete_and_provisional() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+
+    preprocessing = resolved["preprocessing"]
+    assert preprocessing == {
+        "schema_version": "1.0.0",
+        "provisional": True,
+        "analysis_band_hz": [1000, 8000],
+        "common_grid_step_hz": 10,
+        "interpolation": "linear",
+        "maximum_interpolation_gap_hz": 100,
+        "minimum_valid_grid_fraction": 0.95,
+        "normalization_band_hz": [1000, 8000],
+        "minimum_normalization_points": 2,
+        "minimum_zscore_std_db": 1.0e-9,
+        "smoothing": {"method": "none"},
+    }
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "match"),
+    [
+        ("schema_version", "9.0.0", "schema_version"),
+        ("provisional", "yes", "provisional"),
+        ("analysis_band_hz", [1000, 8005], "exact multiple"),
+        ("common_grid_step_hz", 0, "common_grid_step_hz"),
+        ("interpolation", "cubic", "interpolation"),
+        ("maximum_interpolation_gap_hz", 0, "maximum_interpolation_gap_hz"),
+        ("minimum_valid_grid_fraction", 1.1, "minimum_valid_grid_fraction"),
+        ("normalization_band_hz", [900, 8000], "normalization_band_hz"),
+        ("minimum_normalization_points", 1, "minimum_normalization_points"),
+        ("minimum_zscore_std_db", 0, "minimum_zscore_std_db"),
+    ],
+)
+def test_invalid_dense_preprocessing_config_is_rejected(
+    key: str,
+    value: object,
+    match: str,
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["preprocessing"][key] = value
+
+    with pytest.raises(ConfigError, match=match):
+        validate_config(resolved)
 
 
 def test_shared_quality_control_thresholds_are_resolved_and_provisional() -> None:
@@ -308,6 +354,7 @@ def test_invalid_multisine_tone_quality_config_is_rejected(
         ("2.3.0", "2.3.0"),
         ("2.4.0", "2.4.0"),
         ("2.5.0", "2.4.0"),
+        ("2.6.0", "2.4.0"),
     ],
 )
 def test_pre_dev_c1_config_versions_migrate_without_rewriting(
@@ -332,9 +379,9 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.6.0",
+        "config": "2.7.0",
         "measurement": "2.4.0",
-        "feature": "2.0.0",
+        "feature": "2.1.0",
     }
     assert any(old_config in warning for warning in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload

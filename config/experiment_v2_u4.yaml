@@ -7,14 +7,18 @@ experiment:
   require_explicit_group_ids: true
 
 preprocessing:
+  schema_version: 1.0.0
+  provisional: true
   analysis_band_hz: [1000, 8000]
   common_grid_step_hz: 10
   interpolation: linear
+  maximum_interpolation_gap_hz: 100
+  minimum_valid_grid_fraction: 0.95
   normalization_band_hz: [1000, 8000]
-  normalization: none
+  minimum_normalization_points: 2
+  minimum_zscore_std_db: 1.0e-9
   smoothing:
     method: none
-    boundary: reflect
 
 classification:
   validation:
@@ -25,4 +29,3 @@ classification:
     - nearest_template_correlation
     - nearest_centroid
     - logistic_regression
-

@@ -9,6 +9,7 @@ from typing import Any, Mapping
 import numpy as np
 import yaml
 
+from .preprocessing import build_dense_grid
 from .research_gate import RunPurpose, normalize_run_purpose
 from .schemas import MeasurementMode, normalize_measurement_mode
 from .version import (
@@ -21,6 +22,21 @@ from .version import (
 
 class ConfigError(ValueError):
     """Raised when a resolved configuration is internally inconsistent."""
+
+
+_P3_PREPROCESSING_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "analysis_band_hz": [1000, 8000],
+    "common_grid_step_hz": 10,
+    "interpolation": "linear",
+    "maximum_interpolation_gap_hz": 100,
+    "minimum_valid_grid_fraction": 0.95,
+    "normalization_band_hz": [1000, 8000],
+    "minimum_normalization_points": 2,
+    "minimum_zscore_std_db": 1.0e-9,
+    "smoothing": {"method": "none"},
+}
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -62,6 +78,20 @@ def load_config(
             "Legacy config had no measurement_mode; resolved as rew_sweep without modifying the source YAML."
         )
     resolved = deep_merge(defaults, provided)
+    supplied_preprocessing = resolved.get("preprocessing", {})
+    if not isinstance(supplied_preprocessing, Mapping):
+        raise ConfigError("preprocessing must be a mapping")
+    resolved["preprocessing"] = deep_merge(
+        _P3_PREPROCESSING_DEFAULTS,
+        supplied_preprocessing,
+    )
+    if "normalization" in resolved["preprocessing"]:
+        legacy_normalization = resolved["preprocessing"].pop("normalization")
+        migration_warnings.append(
+            "Legacy preprocessing.normalization="
+            f"{legacy_normalization!r} was retired; P3-A now emits raw, "
+            "de-meaned, and z-score FeatureSets explicitly."
+        )
     versions = resolved.get("schema_versions", {})
     prior_versions = (
         versions.get("config"),
@@ -69,9 +99,10 @@ def load_config(
         versions.get("feature"),
     )
     if prior_versions in {
-        ("2.3.0", "2.3.0", FEATURE_SCHEMA_VERSION),
-        ("2.4.0", "2.4.0", FEATURE_SCHEMA_VERSION),
-        ("2.5.0", "2.4.0", FEATURE_SCHEMA_VERSION),
+        ("2.3.0", "2.3.0", "2.0.0"),
+        ("2.4.0", "2.4.0", "2.0.0"),
+        ("2.5.0", "2.4.0", "2.0.0"),
+        ("2.6.0", "2.4.0", "2.0.0"),
     }:
         old_config_version = str(versions["config"])
         resolved["pipeline_version"] = PIPELINE_VERSION
@@ -134,10 +165,9 @@ def validate_config(config: Mapping[str, Any]) -> None:
     for path_name in ("stimuli", "outputs"):
         if path_name in paths and not str(paths[path_name]).strip():
             raise ConfigError(f"paths.{path_name} must be a non-empty path")
-    preprocessing = config.get("preprocessing", {})
-    band = preprocessing.get("analysis_band_hz", [1000, 8000])
-    if len(band) != 2 or not 0 < float(band[0]) < float(band[1]):
-        raise ConfigError("preprocessing.analysis_band_hz must be [positive_low, high]")
+    preprocessing = config.get("preprocessing")
+    validate_preprocessing_config(preprocessing)
+    assert isinstance(preprocessing, Mapping)
     smoothing = preprocessing.get("smoothing", {"method": "none"})
     method = smoothing.get("method")
     allowed = {"none", "moving_average_linear_hz", "gaussian_linear_hz", "fractional_octave"}
@@ -193,6 +223,92 @@ def validate_config(config: Mapping[str, Any]) -> None:
             validate_tone_quality_config(tone_quality)
     if "quality_control" in config:
         validate_quality_control_config(config["quality_control"])
+
+
+def validate_preprocessing_config(preprocessing: Any) -> None:
+    """Validate the complete, provisional P3-A preprocessing contract."""
+    if not isinstance(preprocessing, Mapping):
+        raise ConfigError("preprocessing must be a mapping")
+    if preprocessing.get("schema_version") != "1.0.0":
+        raise ConfigError("preprocessing.schema_version must be 1.0.0")
+    if not isinstance(preprocessing.get("provisional"), bool):
+        raise ConfigError("preprocessing.provisional must be boolean")
+    band = preprocessing.get("analysis_band_hz")
+    try:
+        low, high = (float(value) for value in band)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(
+            "preprocessing.analysis_band_hz must be [positive_low, high]"
+        ) from exc
+    if not (np.isfinite(low) and np.isfinite(high) and 0.0 < low < high):
+        raise ConfigError(
+            "preprocessing.analysis_band_hz must be [positive_low, high]"
+        )
+    step = _finite_number(
+        preprocessing,
+        "common_grid_step_hz",
+        "preprocessing.common_grid_step_hz",
+    )
+    if step <= 0.0:
+        raise ConfigError("preprocessing.common_grid_step_hz must be positive")
+    try:
+        build_dense_grid(preprocessing)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ConfigError(f"preprocessing grid is invalid: {exc}") from exc
+    if preprocessing.get("interpolation") != "linear":
+        raise ConfigError("preprocessing.interpolation must be linear")
+    maximum_gap = _finite_number(
+        preprocessing,
+        "maximum_interpolation_gap_hz",
+        "preprocessing.maximum_interpolation_gap_hz",
+    )
+    if maximum_gap <= 0.0:
+        raise ConfigError(
+            "preprocessing.maximum_interpolation_gap_hz must be positive"
+        )
+    valid_fraction = _finite_number(
+        preprocessing,
+        "minimum_valid_grid_fraction",
+        "preprocessing.minimum_valid_grid_fraction",
+    )
+    if not 0.0 < valid_fraction <= 1.0:
+        raise ConfigError(
+            "preprocessing.minimum_valid_grid_fraction must lie in (0, 1]"
+        )
+    normalization_band = preprocessing.get("normalization_band_hz")
+    try:
+        normalization_low, normalization_high = (
+            float(value) for value in normalization_band
+        )
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(
+            "preprocessing.normalization_band_hz must be [low, high]"
+        ) from exc
+    if not (
+        np.isfinite(normalization_low)
+        and np.isfinite(normalization_high)
+        and low <= normalization_low < normalization_high <= high
+    ):
+        raise ConfigError(
+            "preprocessing.normalization_band_hz must be ordered and contained "
+            "in analysis_band_hz"
+        )
+    minimum_points = preprocessing.get("minimum_normalization_points")
+    if (
+        isinstance(minimum_points, bool)
+        or not isinstance(minimum_points, int)
+        or minimum_points < 2
+    ):
+        raise ConfigError(
+            "preprocessing.minimum_normalization_points must be an integer >= 2"
+        )
+    minimum_std = _finite_number(
+        preprocessing,
+        "minimum_zscore_std_db",
+        "preprocessing.minimum_zscore_std_db",
+    )
+    if minimum_std <= 0.0:
+        raise ConfigError("preprocessing.minimum_zscore_std_db must be positive")
 
 
 def validate_quality_control_config(quality: Any) -> None:

@@ -1,4 +1,4 @@
-"""Auditable DEV-B run lifecycle shared by every command-line entry point."""
+"""Auditable shared run lifecycle for P1/P8, P2, and dense P3-A."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from typing import Any, Mapping
 
 import yaml
 
+from .feature_outputs import write_dense_feature_outputs
+from .features import build_dense_feature_sets
 from .io_rew import REWManualReviewRequired
 from .multisine_outputs import write_multisine_qc_outputs
 from .p1_adapters import P1AdapterError, P1ManualReviewRequired
@@ -19,10 +21,16 @@ from .pipeline_dispatch import dispatch_measurement, read_measurement_meta
 from .quality_control import QC_SCHEMA_VERSION, evaluate_measurement_quality
 from .quality_control_outputs import write_quality_control_outputs
 from .research_gate import ResearchGateError
-from .schemas import MeasurementMeta, SpectrumData, artifact_sha256, save_spectrum
+from .schemas import (
+    MeasurementMeta,
+    Representation,
+    SpectrumData,
+    artifact_sha256,
+    save_spectrum,
+)
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.1.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.2.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,8 +173,9 @@ def _artifact_records(output: Path) -> list[dict[str, str]]:
             "path": path.relative_to(output).as_posix(),
             "sha256": artifact_sha256(path),
         }
-        for path in sorted(output.iterdir())
-        if path.name not in {"run_manifest.json", "run_manifest.sha256"}
+        for path in sorted(output.rglob("*"))
+        if path.is_file()
+        and path.name not in {"run_manifest.json", "run_manifest.sha256"}
     ]
 
 
@@ -206,7 +215,7 @@ def execute_measurement_run(
     run_id: str,
     stimulus_manifest: str | Path | None = None,
 ) -> RunResult:
-    """Execute P1/P8 once and persist a hash-audited DEV-B run bundle."""
+    """Execute shared import/QC plus representation-aware P3-A once."""
     run_component = Path(run_id)
     if (
         not run_id.strip()
@@ -293,7 +302,9 @@ def execute_measurement_run(
                 "P7": "not_run",
                 "P8": "not_run",
                 "P2": "not_run",
-                "P3_P6": "not_implemented",
+                "P3_A": "not_run",
+                "P3_B": "not_implemented",
+                "P4_P6": "not_implemented",
             },
             "failure": {
                 "category": category,
@@ -372,7 +383,9 @@ def execute_measurement_run(
                 "P7": "not_run",
                 "P8": "not_run",
                 "P2": "not_run",
-                "P3_P6": "not_implemented",
+                "P3_A": "not_run",
+                "P3_B": "not_implemented",
+                "P4_P6": "not_implemented",
             },
             "failure": {
                 "category": category,
@@ -409,7 +422,20 @@ def execute_measurement_run(
     )
     write_quality_control_outputs(qc_result, output)
     qc_status = qc_result.aggregate_status.value
-    success = qc_status == "valid"
+    dense_processing = None
+    if spectrum.representation is Representation.DENSE_SPECTRUM:
+        dense_processing = build_dense_feature_sets(
+            spectrum,
+            qc_result,
+            resolved_config["preprocessing"],
+        )
+        write_dense_feature_outputs(dense_processing, output / "processed")
+        p3_status = dense_processing.processing_status
+        p3_success = p3_status == "completed"
+    else:
+        p3_status = "not_applicable_sparse"
+        p3_success = True
+    success = qc_status == "valid" and p3_success
 
     inputs = _known_inputs(
         source,
@@ -451,6 +477,27 @@ def execute_measurement_run(
         "inputs": inputs,
         "phase_status": spectrum.phase_status.value,
         "qc_status": qc_status,
+        "preprocessing": (
+            {
+                "processing_status": dense_processing.processing_status,
+                "preprocessing_id": dense_processing.preprocessing_id,
+                "valid_grid_fraction": dense_processing.valid_grid_fraction,
+                "feature_kinds_written": sorted(
+                    kind.value for kind in dense_processing.feature_sets
+                ),
+                "failure_reasons": [
+                    failure.reason for failure in dense_processing.failures
+                ],
+            }
+            if dense_processing is not None
+            else {
+                "processing_status": "not_applicable_sparse",
+                "preprocessing_id": None,
+                "valid_grid_fraction": None,
+                "feature_kinds_written": [],
+                "failure_reasons": [],
+            }
+        ),
         "random_state": int(resolved_config["random_state"]),
         "artifacts": artifacts,
         "stage_gate": {
@@ -466,7 +513,9 @@ def execute_measurement_run(
                 else "not_applicable"
             ),
             "P2": "completed",
-            "P3_P6": "not_implemented",
+            "P3_A": p3_status,
+            "P3_B": "not_implemented",
+            "P4_P6": "not_implemented",
         },
         "failure": None,
     }

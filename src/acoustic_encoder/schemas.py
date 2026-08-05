@@ -346,6 +346,14 @@ class FeatureSet:
     reliability_weights: FloatArray | None = None
     fit_scope_id: str | None = None
     calibration_id: str | None = None
+    source_qc_status: QCStatus | None = None
+    source_qc_sha256: str | None = None
+    source_qc_warning_reasons: tuple[str, ...] = field(default_factory=tuple)
+    source_qc_exclude_candidate_reasons: tuple[str, ...] = field(
+        default_factory=tuple
+    )
+    source_qc_unavailable_checks: tuple[str, ...] = field(default_factory=tuple)
+    source_qc_eligible_for_downstream: bool | None = None
 
     def __post_init__(self) -> None:
         values = _readonly_1d(self.values, np.float64, "values")
@@ -370,6 +378,15 @@ class FeatureSet:
         }
         if self.feature_kind in tone_kinds and not self.tone_set_id:
             raise ValueError("tone FeatureSet requires tone_set_id")
+        if self.source_qc_sha256 is not None and (
+            not self.source_qc_sha256.startswith("sha256:")
+            or len(self.source_qc_sha256) != len("sha256:") + 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in self.source_qc_sha256.removeprefix("sha256:")
+            )
+        ):
+            raise ValueError("source_qc_sha256 must be sha256:<lowercase digest>")
 
 
 def _artifact_paths(base_path: str | Path) -> tuple[Path, Path]:
@@ -466,6 +483,16 @@ def save_feature_set(data: FeatureSet, base_path: str | Path) -> tuple[Path, Pat
         "preprocessing_id": data.preprocessing_id,
         "fit_scope_id": data.fit_scope_id,
         "calibration_id": data.calibration_id,
+        "source_qc_status": data.source_qc_status,
+        "source_qc_sha256": data.source_qc_sha256,
+        "source_qc_warning_reasons": data.source_qc_warning_reasons,
+        "source_qc_exclude_candidate_reasons": (
+            data.source_qc_exclude_candidate_reasons
+        ),
+        "source_qc_unavailable_checks": data.source_qc_unavailable_checks,
+        "source_qc_eligible_for_downstream": (
+            data.source_qc_eligible_for_downstream
+        ),
         "has_reliability_weights": data.reliability_weights is not None,
         "meta": data.meta.to_dict(),
         "array_sha256": artifact_sha256(array_path),
@@ -494,6 +521,24 @@ def load_feature_set(base_path: str | Path) -> FeatureSet:
             preprocessing_id=payload["preprocessing_id"],
             fit_scope_id=payload["fit_scope_id"],
             calibration_id=payload["calibration_id"],
+            source_qc_status=(
+                QCStatus(payload["source_qc_status"])
+                if payload.get("source_qc_status") is not None
+                else None
+            ),
+            source_qc_sha256=payload.get("source_qc_sha256"),
+            source_qc_warning_reasons=tuple(
+                payload.get("source_qc_warning_reasons", ())
+            ),
+            source_qc_exclude_candidate_reasons=tuple(
+                payload.get("source_qc_exclude_candidate_reasons", ())
+            ),
+            source_qc_unavailable_checks=tuple(
+                payload.get("source_qc_unavailable_checks", ())
+            ),
+            source_qc_eligible_for_downstream=payload.get(
+                "source_qc_eligible_for_downstream"
+            ),
             reliability_weights=(
                 arrays["reliability_weights"] if payload["has_reliability_weights"] else None
             ),

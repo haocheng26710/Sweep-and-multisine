@@ -145,13 +145,13 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.1.0"
+    assert manifest["run_manifest_schema_version"] == "1.2.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.7",
-        "config_schema": "2.6.0",
+        "pipeline": "2.0.0-dev.8",
+        "config_schema": "2.7.0",
         "measurement_schema": "2.4.0",
-        "feature_schema": "2.0.0",
+        "feature_schema": "2.1.0",
     }
     assert len(manifest["git"]["commit"]) == 40
     assert isinstance(manifest["git"]["dirty"], bool)
@@ -173,7 +173,9 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["finished_at_utc"]
     assert manifest["random_state"] == resolved["random_state"]
     assert manifest["stage_gate"]["P2"] == "completed"
-    assert manifest["stage_gate"]["P3_P6"] == "not_implemented"
+    assert manifest["stage_gate"]["P3_A"] == "not_applicable_sparse"
+    assert manifest["stage_gate"]["P3_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P4_P6"] == "not_implemented"
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
     for item in manifest["artifacts"]:
@@ -215,7 +217,25 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
     assert result.run_manifest["eligible_for_scientific_analysis"] is False
     assert result.run_manifest["stage_gate"]["P8"] == "not_applicable"
     assert result.run_manifest["stage_gate"]["P2"] == "completed"
+    assert result.run_manifest["stage_gate"]["P3_A"] == "completed"
+    assert result.run_manifest["preprocessing"]["processing_status"] == "completed"
+    assert result.run_manifest["preprocessing"]["preprocessing_id"].startswith(
+        "sha256:"
+    )
     assert (result.output_directory / "quality_control.json").is_file()
+    assert (result.output_directory / "processed" / "feature_index.csv").is_file()
+    assert (
+        result.output_directory
+        / "processed"
+        / "preprocessing_manifest.json"
+    ).is_file()
+    assert (
+        result.output_directory
+        / "processed"
+        / "features"
+        / "dense_raw_spl"
+        / f"{result.spectrum.meta.sample_id}.npz"
+    ).is_file()
     assert load_spectrum(result.output_directory / "spectrum_data").meta == result.spectrum.meta
 
 

@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC. P2-B, P3–P6, and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2 adds dense sweep P3-A. P2-B, P3-B, sparse-tone features, P4–P6, and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -72,6 +72,18 @@ Run-manifest schema 1.1 adds `qc_schema_version`, records `P2=completed` on succ
 
 P2-A does not reclassify historical data, infer missing provenance, alter `MeasurementMeta.valid`, delete points/tones, or turn `exclude_candidate` into a human exclusion. Simulation thresholds remain provisional and cannot be migrated into frozen real-experiment thresholds.
 
+## Configuration schema 2.6 to 2.7 and feature schema 2.0 to 2.1
+
+Configuration schema 2.7 replaces placeholder preprocessing keys with the complete provisional P3-A contract: preprocessing schema version, exact analysis band and common-grid step, linear interpolation, maximum interpolation gap, minimum valid-grid fraction, normalization band, minimum normalization-point count, minimum z-score standard deviation, and an explicit smoothing method. The default grid has inclusive endpoints from 1000 through 8000 Hz at 10 Hz spacing. A band span that is not an exact multiple of the step is rejected.
+
+Configuration 2.3/measurement 2.3/feature 2.0, configuration 2.4/measurement 2.4/feature 2.0, configuration 2.5/measurement 2.4/feature 2.0, and configuration 2.6/measurement 2.4/feature 2.0 markers migrate in memory to configuration 2.7/measurement 2.4/feature 2.1. Source YAML is not rewritten. The retired single `preprocessing.normalization` selector produces a migration warning because P3-A now emits raw, de-meaned, and z-score FeatureSets explicitly.
+
+Feature schema 2.1 adds an optional, backward-compatible source-QC snapshot to `FeatureSet`: aggregate status, canonical QC hash, warning/exclusion/unavailable reasons, and downstream eligibility. A 2.0 artifact without these keys still loads with the fields unavailable. The new fields do not override `MeasurementMeta.valid` or create a second QC authority.
+
+Run-manifest schema 1.2 records the dense preprocessing status and ID. Successful dense sweep runs record `P3_A=completed`; sparse multisine runs record `P3_A=not_applicable_sparse`. `P3_B=not_implemented` and `P4_P6=not_implemented` remain explicit. P3-A never converts sparse tones into a dense physical response.
+
+The canonical preprocessing hash is insensitive to YAML key order and numeric presentation. P3-A permits `dense_raw_spl` only for a source explicitly labelled `magnitude_quantity=spl`; transfer-ratio data are not migrated or relabelled as SPL. All P3-A thresholds remain software-validation provisional values, not frozen real-experiment policy.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -80,7 +92,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. P3–P6 remain an explicit `not_implemented` stage gate.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A; sparse tones record P3-A as not applicable. P3-B and P4–P6 remain explicit `not_implemented` stage gates.
 
 ## New grouping fields
 
@@ -88,4 +100,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-C1 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.
+V1 outputs remain read-only. DEV-C2 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3-A bundle; failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.

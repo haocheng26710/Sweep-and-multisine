@@ -1,9 +1,9 @@
 """Pipeline and schema versions kept separate from artifact contents."""
 
-PIPELINE_VERSION = "2.0.0-dev.7"
-CONFIG_SCHEMA_VERSION = "2.6.0"
+PIPELINE_VERSION = "2.0.0-dev.8"
+CONFIG_SCHEMA_VERSION = "2.7.0"
 MEASUREMENT_SCHEMA_VERSION = "2.4.0"
-FEATURE_SCHEMA_VERSION = "2.0.0"
+FEATURE_SCHEMA_VERSION = "2.1.0"
 
 SCHEMA_VERSION_QUARTET = {
     "pipeline_version": PIPELINE_VERSION,

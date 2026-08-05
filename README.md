@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core: both adapters now feed one typed, auditable QC model without P2 rereading TXT/WAV or recomputing P8 signal metrics.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2 adds P3-A for dense sweep spectra: deterministic common-grid interpolation and three sample-local dense `FeatureSet` variants, without rereading TXT/WAV or recomputing P1/P2/P8.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A single-measurement QC is implemented; cross-measurement P2-B, P3–P6, and P9 remain later slices.
+- P2-A and dense P3-A are implemented. Cross-measurement P2-B, P3-B smoothing, sparse-tone features, P4–P6, and P9 remain later slices.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -18,9 +18,10 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 ## Architecture
 
 ```text
-REW TXT ----> P1 REW adapter ----------------> dense SpectrumData ---+
-                                                                    +--> shared P2-A --> P3-P6 gate
-WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones -+
+REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> dense P3-A
+WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> P3-A not applicable
+                                                                                         |
+                                                                                         +--> P3-B/P4-P6 gate
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -118,7 +119,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A and then stop at the explicit `P3_P6=not_implemented` stage gate. They do not claim that cross-measurement QC, FeatureSet, metrics, classification, HR, or reporting ran.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A; sparse multisine inputs record `P3_A=not_applicable_sparse` and are never interpolated into a dense response. `P3_B` and `P4_P6` remain explicit `not_implemented` gates. The commands do not claim that cross-measurement QC, sparse-tone FeatureSet construction, metrics, classification, HR, or reporting ran.
 
 ## P7 signal definition
 
@@ -159,6 +160,16 @@ It is not the canonical DEV-C run lifecycle. Canonical validation runs use `run_
 P2 records schema/provenance, valid-point count, frequency coverage, magnitude bounds, and phase consistency. For REW, absent headroom, noise floor, waveform, impulse-response, and window evidence remain unavailable. For multisine, P2 translates P8 clipping, drift, non-excited energy, and per-tone SNR/leakage/stability/missing-tone evidence without rerunning FFT. Manual-review reasons and `MeasurementMeta.valid` remain separate from automatic QC and are never overwritten.
 
 All P2 thresholds live under `quality_control` in `config/default.yaml` and are explicitly provisional. Canonical runs write `quality_control.csv`, long-form `qc_checks.csv`, one-row `measurement_qc.csv`, and nested `quality_control.json` from the same result object. `SpectrumData` and `MeasurementMeta` remain authoritative; these files are audit views.
+
+## P3-A dense sweep features
+
+`build_dense_feature_sets(SpectrumData, MeasurementQCResult, preprocessing_config)` accepts only `representation=dense_spectrum`. It verifies that the P2 result belongs to the same sample, mode, origin, role, and human-validity record, then carries the complete P2/manual-review provenance into every output `FeatureSet`. P3 does not automatically remove warning, exclusion-candidate, or human-invalid samples; later selection policy remains a separate responsibility.
+
+The common grid is built from exact decimal endpoints and an exact step count, not floating-point `np.arange`. The default inclusive grid is 1000–8000 Hz at 10 Hz spacing (701 features). Linear interpolation uses only the immediate original neighbors when both are valid and their gap does not exceed `maximum_interpolation_gap_hz`; it never extrapolates or bridges an invalid point. Invalid output positions remain `valid_mask=false` with `NaN` values.
+
+P3-A emits `dense_raw_spl`, `dense_demeaned_db`, and `dense_zscore`. Raw SPL is allowed only when `magnitude_quantity=spl`; a transfer ratio is not renamed as physical SPL, although its sample-local de-meaned and z-score views may be generated. De-meaning and z-scoring use only valid points inside `normalization_band_hz`; z-score uses the population standard deviation (`ddof=0`). These are per-sample transforms, not training-set standardization. Only `smoothing.method=none` is implemented; moving-average, Gaussian, and fractional-octave smoothing remain P3-B.
+
+Dense canonical runs add `processed/feature_index.csv`, `feature_schema.json`, `preprocessing_manifest.json`, `preprocessing_failures.csv`, and NPZ/JSON pairs under `processed/features/<feature_kind>/`. The stable `preprocessing_id` is a SHA-256 of the canonical semantic configuration. Artifacts are hash-audited, use no pickle, round-trip through `FeatureSet`, and refuse an existing processed directory.
 
 ## P1 multisine adapter and unified dispatcher
 

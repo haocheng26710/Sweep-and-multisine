@@ -1,8 +1,8 @@
-pipeline_version: 2.0.0-dev.7
+pipeline_version: 2.0.0-dev.8
 schema_versions:
-  config: 2.6.0
+  config: 2.7.0
   measurement: 2.4.0
-  feature: 2.0.0
+  feature: 2.1.0
 
 measurement_mode: rew_sweep
 run_purpose: software_validation
@@ -16,14 +16,18 @@ paths:
   outputs: outputs
 
 preprocessing:
+  schema_version: 1.0.0
+  provisional: true
   analysis_band_hz: [1000, 8000]
   common_grid_step_hz: 10
   interpolation: linear
+  maximum_interpolation_gap_hz: 100
+  minimum_valid_grid_fraction: 0.95
   normalization_band_hz: [1000, 8000]
-  normalization: none
+  minimum_normalization_points: 2
+  minimum_zscore_std_db: 1.0e-9
   smoothing:
     method: none
-    boundary: reflect
 
 quality_control:
   schema_version: 1.0.0
