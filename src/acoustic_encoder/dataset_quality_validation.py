@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
 
 from .config import load_config
@@ -58,6 +60,7 @@ def run_simulated_dataset_quality_validation(
     output_root: Path,
     run_id: str,
     feature_count: int = 71,
+    canonical_ready_fixture: bool = False,
 ) -> DatasetQCValidationResult:
     """Create explicit simulated inputs, then exercise the same P2-B CLI."""
     project_root = project_root.resolve()
@@ -74,6 +77,44 @@ def run_simulated_dataset_quality_validation(
         random_state=int(resolved["random_state"]),
         repeat_noise_scale=0.5,
     )
+    if canonical_ready_fixture:
+        grouped_features: dict[tuple[Any, ...], list[Any]] = {}
+        for feature in features:
+            grouped_features.setdefault(_condition_key(feature), []).append(feature)
+        expanded = []
+        for key in sorted(
+            grouped_features,
+            key=lambda item: tuple(str(value) for value in item),
+        ):
+            group = grouped_features[key]
+            prototype = group[0]
+            center = np.asarray(prototype.values, dtype=np.float64)
+            for index in range(4):
+                if index < len(group):
+                    source = group[index]
+                else:
+                    source = prototype
+                sample_id = f"{prototype.sample_id}_CANON_{index + 1:02d}"
+                digest = hashlib.sha256(
+                    sample_id.encode("utf-8") + np.asarray(center, dtype="<f8").tobytes()
+                ).hexdigest()
+                meta = replace(
+                    source.meta,
+                    sample_id=sample_id,
+                    repeat_id=f"CANON-{index + 1:02d}",
+                    source_path=f"mock-feature://{sample_id}",
+                    source_sha256=digest,
+                    experiment_step="DEV_C7_P4B_CANONICAL_GATE_MOCK",
+                )
+                expanded.append(
+                    replace(
+                        source,
+                        sample_id=sample_id,
+                        meta=meta,
+                        values=center.copy(),
+                    )
+                )
+        features = tuple(expanded)
     qcs = tuple(
         MeasurementQCResult(
             qc_schema_version="1.0.0",

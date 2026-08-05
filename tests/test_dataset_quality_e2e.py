@@ -56,3 +56,22 @@ def test_p2b_simulated_validation_writes_all_required_views(tmp_path: Path) -> N
     assert manifest["processing_status"] == "completed"
     assert len(manifest["inputs"]) == 98
     assert len(manifest["artifacts"]) == 7
+
+
+def test_p2b_canonical_gate_pass_fixture_has_sufficient_reference_groups(
+    tmp_path: Path,
+) -> None:
+    validation = run_simulated_dataset_quality_validation(
+        project_root=PROJECT_ROOT,
+        config_path=PROJECT_ROOT / "config" / "validation_dev_c6_dataset_qc.yaml",
+        output_root=tmp_path / "outputs",
+        run_id="DEV-C7-P2B-CANONICAL-PASS",
+        feature_count=7,
+        canonical_ready_fixture=True,
+    )
+
+    assert len(validation.result.scoped_sample_ids) == 96
+    assert all(item.reference_sample_count >= 3 for item in validation.result.outlier_results)
+    assert all(item.available for item in validation.result.outlier_results)
+    assert validation.result.canonical_ready
+    assert validation.result.scientifically_eligible is False

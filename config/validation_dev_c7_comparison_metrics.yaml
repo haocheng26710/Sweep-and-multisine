@@ -7,3 +7,6 @@ schema_versions:
 measurement_mode: rew_sweep
 run_purpose: software_validation
 random_state: 20260805
+
+# All P4-B thresholds and predefined bands are inherited from default.yaml.
+# They remain provisional and must not be calibrated with final_test data.

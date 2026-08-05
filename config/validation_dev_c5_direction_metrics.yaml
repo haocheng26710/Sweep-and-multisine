@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.12
+pipeline_version: 2.0.0-dev.13
 schema_versions:
-  config: 2.11.0
+  config: 2.12.0
   measurement: 2.4.0
   feature: 2.2.0
 

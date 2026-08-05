@@ -164,10 +164,10 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_dev_c6_uses_incremented_pipeline_and_config_versions() -> None:
+def test_dev_c7_uses_incremented_pipeline_and_config_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.12",
-        "config_schema_version": "2.11.0",
+        "pipeline_version": "2.0.0-dev.13",
+        "config_schema_version": "2.12.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.2.0",
     }
@@ -584,7 +584,7 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.11.0",
+        "config": "2.12.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -610,7 +610,7 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.11.0"
+    assert resolved["schema_versions"]["config"] == "2.12.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
@@ -647,7 +647,7 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.11.0",
+        "config": "2.12.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -702,7 +702,7 @@ def test_dev_c4_config_migrates_to_direction_metrics_without_rewriting(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.11.0",
+        "config": "2.12.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -802,6 +802,83 @@ def test_default_dataset_quality_control_contract_is_explicit_and_provisional() 
     assert dataset_qc["aggregation"]["canonical_block_on_required_unavailable"] is True
 
 
+def test_default_comparison_metrics_contract_is_explicit_and_provisional() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+
+    comparison = resolved["comparison_metrics"]
+    assert comparison["schema_version"] == "1.0.0"
+    assert comparison["provisional"] is True
+    assert [item["band_id"] for item in comparison["frequency_bands"]] == [
+        "band_1k_2k",
+        "band_2k_4k",
+        "band_4k_8k",
+        "full_1k_8k",
+    ]
+    assert comparison["cross_mode"]["bias_sign"] == "multisine_minus_sweep"
+    assert comparison["reliability"]["repeat_type"] == "REPOS"
+    assert comparison["reliability"]["normalization"] == "mean_one"
+
+
+def test_dev_c7_comparison_validation_config_resolves() -> None:
+    resolved = load_config(
+        PROJECT_ROOT / "config" / "validation_dev_c7_comparison_metrics.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+    assert resolved["schema_versions"]["config"] == "2.12.0"
+    assert resolved["comparison_metrics"]["provisional"] is True
+    assert resolved["comparison_metrics"]["cross_mode"]["bias_sign"] == (
+        "multisine_minus_sweep"
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutator", "message"),
+    [
+        (lambda c: c["frequency_bands"].append(dict(c["frequency_bands"][0])), "band_id"),
+        (lambda c: c["frequency_bands"][0].update({"f_min_hz": 3000}), "frequency band"),
+        (lambda c: c["frequency_bands"][0].update({"boundary": "inclusive"}), "boundary"),
+        (lambda c: c["configuration_comparison"].update({"candidate_configuration": "U4SYM"}), "candidate"),
+        (lambda c: c["configuration_comparison"].update({"ratio_minimum_denominator": 0}), "denominator"),
+        (lambda c: c["cross_mode"].update({"bias_sign": "sweep_minus_multisine"}), "bias_sign"),
+        (lambda c: c["cross_mode"].update({"minimum_common_tones": 0}), "common_valid_tones"),
+        (lambda c: c["reliability"].update({"repeat_type": "CONT"}), "REPOS"),
+        (lambda c: c["reliability"].update({"allowed_scope_roles": ["development", "final_test"]}), "final_test"),
+        (lambda c: c["reliability"].update({"floor_db": 0}), "variance_floor"),
+        (lambda c: c["reliability"].update({"maximum_raw_weight": 0}), "maximum_raw_weight"),
+        (lambda c: c["reliability"].update({"normalization": "sum_one"}), "mean_one"),
+    ],
+)
+def test_comparison_metrics_config_rejects_invalid_values(mutator, message) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    mutator(resolved["comparison_metrics"])
+
+    with pytest.raises(ConfigError, match=message):
+        validate_config(resolved)
+
+
+def test_dev_c6_config_migrates_to_p4b_defaults_without_rewriting(tmp_path) -> None:
+    path = tmp_path / "dev-c6.yaml"
+    payload = {
+        "pipeline_version": "2.0.0-dev.12",
+        "schema_versions": {
+            "config": "2.11.0",
+            "measurement": "2.4.0",
+            "feature": "2.2.0",
+        },
+        "measurement_mode": "rew_sweep",
+        "run_purpose": "software_validation",
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"]["config"] == "2.12.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.13"
+    assert resolved["comparison_metrics"]["schema_version"] == "1.0.0"
+    assert any("2.11.0" in item for item in resolved["_runtime"]["migration_warnings"])
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
 def test_dataset_quality_config_rejects_final_test_as_reference_role() -> None:
     resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
     resolved["dataset_quality_control"]["same_condition_outliers"][
@@ -831,8 +908,8 @@ def test_dev_c5_config_migrates_to_p2b_defaults_without_rewriting(tmp_path) -> N
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
 
-    assert resolved["schema_versions"]["config"] == "2.11.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.12"
+    assert resolved["schema_versions"]["config"] == "2.12.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.13"
     assert resolved["dataset_quality_control"]["schema_version"] == "1.0.0"
     assert any("2.10.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload

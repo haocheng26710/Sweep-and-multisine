@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.13 — P4-B band, configuration, and cross-mode metrics (unreleased)
+
+- Incremented configuration schema to 2.12.0 and added strict provisional frequency-band, U4 comparison, cross-mode, and REPOS reliability policy.
+- Added hash-identified `ComparisonAnalysisScope` and explicit persisted-FeatureSet input manifest; P4-B never reads raw TXT/WAV or discovers measurements from directories.
+- Reused P4-A direction distances, effective rank, repeat-pair rules, and morphology gain on fixed band/common-tone masks.
+- Added explicit one-to-one cross-mode metrics, per-tone multisine-minus-sweep bias, development/training-only reliability, and supplemental weighted distances without tone selection or calibration.
+- Added stable CSV/JSON/manifest bundles, input/output/self-hash verification, failure manifests, CLI/E2E validation, and canonical P2-B fail/pass gate tests.
+- Kept all DEV-C7 validation data simulated/software-validation/scientifically ineligible; all bands and thresholds remain provisional.
+
 ## 2.0.0-dev.12 — P2-B cross-measurement dataset quality gate (unreleased)
 
 - Incremented the configuration schema to 2.11.0 while keeping measurement and FeatureSet schemas unchanged.

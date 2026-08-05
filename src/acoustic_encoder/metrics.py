@@ -14,8 +14,8 @@ from numpy.typing import NDArray
 from .dataset_quality_control import (
     DatasetQCReference,
     DatasetQCResult,
-    dataset_qc_sha256,
     feature_set_content_sha256 as dataset_feature_set_content_sha256,
+    validate_dataset_qc_reference,
 )
 from .research_gate import RunPurpose, enforce_research_gate, normalize_run_purpose
 from .schemas import FeatureKind, FeatureSet, QCStatus, Representation
@@ -526,7 +526,12 @@ def _nonempty_unique(values: Sequence[str | None]) -> int:
     return len({value for value in values if value is not None and value != ""})
 
 
-def _metric_value(metric: str, left: FloatArray, right: FloatArray) -> tuple[float, str | None]:
+def compute_vector_metric(
+    metric: str,
+    left: FloatArray,
+    right: FloatArray,
+) -> tuple[float, str | None]:
+    """Compute one authoritative P4 vector metric for P4-A and P4-B."""
     difference = left - right
     if metric == "euclidean":
         return float(np.linalg.norm(difference)), None
@@ -574,7 +579,7 @@ def _metric_matrices(
         ]
         for left_index, left in enumerate(vectors):
             for right_index in range(left_index, len(vectors)):
-                value, reason = _metric_value(metric, left, vectors[right_index])
+                value, reason = compute_vector_metric(metric, left, vectors[right_index])
                 values[left_index, right_index] = value
                 values[right_index, left_index] = value
                 is_available = reason is None
@@ -640,7 +645,7 @@ def compute_effective_rank(
 
 def _distance_values(left: FloatArray, right: FloatArray) -> Mapping[str, float]:
     return {
-        metric: _metric_value(metric, left, right)[0]
+        metric: compute_vector_metric(metric, left, right)[0]
         for metric in ("euclidean", "rms", "median_absolute_difference")
     }
 
@@ -728,7 +733,8 @@ def _optional_same(
     return None
 
 
-def _repeat_pair_reason(left: FeatureSet, right: FeatureSet) -> str | None:
+def repeat_pair_unavailable_reason(left: FeatureSet, right: FeatureSet) -> str | None:
+    """Return the authoritative P4 repeat-pair rejection reason, if any."""
     repeat_type = left.meta.repeat_type
     if repeat_type != right.meta.repeat_type:
         return "different_repeat_type"
@@ -781,7 +787,7 @@ def _repeatability_pairs(
                 continue
             if left.meta.repeat_type != right.meta.repeat_type:
                 continue
-            reason = _repeat_pair_reason(left, right)
+            reason = repeat_pair_unavailable_reason(left, right)
             records.append(
                 _pair_record(
                     left,
@@ -983,37 +989,18 @@ def analyze_direction_feature_sets(
             )
         reference = analysis_scope.dataset_qc_reference
         assert reference is not None
-        if (
-            reference.analysis_scope_id != analysis_scope.analysis_scope_id
-            or dataset_qc_result.analysis_scope_id != analysis_scope.analysis_scope_id
-        ):
-            raise MetricsInputError("canonical P4 dataset QC analysis scope mismatch")
-        if reference.dataset_qc_result_sha256 != dataset_qc_sha256(dataset_qc_result):
-            raise MetricsInputError("canonical P4 dataset QC result hash mismatch")
-        if analysis_scope.requested_sample_ids != dataset_qc_result.scoped_sample_ids:
-            raise MetricsInputError("canonical P4 dataset QC sample scope mismatch")
-        if analysis_scope.run_purpose != dataset_qc_result.run_purpose:
-            raise MetricsInputError("canonical P4 dataset QC run purpose mismatch")
-        if not dataset_qc_result.canonical_ready:
-            raise MetricsInputError(
-                "canonical P4 blocked by dataset QC: "
-                + ", ".join(dataset_qc_result.canonical_ready_reasons)
+        try:
+            validate_dataset_qc_reference(
+                feature_sets,
+                analysis_scope_id=analysis_scope.analysis_scope_id,
+                ordered_sample_ids=analysis_scope.requested_sample_ids,
+                run_purpose=analysis_scope.run_purpose,
+                reference=reference,
+                result=dataset_qc_result,
+                require_canonical_ready=True,
             )
-        audit_by_id = {item.sample_id: item for item in dataset_qc_result.input_audit}
-        if set(audit_by_id) != set(analysis_scope.requested_sample_ids):
-            raise MetricsInputError("canonical P4 dataset QC input audit is incomplete")
-        for feature in feature_sets:
-            if feature.sample_id not in audit_by_id:
-                continue
-            audit_record = audit_by_id[feature.sample_id]
-            if feature_set_content_sha256(feature) != audit_record.feature_content_sha256:
-                raise MetricsInputError(
-                    f"canonical P4 FeatureSet content mismatch: {feature.sample_id}"
-                )
-            if feature.source_qc_sha256 != audit_record.p2a_qc_sha256:
-                raise MetricsInputError(
-                    f"canonical P4 P2-A hash mismatch: {feature.sample_id}"
-                )
+        except ValueError as exc:
+            raise MetricsInputError(f"canonical P4 blocked by {exc}") from exc
     (
         minimum_features,
         minimum_fraction,

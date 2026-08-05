@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, and provisional P4-A are implemented. P4-B, P5/P6, and P9 remain closed stage gates.
+- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, and provisional P4-A/P4-B are implemented. P5/P6 and P9 remain closed stage gates.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -121,7 +121,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, and `P4_A=p2_b_dataset_qc_required`. `P4_B`, `P5_P6`, and P9 remain `not_implemented`.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness or a comparison scope, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, `P4_A=p2_b_dataset_qc_required`, and `P4_B=comparison_scope_required`. `P5_P6` and P9 remain `not_implemented`.
 
 Run the deterministic paired DEV-C4 validation:
 
@@ -144,6 +144,20 @@ Run the deterministic explicit-scope DEV-C6/P2-B validation:
 ```powershell
 python scripts/run_dataset_qc_validation.py --config config/validation_dev_c6_dataset_qc.yaml --run-id DEV-C6_P2B_FINAL
 ```
+
+Run the deterministic persisted-FeatureSet DEV-C7/P4-B validation:
+
+```powershell
+python scripts/run_comparison_metrics_validation.py --output-root outputs --run-id DEV-C7-P4B-FINAL
+```
+
+Run a user-declared P4-B scope without directory discovery:
+
+```powershell
+python scripts/run_comparison_metrics.py --config config/default.yaml --scope <comparison_scope.json> --inputs <comparison_inputs.json> --output-root outputs --run-id <run-id>
+```
+
+P4-B reports predefined frequency-band metrics, U4 configuration deltas/ratios, explicit matched-mode bias/shape metrics, REPOS-derived reliability, and supplemental weighted distances. It never selects tones, learns calibration, reruns P8, or reads raw TXT/WAV. Canonical tier additionally requires an exact canonical-ready P2-B bundle via `--dataset-qc-dir`.
 
 The validation generates only explicit simulated FeatureSet/P2-A artifacts and never scans a directory for measurements. Its dataset bundle is written under `outputs/simulated/software_validation/<run_id>/dataset_qc/`. A warning or unavailable check remains visible and can keep `canonical_ready=false`; completion of the software path is not a claim that the dataset is scientifically complete.
 

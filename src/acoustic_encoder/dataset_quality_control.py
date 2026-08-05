@@ -830,6 +830,56 @@ def dataset_qc_sha256(result: DatasetQCResult) -> str:
     return _canonical_sha256(result.to_dict())
 
 
+def validate_dataset_qc_reference(
+    feature_sets: Sequence[FeatureSet],
+    *,
+    analysis_scope_id: str,
+    ordered_sample_ids: tuple[str, ...],
+    run_purpose: RunPurpose,
+    reference: DatasetQCReference,
+    result: DatasetQCResult,
+    require_canonical_ready: bool,
+) -> None:
+    """Validate one exact P2-B link for any downstream P4 analysis."""
+    if (
+        reference.analysis_scope_id != analysis_scope_id
+        or result.analysis_scope_id != analysis_scope_id
+    ):
+        raise DatasetQCInputError("dataset QC analysis scope mismatch")
+    if reference.dataset_qc_result_sha256 != dataset_qc_sha256(result):
+        raise DatasetQCInputError("dataset QC result hash mismatch")
+    if ordered_sample_ids != result.scoped_sample_ids:
+        raise DatasetQCInputError("dataset QC sample scope mismatch")
+    if normalize_run_purpose(run_purpose) != result.run_purpose:
+        raise DatasetQCInputError("dataset QC run purpose mismatch")
+    if require_canonical_ready and not result.canonical_ready:
+        raise DatasetQCInputError(
+            "dataset QC is not canonical-ready: "
+            + ", ".join(result.canonical_ready_reasons)
+        )
+    by_id: dict[str, FeatureSet] = {}
+    for feature in feature_sets:
+        if feature.sample_id in by_id:
+            raise DatasetQCInputError(
+                f"dataset QC link has duplicate sample FeatureSet: {feature.sample_id}"
+            )
+        by_id[feature.sample_id] = feature
+    if set(by_id) != set(ordered_sample_ids):
+        raise DatasetQCInputError("dataset QC linked FeatureSet scope mismatch")
+    audit_by_id = {item.sample_id: item for item in result.input_audit}
+    if set(audit_by_id) != set(ordered_sample_ids):
+        raise DatasetQCInputError("dataset QC input audit is incomplete")
+    for sample_id in ordered_sample_ids:
+        feature = by_id[sample_id]
+        audit = audit_by_id[sample_id]
+        if feature_set_content_sha256(feature) != audit.feature_content_sha256:
+            raise DatasetQCInputError(
+                f"dataset QC FeatureSet content mismatch: {sample_id}"
+            )
+        if feature.source_qc_sha256 != audit.p2a_qc_sha256:
+            raise DatasetQCInputError(f"dataset QC P2-A hash mismatch: {sample_id}")
+
+
 def _status_from_config(value: Any, label: str) -> QCCheckStatus:
     try:
         status = QCCheckStatus(str(value))

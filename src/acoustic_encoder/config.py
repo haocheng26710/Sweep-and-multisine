@@ -140,6 +140,61 @@ _DATASET_QUALITY_DEFAULTS: dict[str, Any] = {
     },
 }
 
+_COMPARISON_METRICS_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "frequency_bands": [
+        {
+            "band_id": "band_1k_2k",
+            "f_min_hz": 1000.0,
+            "f_max_hz": 2000.0,
+            "boundary": "left_closed_right_open",
+            "minimum_feature_count": 5,
+        },
+        {
+            "band_id": "band_2k_4k",
+            "f_min_hz": 2000.0,
+            "f_max_hz": 4000.0,
+            "boundary": "left_closed_right_open",
+            "minimum_feature_count": 5,
+        },
+        {
+            "band_id": "band_4k_8k",
+            "f_min_hz": 4000.0,
+            "f_max_hz": 8000.0,
+            "boundary": "closed",
+            "minimum_feature_count": 5,
+        },
+        {
+            "band_id": "full_1k_8k",
+            "f_min_hz": 1000.0,
+            "f_max_hz": 8000.0,
+            "boundary": "closed",
+            "minimum_feature_count": 5,
+        },
+    ],
+    "configuration_comparison": {
+        "baseline_configuration": "U4SYM",
+        "candidate_configuration": "U4ENC",
+        "ratio_minimum_denominator": 1.0e-12,
+    },
+    "cross_mode": {
+        "minimum_common_tones": 5,
+        "allow_centered_shape_comparison": True,
+        "bias_sign": "multisine_minus_sweep",
+    },
+    "reliability": {
+        "source_feature_kind": "tone_measurement_from_multisine",
+        "repeat_type": "REPOS",
+        "allowed_scope_roles": ["development", "training"],
+        "floor_db": 0.1,
+        "maximum_raw_weight": 100.0,
+        "minimum_pairs_per_tone": 1,
+        "minimum_available_tones": 5,
+        "normalization": "mean_one",
+    },
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -208,6 +263,13 @@ def load_config(
         _DATASET_QUALITY_DEFAULTS,
         supplied_dataset_quality,
     )
+    supplied_comparison_metrics = resolved.get("comparison_metrics", {})
+    if not isinstance(supplied_comparison_metrics, Mapping):
+        raise ConfigError("comparison_metrics must be a mapping")
+    resolved["comparison_metrics"] = deep_merge(
+        _COMPARISON_METRICS_DEFAULTS,
+        supplied_comparison_metrics,
+    )
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -230,6 +292,7 @@ def load_config(
         ("2.8.0", "2.4.0", "2.1.0"),
         ("2.9.0", "2.4.0", "2.2.0"),
         ("2.10.0", "2.4.0", "2.2.0"),
+        ("2.11.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -308,6 +371,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_matched_tone_config(config.get("matched_tone_features"))
     validate_direction_metrics_config(config.get("direction_metrics"))
     validate_dataset_quality_control_config(config.get("dataset_quality_control"))
+    validate_comparison_metrics_config(config.get("comparison_metrics"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -548,6 +612,111 @@ def validate_direction_metrics_config(value: Any) -> None:
         raise ConfigError(
             "direction_metrics.morphology_gain.minimum_denominator must be positive"
         )
+
+
+def validate_comparison_metrics_config(value: Any) -> None:
+    """Validate the complete provisional P4-B comparison contract."""
+    required = {
+        "schema_version",
+        "provisional",
+        "frequency_bands",
+        "configuration_comparison",
+        "cross_mode",
+        "reliability",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ConfigError(
+            "comparison_metrics must contain exactly: " + ", ".join(sorted(required))
+        )
+    if value.get("schema_version") != "1.0.0":
+        raise ConfigError("comparison_metrics.schema_version must be 1.0.0")
+    if not isinstance(value.get("provisional"), bool):
+        raise ConfigError("comparison_metrics.provisional must be boolean")
+    bands = value.get("frequency_bands")
+    if not isinstance(bands, list) or not bands:
+        raise ConfigError("comparison_metrics.frequency_bands must be non-empty")
+    band_ids: list[str] = []
+    for band in bands:
+        if not isinstance(band, Mapping) or set(band) != {
+            "band_id", "f_min_hz", "f_max_hz", "boundary", "minimum_feature_count"
+        }:
+            raise ConfigError("comparison frequency band fields are incomplete")
+        band_id = str(band.get("band_id", "")).strip()
+        if not band_id:
+            raise ConfigError("comparison frequency band_id is required")
+        band_ids.append(band_id)
+        low = _finite_number(band, "f_min_hz", "comparison frequency band f_min_hz")
+        high = _finite_number(band, "f_max_hz", "comparison frequency band f_max_hz")
+        if low < 0.0 or low >= high:
+            raise ConfigError("comparison frequency band bounds must be increasing")
+        if band.get("boundary") not in {
+            "closed", "left_closed_right_open", "left_open_right_closed", "open"
+        }:
+            raise ConfigError("comparison frequency band boundary is unsupported")
+        count = band.get("minimum_feature_count")
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise ConfigError("comparison frequency band minimum_feature_count must be >= 1")
+    if len(set(band_ids)) != len(band_ids):
+        raise ConfigError("comparison frequency band_id values must be unique")
+
+    configuration = value.get("configuration_comparison")
+    if not isinstance(configuration, Mapping) or set(configuration) != {
+        "baseline_configuration", "candidate_configuration", "ratio_minimum_denominator"
+    }:
+        raise ConfigError("comparison configuration_comparison fields are incomplete")
+    baseline = str(configuration.get("baseline_configuration", "")).strip()
+    candidate = str(configuration.get("candidate_configuration", "")).strip()
+    if not baseline or not candidate or baseline == candidate:
+        raise ConfigError("comparison candidate and baseline configurations must differ")
+    if _finite_number(
+        configuration,
+        "ratio_minimum_denominator",
+        "comparison ratio minimum denominator",
+    ) <= 0.0:
+        raise ConfigError("comparison ratio minimum denominator must be positive")
+
+    cross_mode = value.get("cross_mode")
+    if not isinstance(cross_mode, Mapping) or set(cross_mode) != {
+        "minimum_common_tones", "allow_centered_shape_comparison", "bias_sign"
+    }:
+        raise ConfigError("comparison cross_mode fields are incomplete")
+    common_tones = cross_mode.get("minimum_common_tones")
+    if isinstance(common_tones, bool) or not isinstance(common_tones, int) or common_tones < 1:
+        raise ConfigError("comparison cross_mode minimum_common_valid_tones must be >= 1")
+    if not isinstance(cross_mode.get("allow_centered_shape_comparison"), bool):
+        raise ConfigError("comparison allow_centered_shape_comparison must be boolean")
+    if cross_mode.get("bias_sign") != "multisine_minus_sweep":
+        raise ConfigError("comparison cross_mode bias_sign must be multisine_minus_sweep")
+
+    reliability = value.get("reliability")
+    expected_reliability = {
+        "source_feature_kind", "repeat_type", "allowed_scope_roles", "floor_db",
+        "maximum_raw_weight", "minimum_pairs_per_tone", "minimum_available_tones",
+        "normalization",
+    }
+    if not isinstance(reliability, Mapping) or set(reliability) != expected_reliability:
+        raise ConfigError("comparison reliability fields are incomplete")
+    if reliability.get("source_feature_kind") != "tone_measurement_from_multisine":
+        raise ConfigError("comparison reliability source_feature_kind is unsupported")
+    if reliability.get("repeat_type") != "REPOS":
+        raise ConfigError("comparison reliability repeat_type must be REPOS")
+    roles = reliability.get("allowed_scope_roles")
+    if roles != ["development", "training"]:
+        if isinstance(roles, list) and "final_test" in roles:
+            raise ConfigError("final_test cannot be used for comparison reliability")
+        raise ConfigError("comparison reliability allowed_scope_roles must be development/training")
+    if _finite_number(reliability, "floor_db", "comparison reliability variance_floor") <= 0.0:
+        raise ConfigError("comparison reliability variance_floor must be positive")
+    if _finite_number(
+        reliability, "maximum_raw_weight", "comparison reliability maximum_raw_weight"
+    ) <= 0.0:
+        raise ConfigError("comparison reliability maximum_raw_weight must be positive")
+    for field in ("minimum_pairs_per_tone", "minimum_available_tones"):
+        count = reliability.get(field)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise ConfigError(f"comparison reliability {field} must be >= 1")
+    if reliability.get("normalization") != "mean_one":
+        raise ConfigError("comparison reliability normalization must be mean_one")
 
 
 def validate_dataset_quality_control_config(value: Any) -> None:

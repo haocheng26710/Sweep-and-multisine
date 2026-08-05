@@ -47,7 +47,8 @@ def pipeline_main(
                 "--metadata, and --run-id to execute P1/P2-A/P8 plus dense "
                 "P3-A/P3-B. P2-B requires an explicit dataset scope and input "
                 "manifest; canonical P4-A additionally requires the matching "
-                "P2-B result/hash. P4-B/P5/P6/P9 remain not implemented.",
+                "P2-B result/hash. P4-B requires its explicit comparison scope; "
+                "P5/P6/P9 remain not implemented.",
                 file=sys.stderr,
             )
         return 0
@@ -86,7 +87,8 @@ def pipeline_main(
     print(
         "DEV-C stage gate reached: P2-A and dense P3-A/P3-B are available; "
         "P2-B requires an explicit dataset scope and canonical P4-A requires "
-        "the matching P2-B result/hash. P4-B/P5/P6/P9 remain not implemented.",
+        "the matching P2-B result/hash. P4-B requires its explicit comparison "
+        "scope; P5/P6/P9 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:

@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.12
+pipeline_version: 2.0.0-dev.13
 schema_versions:
-  config: 2.11.0
+  config: 2.12.0
   measurement: 2.4.0
   feature: 2.2.0
 
@@ -116,6 +116,32 @@ dataset_quality_control:
     canonical_allowed_statuses: [valid, warning]
     canonical_block_on_required_unavailable: true
     canonical_block_on_manual_review: true
+
+comparison_metrics:
+  schema_version: 1.0.0
+  provisional: true
+  frequency_bands:
+    - {band_id: band_1k_2k, f_min_hz: 1000, f_max_hz: 2000, boundary: left_closed_right_open, minimum_feature_count: 5}
+    - {band_id: band_2k_4k, f_min_hz: 2000, f_max_hz: 4000, boundary: left_closed_right_open, minimum_feature_count: 5}
+    - {band_id: band_4k_8k, f_min_hz: 4000, f_max_hz: 8000, boundary: closed, minimum_feature_count: 5}
+    - {band_id: full_1k_8k, f_min_hz: 1000, f_max_hz: 8000, boundary: closed, minimum_feature_count: 5}
+  configuration_comparison:
+    baseline_configuration: U4SYM
+    candidate_configuration: U4ENC
+    ratio_minimum_denominator: 1.0e-12
+  cross_mode:
+    minimum_common_tones: 5
+    allow_centered_shape_comparison: true
+    bias_sign: multisine_minus_sweep
+  reliability:
+    source_feature_kind: tone_measurement_from_multisine
+    repeat_type: REPOS
+    allowed_scope_roles: [development, training]
+    floor_db: 0.1
+    maximum_raw_weight: 100.0
+    minimum_pairs_per_tone: 1
+    minimum_available_tones: 5
+    normalization: mean_one
 
 quality_control:
   schema_version: 1.0.0

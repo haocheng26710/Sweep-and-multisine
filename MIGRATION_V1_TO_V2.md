@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC. P4-B, P5/P6, and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC; DEV-C7 adds provisional band/configuration/cross-mode P4-B metrics. P5/P6 and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -128,7 +128,15 @@ P2-B compares only FeatureSets with an identical feature contract. Same-conditio
 
 AnalysisScope schema 1.1 adds `analysis_tier` and an optional P2-B reference. `canonical_cohort` requires an exact matching dataset scope ID, ordered sample IDs, result SHA-256, FeatureSet content hashes, and P2-A hashes. Schema-1.0 scopes remain provisional compatibility inputs. Metrics-manifest schema 1.1 records the analysis tier/reference; P4 mathematics are unchanged.
 
-Successful single-measurement runs now report `P2_A=completed`, `P2_B=dataset_scope_required`, and `P4_A=p2_b_dataset_qc_required`. They do not claim that a single file establishes experiment completeness. P4-B, P5/P6, and P9 remain closed.
+Successful DEV-C6 single-measurement runs reported `P2_A=completed`, `P2_B=dataset_scope_required`, and `P4_A=p2_b_dataset_qc_required`. They did not claim that a single file established experiment completeness. DEV-C7 replaces the P4-B placeholder with the explicit comparison-scope gate described below; P5/P6 and P9 remain closed.
+
+## Configuration schema 2.11 to 2.12 and P4-B comparison schema 1.0
+
+Configuration 2.12 adds the strict provisional `comparison_metrics` block: predefined frequency bands and boundary rules, U4 baseline/candidate and safe ratio denominator, explicit cross-mode minimum-tone/shape/bias-sign policy, and development/training REPOS reliability floor/clip/count/mean-one normalization. A 2.11/measurement-2.4/feature-2.2 configuration migrates only in memory, receives these defaults, records a warning, and is not rewritten. Measurement and FeatureSet schemas remain 2.4 and 2.2. Pipeline version is `2.0.0-dev.13`; single-measurement run-manifest schema is 1.7 and records `P4_B=comparison_scope_required` after a successful single-measurement run.
+
+P4-B has independent version-1.0 schemas for `ComparisonAnalysisScope`, its explicit FeatureSet input manifest, `ComparisonMetricsResult`, and `metrics_manifest.json`. It accepts persisted FeatureSets only, verifies every file/content hash, and never discovers samples by scanning a directory. Canonical tier requires the exact P2-B scope/result/input audit and rejects additional unaudited FeatureSets; provisional software-validation remains explicit and cannot claim a canonical cohort.
+
+Band metrics use one scope-fixed common-valid mask and the authoritative P4-A pair/effective-rank/morphology-gain formulas. Cross-mode metrics require explicit one-to-one `match_pair_id` and controlled metadata/state identity. Absolute bias is always multisine minus sweep and is unavailable without compatible dB normalization/reference/calibration; no calibration is learned or applied. Reliability uses qualified development/training REPOS pairs only, rejects final_test, and produces supplemental mean-one weights without selecting tones or mutating FeatureSets. Tone selection, bridge/calibration workflow, P5/P6, and scientific conclusions remain outside P4-B.
 
 ## Existing sweep names and commands
 
@@ -146,4 +154,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics. DEV-C4 paired runs add matched FeatureSet artifacts. DEV-C6 writes dataset QC views under `outputs/<data_origin>/<run_purpose>/<run_id>/dataset_qc/`, including explicit input/output SHA-256 and a manifest self-hash. Failure paths retain available input/failure evidence without writing a false success marker.
+V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics. DEV-C4 paired runs add matched FeatureSet artifacts. DEV-C6 writes dataset QC views under `outputs/<data_origin>/<run_purpose>/<run_id>/dataset_qc/`. DEV-C7 writes explicit-scope comparison views under `outputs/<data_origin>/<run_purpose>/<run_id>/comparison_metrics/`. Both record input/output SHA-256 and manifest self-hashes. Failure paths retain available input/failure evidence without writing a false success marker.

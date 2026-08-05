@@ -30,7 +30,7 @@ from .schemas import (
 )
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.6.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.7.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -307,7 +307,7 @@ def execute_measurement_run(
                 "P3_B": "not_run",
                 "P3_C": "not_run",
                 "P4_A": "not_run",
-                "P4_B": "not_implemented",
+                "P4_B": "not_run",
                 "P5_P6": "not_implemented",
             },
             "failure": {
@@ -392,7 +392,7 @@ def execute_measurement_run(
                 "P3_B": "not_run",
                 "P3_C": "not_run",
                 "P4_A": "not_run",
-                "P4_B": "not_implemented",
+                "P4_B": "not_run",
                 "P5_P6": "not_implemented",
             },
             "failure": {
@@ -539,7 +539,7 @@ def execute_measurement_run(
             "P3_B": p3_b_gate,
             "P3_C": "paired_run_required",
             "P4_A": "p2_b_dataset_qc_required",
-            "P4_B": "not_implemented",
+            "P4_B": "comparison_scope_required",
             "P5_P6": "not_implemented",
         },
         "failure": None,
