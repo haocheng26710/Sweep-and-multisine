@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import csv
+from copy import deepcopy
 import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 from scipy.io import wavfile
 
 from acoustic_encoder.config import load_config
@@ -67,3 +69,14 @@ def test_analysis_period_has_no_fade(tmp_path) -> None:
     second = waveform[start + period_samples : start + 2 * period_samples]
     np.testing.assert_array_equal(first, second)
 
+
+def test_p7_rejects_non_increasing_explicit_tone_order(tmp_path) -> None:
+    config = deepcopy(stimulus_config())
+    config["tones"] = {
+        "mode": "explicit",
+        "source": "synthetic_invalid_order",
+        "frequencies_hz": [1100, 1000],
+    }
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        generate_multisine(config, tmp_path)

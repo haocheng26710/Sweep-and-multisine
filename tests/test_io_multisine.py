@@ -101,6 +101,11 @@ def test_simulated_multisine_recovers_known_transfer_after_nonperiod_delay(
     assert spectrum.quality_metrics["preamble_start_sample"] == (
         delay_samples + round(stimulus["pre_silence_s"] * stimulus["sample_rate_hz"])
     )
+    tone_set_metrics = spectrum.quality_metrics["tone_set"]
+    assert tone_set_metrics["tone_set_id"] == meta.tone_set_id
+    assert tone_set_metrics["verified_artifacts"] is True
+    assert len(tone_set_metrics["tones_sha256"]) == 64
+    assert len(tone_set_metrics["tone_set_sha256"]) == 64
     assert np.max(np.abs(spectrum.magnitude_db - expected_db)) <= MAGNITUDE_TOLERANCE_DB
 
 

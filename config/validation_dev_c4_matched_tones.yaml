@@ -1,11 +1,5 @@
 measurement_mode: rew_sweep
 
-experiment:
-  device_version: V2
-  configurations: [U4SYM, U4ENC]
-  angles_deg: [0, 90, 180, 270]
-  require_explicit_group_ids: true
-
 preprocessing:
   schema_version: 1.1.0
   provisional: true
@@ -33,13 +27,3 @@ matched_tone_features:
     minimum_std_db: 1.0e-9
   matching:
     minimum_common_valid_tones: 5
-
-classification:
-  validation:
-    - leave_one_session_out
-    - leave_one_reposition_round_out
-    - leave_one_assembly_out
-  models:
-    - nearest_template_correlation
-    - nearest_centroid
-    - logistic_regression

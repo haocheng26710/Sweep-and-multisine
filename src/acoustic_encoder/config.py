@@ -39,6 +39,19 @@ _P3_PREPROCESSING_DEFAULTS: dict[str, Any] = {
     "smoothing": {"method": "none"},
 }
 
+_MATCHED_TONE_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "tone_ordering": "manifest_tone_index",
+    "sweep_extraction": {"method": "single_point_linear"},
+    "normalization": {
+        "method": "subtract_mean_db",
+        "minimum_valid_tones": 5,
+        "minimum_std_db": 1.0e-9,
+    },
+    "matching": {"minimum_common_valid_tones": 5},
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -86,6 +99,13 @@ def load_config(
         _P3_PREPROCESSING_DEFAULTS,
         supplied_preprocessing,
     )
+    supplied_matched_tones = resolved.get("matched_tone_features", {})
+    if not isinstance(supplied_matched_tones, Mapping):
+        raise ConfigError("matched_tone_features must be a mapping")
+    resolved["matched_tone_features"] = deep_merge(
+        _MATCHED_TONE_DEFAULTS,
+        supplied_matched_tones,
+    )
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -105,10 +125,14 @@ def load_config(
         ("2.5.0", "2.4.0", "2.0.0"),
         ("2.6.0", "2.4.0", "2.0.0"),
         ("2.7.0", "2.4.0", "2.1.0"),
+        ("2.8.0", "2.4.0", "2.1.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
-        if not isinstance(smoothing, Mapping) or smoothing.get("method") != "none":
+        if old_config_version != "2.8.0" and (
+            not isinstance(smoothing, Mapping)
+            or smoothing.get("method") != "none"
+        ):
             raise ConfigError(
                 "Legacy non-none smoothing was never implemented and cannot be "
                 "migrated safely; choose an explicit DEV-C3 smoothing definition"
@@ -177,6 +201,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
             raise ConfigError(f"paths.{path_name} must be a non-empty path")
     preprocessing = config.get("preprocessing")
     validate_preprocessing_config(preprocessing)
+    validate_matched_tone_config(config.get("matched_tone_features"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -221,6 +246,130 @@ def validate_config(config: Mapping[str, Any]) -> None:
             validate_tone_quality_config(tone_quality)
     if "quality_control" in config:
         validate_quality_control_config(config["quality_control"])
+
+
+def validate_matched_tone_config(value: Any) -> None:
+    """Validate P3-C extraction, normalization, and pair-matching semantics."""
+    if not isinstance(value, Mapping):
+        raise ConfigError("matched_tone_features must be a mapping")
+    required_top = {
+        "schema_version",
+        "provisional",
+        "tone_ordering",
+        "sweep_extraction",
+        "normalization",
+        "matching",
+    }
+    if set(value) != required_top:
+        raise ConfigError(
+            "matched_tone_features must contain exactly: "
+            + ", ".join(sorted(required_top))
+        )
+    if value.get("schema_version") != "1.0.0":
+        raise ConfigError("matched_tone_features.schema_version must be 1.0.0")
+    if not isinstance(value.get("provisional"), bool):
+        raise ConfigError("matched_tone_features.provisional must be boolean")
+    if value.get("tone_ordering") != "manifest_tone_index":
+        raise ConfigError(
+            "matched_tone_features.tone_ordering must be manifest_tone_index"
+        )
+
+    extraction = value.get("sweep_extraction")
+    if not isinstance(extraction, Mapping):
+        raise ConfigError("matched_tone_features.sweep_extraction must be a mapping")
+    method = extraction.get("method")
+    if method == "single_point_linear":
+        if set(extraction) != {"method"}:
+            raise ConfigError("single_point_linear only accepts the method field")
+    elif method == "narrowband_integration":
+        required = {
+            "method",
+            "full_bandwidth_hz",
+            "integration_domain",
+            "minimum_band_coverage",
+            "overlap_policy",
+        }
+        if set(extraction) != required:
+            raise ConfigError(
+                "narrowband_integration requires exactly method, full_bandwidth_hz, "
+                "integration_domain, minimum_band_coverage, and overlap_policy"
+            )
+        bandwidth = _finite_number(
+            extraction,
+            "full_bandwidth_hz",
+            "matched tone full_bandwidth_hz",
+        )
+        if bandwidth <= 0:
+            raise ConfigError("matched tone full_bandwidth_hz must be positive")
+        if extraction.get("integration_domain") != "linear_power_ratio":
+            raise ConfigError(
+                "matched tone integration_domain must be linear_power_ratio"
+            )
+        coverage = _finite_number(
+            extraction,
+            "minimum_band_coverage",
+            "matched tone minimum_band_coverage",
+        )
+        if not 0.0 < coverage <= 1.0:
+            raise ConfigError("matched tone minimum_band_coverage must lie in (0, 1]")
+        if extraction.get("overlap_policy") != "reject":
+            raise ConfigError("matched tone overlap_policy must be reject")
+    else:
+        raise ConfigError(
+            "matched tone sweep_extraction.method must be single_point_linear "
+            "or narrowband_integration"
+        )
+
+    normalization = value.get("normalization")
+    if not isinstance(normalization, Mapping) or set(normalization) != {
+        "method",
+        "minimum_valid_tones",
+        "minimum_std_db",
+    }:
+        raise ConfigError(
+            "matched tone normalization requires method, minimum_valid_tones, "
+            "and minimum_std_db"
+        )
+    if normalization.get("method") not in {
+        "none",
+        "subtract_mean_db",
+        "zscore_within_sample",
+    }:
+        raise ConfigError(
+            "matched tone normalization.method must be none, subtract_mean_db, "
+            "or zscore_within_sample"
+        )
+    minimum_valid = normalization.get("minimum_valid_tones")
+    if (
+        isinstance(minimum_valid, bool)
+        or not isinstance(minimum_valid, int)
+        or minimum_valid < 1
+    ):
+        raise ConfigError("matched tone minimum_valid_tones must be an integer >= 1")
+    minimum_std = _finite_number(
+        normalization,
+        "minimum_std_db",
+        "matched tone minimum_std_db",
+    )
+    if minimum_std <= 0:
+        raise ConfigError("matched tone minimum_std_db must be positive")
+
+    matching = value.get("matching")
+    if not isinstance(matching, Mapping) or set(matching) != {
+        "minimum_common_valid_tones"
+    }:
+        raise ConfigError(
+            "matched tone matching requires only minimum_common_valid_tones"
+        )
+    minimum_common = matching.get("minimum_common_valid_tones")
+    if (
+        isinstance(minimum_common, bool)
+        or not isinstance(minimum_common, int)
+        or minimum_common < 1
+    ):
+        raise ConfigError(
+            "matched tone minimum_common_valid_tones must be an integer >= 1"
+        )
 
 
 def validate_preprocessing_config(preprocessing: Any) -> None:
@@ -687,6 +836,8 @@ def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:
         raise ConfigError("At least one finite tone frequency is required")
     if len(np.unique(frequencies)) != frequencies.size:
         raise ConfigError("Tone frequencies must be unique")
+    if np.any(np.diff(frequencies) <= 0):
+        raise ConfigError("Tone frequencies must be strictly increasing")
     if np.any(frequencies <= 0) or np.any(frequencies >= sample_rate / 2):
         raise ConfigError("Every tone must lie strictly between 0 and Nyquist")
     bins = frequencies * period_samples / sample_rate

@@ -164,12 +164,12 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_dev_c2_uses_incremented_pipeline_config_and_feature_versions() -> None:
+def test_dev_c4_uses_incremented_pipeline_config_and_feature_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.9",
-        "config_schema_version": "2.8.0",
+        "pipeline_version": "2.0.0-dev.10",
+        "config_schema_version": "2.9.0",
         "measurement_schema_version": "2.4.0",
-        "feature_schema_version": "2.1.0",
+        "feature_schema_version": "2.2.0",
     }
 
 
@@ -206,6 +206,101 @@ def test_dev_c3_fractional_octave_validation_config_resolves() -> None:
         "minimum_kernel_coverage": 0.4,
         "weighting_definition": "rectangular_uniform_linear_grid_db",
     }
+
+
+def test_matched_tone_defaults_are_explicit_and_provisional() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["matched_tone_features"] == {
+        "schema_version": "1.0.0",
+        "provisional": True,
+        "tone_ordering": "manifest_tone_index",
+        "sweep_extraction": {"method": "single_point_linear"},
+        "normalization": {
+            "method": "subtract_mean_db",
+            "minimum_valid_tones": 5,
+            "minimum_std_db": 1.0e-9,
+        },
+        "matching": {"minimum_common_valid_tones": 5},
+    }
+
+
+@pytest.mark.parametrize(
+    ("section", "value", "match"),
+    [
+        (
+            "sweep_extraction",
+            {"method": "single_point_linear", "full_bandwidth_hz": 20},
+            "only accepts",
+        ),
+        (
+            "sweep_extraction",
+            {
+                "method": "narrowband_integration",
+                "full_bandwidth_hz": 0,
+                "integration_domain": "linear_power_ratio",
+                "minimum_band_coverage": 0.8,
+                "overlap_policy": "reject",
+            },
+            "full_bandwidth_hz",
+        ),
+        (
+            "sweep_extraction",
+            {
+                "method": "narrowband_integration",
+                "full_bandwidth_hz": 20,
+                "integration_domain": "db",
+                "minimum_band_coverage": 0.8,
+                "overlap_policy": "reject",
+            },
+            "integration_domain",
+        ),
+        (
+            "sweep_extraction",
+            {
+                "method": "narrowband_integration",
+                "full_bandwidth_hz": 20,
+                "integration_domain": "linear_power_ratio",
+                "minimum_band_coverage": 1.1,
+                "overlap_policy": "reject",
+            },
+            "minimum_band_coverage",
+        ),
+        (
+            "normalization",
+            {
+                "method": "training_set_zscore",
+                "minimum_valid_tones": 5,
+                "minimum_std_db": 1.0e-9,
+            },
+            "normalization.method",
+        ),
+        (
+            "normalization",
+            {
+                "method": "none",
+                "minimum_valid_tones": 0,
+                "minimum_std_db": 1.0e-9,
+            },
+            "minimum_valid_tones",
+        ),
+        (
+            "matching",
+            {"minimum_common_valid_tones": 0},
+            "minimum_common_valid_tones",
+        ),
+    ],
+)
+def test_invalid_matched_tone_config_is_rejected(
+    section: str,
+    value: dict,
+    match: str,
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["matched_tone_features"][section] = value
+
+    with pytest.raises(ConfigError, match=match):
+        validate_config(resolved)
 
 
 @pytest.mark.parametrize(
@@ -468,9 +563,9 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-            "config": "2.8.0",
+        "config": "2.9.0",
         "measurement": "2.4.0",
-        "feature": "2.1.0",
+        "feature": "2.2.0",
     }
     assert any(old_config in warning for warning in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -494,11 +589,54 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.8.0"
+    assert resolved["schema_versions"]["config"] == "2.9.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
     assert resolved["_runtime"]["migration_warnings"]
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
+    tmp_path,
+) -> None:
+    path = tmp_path / "dev-c3-gaussian.yaml"
+    smoothing = {
+        "method": "gaussian_linear_hz",
+        "sigma_hz": 35.0,
+        "truncate_sigma": 3.5,
+        "boundary": "reflect",
+        "minimum_kernel_coverage": 0.8,
+    }
+    payload = {
+        "measurement_mode": "rew_sweep",
+        "schema_versions": {
+            "config": "2.8.0",
+            "measurement": "2.4.0",
+            "feature": "2.1.0",
+        },
+        "preprocessing": {
+            "schema_version": "1.1.0",
+            "smoothing_domain": "db",
+            "smoothing": smoothing,
+        },
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"] == {
+        "config": "2.9.0",
+        "measurement": "2.4.0",
+        "feature": "2.2.0",
+    }
+    assert resolved["preprocessing"]["smoothing"] == smoothing
+    assert resolved["matched_tone_features"]["tone_ordering"] == (
+        "manifest_tone_index"
+    )
+    assert any(
+        "2.8.0" in warning for warning in resolved["_runtime"]["migration_warnings"]
+    )
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
 
 

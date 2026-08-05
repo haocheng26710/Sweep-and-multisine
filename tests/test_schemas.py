@@ -128,6 +128,44 @@ def test_spectrum_and_feature_round_trip(tmp_path) -> None:
     assert restored_legacy.source_qc_warning_reasons == ()
 
 
+def test_tone_feature_round_trip_preserves_reference_and_schema_audit(tmp_path) -> None:
+    meta = sweep_meta()
+    feature = FeatureSet(
+        sample_id=meta.sample_id,
+        feature_schema_version=meta.feature_schema_version,
+        feature_kind=FeatureKind.TONE_PROJECTION_FROM_SWEEP,
+        feature_names=("tone_000000_1000_hz", "tone_000001_1100_hz"),
+        values=np.array([1.0, np.nan]),
+        valid_mask=np.array([True, False]),
+        units=("dB", "dB"),
+        source_measurement_mode=meta.measurement_mode,
+        source_representation=Representation.DENSE_SPECTRUM,
+        preprocessing_id="sha256:" + "a" * 64,
+        meta=meta,
+        tone_set_id="tone-set-round-trip",
+        tone_set_sha256="b" * 64,
+        tone_schema_id="sha256:" + "c" * 64,
+        normalization_method="none",
+        source_magnitude_quantity="spl",
+        source_magnitude_reference="20uPa",
+        source_phase_status=PhaseStatus.UNAVAILABLE,
+        reliability_weights=None,
+        reliability_weight_source=None,
+    )
+
+    save_feature_set(feature, tmp_path / "tone-feature")
+    restored = load_feature_set(tmp_path / "tone-feature")
+
+    assert restored.tone_set_sha256 == "b" * 64
+    assert restored.tone_schema_id == "sha256:" + "c" * 64
+    assert restored.normalization_method == "none"
+    assert restored.source_magnitude_quantity == "spl"
+    assert restored.source_magnitude_reference == "20uPa"
+    assert restored.source_phase_status is PhaseStatus.UNAVAILABLE
+    assert restored.reliability_weights is None
+    assert restored.reliability_weight_source is None
+
+
 def test_multisine_meta_requires_manifest_linkage() -> None:
     with pytest.raises(ValueError, match="multisine metadata fields"):
         MeasurementMeta(

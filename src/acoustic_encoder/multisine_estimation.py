@@ -9,6 +9,8 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.signal import correlate
 
+from .tone_sets import ToneSetDefinition
+
 FloatArray = NDArray[np.float64]
 ComplexArray = NDArray[np.complex128]
 IntArray = NDArray[np.int64]
@@ -47,6 +49,8 @@ def estimate_period_transfers(
     recording: FloatArray,
     stimulus: FloatArray,
     manifest: Mapping[str, Any],
+    *,
+    tone_set: ToneSetDefinition | None = None,
 ) -> PeriodTransferEstimate:
     """Locate the preamble and calculate complex transfer at every tone/period."""
     preamble_offset = int(manifest["pre_silence_samples"])
@@ -92,9 +96,21 @@ def estimate_period_transfers(
     reference_period = stimulus[reference_start : reference_start + period_samples]
     if reference_period.size != period_samples:
         raise ValueError("stimulus does not contain a complete reference period")
-    frequencies = _tone_frequencies(manifest)
     sample_rate = int(manifest["sample_rate_hz"])
-    bins = np.rint(frequencies * period_samples / sample_rate).astype(int)
+    if tone_set is None:
+        # Explicit compatibility path for low-level legacy callers. Formal P1/P8
+        # loading always passes a hash-verified ToneSetDefinition.
+        frequencies = _tone_frequencies(manifest)
+        bins = np.rint(frequencies * period_samples / sample_rate).astype(int)
+    else:
+        if (
+            tone_set.sample_rate_hz != sample_rate
+            or tone_set.period_samples != period_samples
+            or tone_set.tone_set_id != str(manifest["tone_set_id"])
+        ):
+            raise ValueError("verified tone set does not match stimulus manifest")
+        frequencies = tone_set.frequency_hz
+        bins = tone_set.dft_bins
     reference_fft = np.fft.rfft(reference_period)[bins]
     spectrum_by_period = np.fft.rfft(periods, axis=1)
     recording_fft = spectrum_by_period[:, bins]

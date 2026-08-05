@@ -52,6 +52,15 @@ multisine_estimation:
       exclude_candidate_ratio: 0.05
   phase_policy: magnitude_only_unless_clock_qc_passes
 
-features:
-  feature_kind: tone_measurement_from_multisine
-  normalization: subtract_mean_db
+matched_tone_features:
+  schema_version: 1.0.0
+  provisional: true
+  tone_ordering: manifest_tone_index
+  sweep_extraction:
+    method: single_point_linear
+  normalization:
+    method: subtract_mean_db
+    minimum_valid_tones: 5
+    minimum_std_db: 1.0e-9
+  matching:
+    minimum_common_valid_tones: 5

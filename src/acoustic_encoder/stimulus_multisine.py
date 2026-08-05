@@ -20,6 +20,11 @@ from scipy.io import wavfile
 from scipy.signal import chirp
 
 from .config import validate_stimulus_config
+from .tone_sets import (
+    ToneDefinition,
+    canonical_frequency_text,
+    canonical_tone_set_sha256,
+)
 from .version import SCHEMA_VERSION_QUARTET
 
 FloatArray = NDArray[np.float64]
@@ -35,6 +40,8 @@ class StimulusArtifacts:
     preview_path: Path
     hash_path: Path
     waveform_sha256: str
+    tones_sha256: str
+    tone_set_sha256: str
 
 
 def _tone_frequencies(stimulus: Mapping[str, Any]) -> FloatArray:
@@ -246,12 +253,48 @@ def generate_multisine(
             )
         ):
             frequency, dft_bin, weight, phase = values
-            writer.writerow([index, f"{frequency:.12g}", int(dft_bin), f"{weight:.12g}", f"{phase:.17g}"])
+            writer.writerow(
+                [
+                    index,
+                    canonical_frequency_text(float(frequency)),
+                    int(dft_bin),
+                    f"{weight:.17g}",
+                    f"{phase:.17g}",
+                ]
+            )
+    tones_sha256 = _sha256(tones_path)
+    tone_definitions = tuple(
+        ToneDefinition(
+            tone_index=index,
+            frequency_hz=float(frequency),
+            frequency_text=canonical_frequency_text(float(frequency)),
+            dft_bin=int(dft_bin),
+            amplitude_weight=float(weight),
+            phase_rad=float(phase),
+        )
+        for index, (frequency, dft_bin, weight, phase) in enumerate(
+            zip(
+                metrics["tone_frequencies_hz"],
+                metrics["tone_bins"],
+                metrics["amplitude_weights"],
+                metrics["phases_rad"],
+                strict=True,
+            )
+        )
+    )
+    tone_set_sha256 = canonical_tone_set_sha256(
+        str(stimulus["tone_set_id"]),
+        int(metrics["sample_rate_hz"]),
+        int(metrics["period_samples"]),
+        tone_definitions,
+    )
     manifest = {
         **SCHEMA_VERSION_QUARTET,
-        "manifest_schema_version": "1.0.0",
+        "manifest_schema_version": "1.1.0",
         "stimulus_id": stimulus["stimulus_id"],
         "tone_set_id": stimulus["tone_set_id"],
+        "tones_sha256": tones_sha256,
+        "tone_set_sha256": tone_set_sha256,
         "waveform_sha256": waveform_sha256,
         "wav_format": stimulus["wav_format"],
         "tone_source": stimulus["tones"].get("source", "unspecified"),
@@ -275,5 +318,6 @@ def generate_multisine(
         preview_path=preview_path,
         hash_path=hash_path,
         waveform_sha256=waveform_sha256,
+        tones_sha256=tones_sha256,
+        tone_set_sha256=tone_set_sha256,
     )
-

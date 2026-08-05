@@ -343,7 +343,14 @@ class FeatureSet:
     preprocessing_id: str
     meta: MeasurementMeta
     tone_set_id: str | None = None
+    tone_set_sha256: str | None = None
+    tone_schema_id: str | None = None
+    normalization_method: str | None = None
+    source_magnitude_quantity: str | None = None
+    source_magnitude_reference: str | None = None
+    source_phase_status: PhaseStatus | None = None
     reliability_weights: FloatArray | None = None
+    reliability_weight_source: str | None = None
     fit_scope_id: str | None = None
     calibration_id: str | None = None
     source_qc_status: QCStatus | None = None
@@ -369,15 +376,49 @@ class FeatureSet:
         object.__setattr__(self, "valid_mask", mask)
         if self.reliability_weights is not None:
             weights = _readonly_1d(self.reliability_weights, np.float64, "reliability_weights")
-            if weights.size != size or np.any((weights < 0) | (weights > 1)):
+            if (
+                weights.size != size
+                or np.any(~np.isfinite(weights))
+                or np.any((weights < 0) | (weights > 1))
+            ):
                 raise ValueError("reliability_weights must match values and lie in [0, 1]")
             object.__setattr__(self, "reliability_weights", weights)
         tone_kinds = {
             FeatureKind.TONE_PROJECTION_FROM_SWEEP,
             FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE,
         }
-        if self.feature_kind in tone_kinds and not self.tone_set_id:
-            raise ValueError("tone FeatureSet requires tone_set_id")
+        if self.feature_kind in tone_kinds:
+            required_tone_fields = {
+                "tone_set_id": self.tone_set_id,
+                "tone_set_sha256": self.tone_set_sha256,
+                "tone_schema_id": self.tone_schema_id,
+                "normalization_method": self.normalization_method,
+                "source_magnitude_quantity": self.source_magnitude_quantity,
+                "source_phase_status": self.source_phase_status,
+            }
+            missing = [name for name, value in required_tone_fields.items() if value is None]
+            if missing:
+                raise ValueError(f"tone FeatureSet requires fields: {missing}")
+            for name, value in {
+                "tone_set_sha256": self.tone_set_sha256,
+                "tone_schema_id": self.tone_schema_id,
+            }.items():
+                assert value is not None
+                digest = value.removeprefix("sha256:")
+                if (
+                    len(digest) != 64
+                    or digest != digest.lower()
+                    or any(character not in "0123456789abcdef" for character in digest)
+                ):
+                    raise ValueError(f"{name} must contain a lowercase SHA-256 digest")
+            if self.reliability_weights is None and self.reliability_weight_source is not None:
+                raise ValueError(
+                    "reliability_weight_source requires reliability_weights"
+                )
+            if self.reliability_weights is not None and not self.reliability_weight_source:
+                raise ValueError(
+                    "tone reliability_weights require reliability_weight_source"
+                )
         if self.source_qc_sha256 is not None and (
             not self.source_qc_sha256.startswith("sha256:")
             or len(self.source_qc_sha256) != len("sha256:") + 64
@@ -480,9 +521,16 @@ def save_feature_set(data: FeatureSet, base_path: str | Path) -> tuple[Path, Pat
         "source_measurement_mode": data.source_measurement_mode,
         "source_representation": data.source_representation,
         "tone_set_id": data.tone_set_id,
+        "tone_set_sha256": data.tone_set_sha256,
+        "tone_schema_id": data.tone_schema_id,
+        "normalization_method": data.normalization_method,
+        "source_magnitude_quantity": data.source_magnitude_quantity,
+        "source_magnitude_reference": data.source_magnitude_reference,
+        "source_phase_status": data.source_phase_status,
         "preprocessing_id": data.preprocessing_id,
         "fit_scope_id": data.fit_scope_id,
         "calibration_id": data.calibration_id,
+        "reliability_weight_source": data.reliability_weight_source,
         "source_qc_status": data.source_qc_status,
         "source_qc_sha256": data.source_qc_sha256,
         "source_qc_warning_reasons": data.source_qc_warning_reasons,
@@ -518,9 +566,20 @@ def load_feature_set(base_path: str | Path) -> FeatureSet:
             source_measurement_mode=MeasurementMode(payload["source_measurement_mode"]),
             source_representation=Representation(payload["source_representation"]),
             tone_set_id=payload["tone_set_id"],
+            tone_set_sha256=payload.get("tone_set_sha256"),
+            tone_schema_id=payload.get("tone_schema_id"),
+            normalization_method=payload.get("normalization_method"),
+            source_magnitude_quantity=payload.get("source_magnitude_quantity"),
+            source_magnitude_reference=payload.get("source_magnitude_reference"),
+            source_phase_status=(
+                PhaseStatus(payload["source_phase_status"])
+                if payload.get("source_phase_status") is not None
+                else None
+            ),
             preprocessing_id=payload["preprocessing_id"],
             fit_scope_id=payload["fit_scope_id"],
             calibration_id=payload["calibration_id"],
+            reliability_weight_source=payload.get("reliability_weight_source"),
             source_qc_status=(
                 QCStatus(payload["source_qc_status"])
                 if payload.get("source_qc_status") is not None

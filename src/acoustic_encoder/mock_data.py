@@ -69,7 +69,7 @@ def _write_mock_rew_txt(
         handle.write("# MOCK ONLY - not experimental evidence\n")
         handle.write("* Deliberately resembles, but does not define, a REW export format\n")
         writer = csv.writer(handle)
-        writer.writerow(["Frequency (Hz)", "Magnitude (dB)", "Phase (deg)"])
+        writer.writerow(["Frequency (Hz)", "Acoustic SPL (dB)", "Phase (deg)"])
         for row in zip(frequency_hz, magnitude_db, phase_deg, strict=True):
             writer.writerow([f"{row[0]:.6f}", f"{row[1]:.8f}", f"{row[2]:.8f}"])
 

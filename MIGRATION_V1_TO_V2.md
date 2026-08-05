@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2 adds dense sweep P3-A; DEV-C3 adds explicit dense smoothing. P2-B, matched/sparse-tone features, P4–P6, and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2 adds dense sweep P3-A; DEV-C3 adds explicit dense smoothing; DEV-C4 adds matched sweep-projection and direct multisine-tone FeatureSets. P2-B, P4–P6, and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -94,6 +94,20 @@ The order is fixed as target analysis band, common-grid interpolation, per-valid
 
 Pipeline version is `2.0.0-dev.9`; run-manifest schema 1.3 records P3-B as `not_requested`, `completed`/failure, or `not_applicable_sparse`. Feature and measurement schemas remain 2.1 and 2.4 because smoothing changes preprocessing semantics rather than the serialized `FeatureSet` or `SpectrumData` field layout.
 
+## Configuration schema 2.8 to 2.9 and feature schema 2.1 to 2.2
+
+Configuration 2.9 adds the provisional `matched_tone_features` contract. It fixes the sole authoritative order as `manifest_tone_index`, selects `single_point_linear` or explicitly defined linear-power `narrowband_integration`, selects one sample-local tone normalization, and sets minimum valid/common-tone counts. Method-specific fields are strict: single-point extraction accepts no bandwidth fields, while narrowband extraction requires a positive full bandwidth, `integration_domain=linear_power_ratio`, coverage in `(0, 1]`, and `overlap_policy=reject`.
+
+Configurations carrying the 2.8/measurement-2.4/feature-2.1 version quartet migrate in memory to 2.9/2.4/2.2 and receive the explicit default matched-tone contract. Source YAML is not rewritten. The previous multisine-only `features.normalization` placeholder is retired in favor of the shared `matched_tone_features.normalization` block used identically by both modes.
+
+Feature schema 2.2 adds tone-specific audit fields: canonical tone-set SHA-256, tone-schema ID, normalization method, source magnitude quantity/reference, source phase status, and reliability-weight source. Existing dense FeatureSets remain backward compatible because these fields are required only for the two tone FeatureKinds. Tone FeatureSets require a hash-verified P7 manifest/CSV pair and do not silently construct missing identity data.
+
+P7 stimulus-manifest schema 1.1 adds `tones_sha256` and `tone_set_sha256`. The latter hashes the ordered tone identity `(tone_index, frequency_hz, dft_bin)` together with `tone_set_id`, sample rate, and period length. Legacy manifest 1.0 artifacts without these hashes are not silently upgraded for formal P3-C use; rerun P7 from the reviewed stimulus configuration. P8 now consumes the same verified tone definition and records its hashes under `SpectrumData.quality_metrics.tone_set`.
+
+The two P3-C preprocessing IDs remain source-specific: sweep projection includes its dense P3 preprocessing ID and extraction definition, while multisine records direct sparse P8 alignment. A separate `tone_schema_id` proves that ordered names, units, tone identity, and normalization are identical across the two FeatureSets. Equal schema does not imply equal absolute physical reference.
+
+Run-manifest schema 1.4 adds `P3_C`. Single-measurement runs record `paired_run_required`; the explicit paired validation runner owns P3-C construction. Pipeline version is `2.0.0-dev.10`. Measurement schema remains 2.4 because P3-C adds FeatureSet and preprocessing-output semantics rather than changing `MeasurementMeta` or `SpectrumData` layout.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -102,7 +116,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A/P3-B; sparse tones record both stages as not applicable. P4–P6 remain explicit `not_implemented` stage gates.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A/P3-B; sparse tones record both stages as not applicable. A single-measurement run records `P3_C=paired_run_required`; the paired validation command is `python scripts/run_matched_tone_validation.py --run-id <run_id>`. P4–P6 remain explicit `not_implemented` stage gates.
 
 ## New grouping fields
 
@@ -110,4 +124,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics; failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.
+V1 outputs remain read-only. DEV-C2/C3 write new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuse to overwrite an existing directory. Dense successful runs add an immutable `processed/` P3 bundle with complete smoothing semantics. DEV-C4 paired runs use the same provenance partition and add the two matched FeatureSet directories, tone index/schema/audit views, preprocessing failures, and a hash-audited preprocessing manifest. Failure paths retain available audit evidence without writing a false success marker.

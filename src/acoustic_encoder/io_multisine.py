@@ -33,6 +33,7 @@ from .schemas import (
     SpectrumData,
     artifact_sha256,
 )
+from .tone_sets import ToneSetValidationError, load_tone_set
 
 
 class MultisineImportError(ValueError):
@@ -215,6 +216,10 @@ def _process_multisine_measurement(
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     stimulus_path = manifest_path.parent / str(manifest["wav_file"])
     _validate_manifest_layout(manifest)
+    try:
+        tone_set = load_tone_set(manifest_path)
+    except ToneSetValidationError as exc:
+        raise MultisineConsistencyError(f"Invalid stimulus tone set: {exc}") from exc
     _validate_artifact_linkage(recording, stimulus_path, manifest, sidecar, meta)
 
     recording_wav = _read_wav_float(recording, channel=int(meta.audio_channel))
@@ -231,6 +236,7 @@ def _process_multisine_measurement(
             recording_audio,
             stimulus_audio,
             manifest,
+            tone_set=tone_set,
         )
     except ValueError as exc:
         raise MultisineSynchronizationError(
@@ -287,6 +293,7 @@ def _process_multisine_measurement(
                     corrected_audio,
                     stimulus_audio,
                     manifest,
+                    tone_set=tone_set,
                 )
                 residual_drift = estimate_clock_drift(
                     corrected_estimate.transfer_by_period,
@@ -384,6 +391,14 @@ def _process_multisine_measurement(
             "discarded_period_count": estimate.discarded_period_count,
             "stable_period_count": estimate.stable_period_count,
             "period_averaging": period_averaging,
+            "tone_set": {
+                "authoritative_ordering": "manifest_tone_index",
+                "tone_set_id": tone_set.tone_set_id,
+                "tone_set_sha256": tone_set.tone_set_sha256,
+                "tones_sha256": tone_set.tones_sha256,
+                "stimulus_manifest_sha256": tone_set.manifest_sha256,
+                "verified_artifacts": tone_set.verified_artifacts,
+            },
             "clock_drift": clock_drift_metrics,
             "missing_tones": "unavailable",
             "clipping": "unavailable",

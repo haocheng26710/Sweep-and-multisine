@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing, auditable dense smoothing, and three sample-local dense `FeatureSet` variants without rereading TXT/WAV or recomputing P1/P2/P8.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction for sweep projection and direct P8 sparse-tone measurement without rereading TXT/WAV or recomputing P1/P2/P8.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A and dense P3-A/P3-B are implemented. Cross-measurement P2-B, sparse-tone/matched-tone features, P4–P6, and P9 remain later slices.
+- P2-A, dense P3-A/P3-B, and paired P3-C matched-tone features are implemented. Cross-measurement P2-B, P4–P6, and P9 remain later slices.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -18,10 +18,9 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 ## Architecture
 
 ```text
-REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> dense P3-A --> P3-B smoothing
-WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> P3-A not applicable
-                                                                                         |
-                                                                                         +--> matched-tone P3-C/P4-P6 gate
+REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> P3-A/P3-B --> sweep tone projection --+
+                                                                                                                        +--> matched P3-C FeatureSets
+WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> direct sparse tone alignment ------+
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -83,6 +82,8 @@ This creates `data/stimuli/<stimulus_id>/` containing:
 - `stimulus_preview.png`
 - `waveform_hash.txt`
 
+Manifest schema 1.1 records both the exact `tones.csv` SHA-256 and a canonical tone-set SHA-256 over ordered `(tone_index, frequency_hz, dft_bin)` identities. Formal P3-C construction rejects legacy unhashed tone artifacts rather than silently reconstructing or sorting them.
+
 Generate matching mock sweep and multisine inputs:
 
 ```powershell
@@ -119,7 +120,15 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. `P4_P6` remains `not_implemented`. The commands do not claim that cross-measurement QC, sparse-tone FeatureSet construction, metrics, classification, HR, or reporting ran.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. Because a single-measurement run cannot form a cross-mode pair, it records `P3_C=paired_run_required`. `P4_P6` remains `not_implemented`.
+
+Run the deterministic paired DEV-C4 validation:
+
+```powershell
+python scripts/run_matched_tone_validation.py --run-id DEV-C4_P3C_FINAL
+```
+
+This generates only `simulated/software_validation` inputs and matched outputs. It refuses an existing run directory and never marks the result scientifically eligible.
 
 ## P7 signal definition
 
@@ -129,7 +138,7 @@ For `M` tones sorted by ascending frequency, tone ordinal `m = 0, ..., M-1` uses
 phi_m = -pi * m * (m - 1) / M
 ```
 
-Every configured tone must lie on an integer DFT bin of the configured period. The complete WAV consists of pre-silence, an optional synchronization preamble, a gap, complete settling periods, complete analysis periods, and post-silence. Fade is applied only to the preamble; no fade or window modifies an analysis period. The exact formula, sample boundaries, crest factor, target peak, schema versions, and WAV SHA-256 are written to the manifest.
+Every configured tone must lie on an integer DFT bin of the configured period. The complete WAV consists of pre-silence, an optional synchronization preamble, a gap, complete settling periods, complete analysis periods, and post-silence. Fade is applied only to the preamble; no fade or window modifies an analysis period. The exact formula, sample boundaries, crest factor, target peak, schema versions, WAV SHA-256, `tones.csv` SHA-256, and canonical tone-set SHA-256 are written to the manifest. `manifest tone_index` is the sole authoritative order; CSV rows must already be contiguous in that order and their frequencies must also be strictly increasing.
 
 ## P8 simulated multisine estimation and QC
 
@@ -174,6 +183,20 @@ Supported methods are `none`, `moving_average_linear_hz`, `gaussian_linear_hz`, 
 P3 emits `dense_raw_spl`, `dense_demeaned_db`, and `dense_zscore`. Here `raw` means smoothed but not normalized; it does not mean unsmoothed. Raw SPL is allowed only when `magnitude_quantity=spl`; a transfer ratio is not renamed as physical SPL, although its sample-local de-meaned and z-score views may be generated. De-meaning and z-scoring use only smoothed valid points inside `normalization_band_hz`; z-score uses population standard deviation (`ddof=0`). These are per-sample transforms, not training-set standardization.
 
 Dense canonical runs add `processed/feature_index.csv`, `feature_schema.json`, `preprocessing_manifest.json`, `preprocessing_failures.csv`, and NPZ/JSON pairs under `processed/features/<feature_kind>/`. The stable `preprocessing_id` is a SHA-256 of the canonical semantic configuration. Artifacts are hash-audited, use no pickle, round-trip through `FeatureSet`, and refuse an existing processed directory.
+
+## P3-C matched tone features
+
+P3-C loads one hash-verified `ToneSetDefinition` from `stimulus_manifest.json` and its sibling `tones.csv`. `tone_index` is authoritative; rows are never silently sorted. The loader validates contiguous indices, finite strictly increasing and unique frequencies, unique integer DFT bins, the sample-rate/period bin equation, tone count, `tone_set_id`, resolved stimulus frequencies, and both tone hashes.
+
+Sweep projection always follows `SpectrumData -> P3 common grid -> P3 smoothing -> tone extraction -> tone normalization`. `single_point_linear` reads an exact grid point or interpolates in dB between the immediate valid neighbors; it never extrapolates or crosses an invalid gap. `narrowband_integration` converts dB to linear power ratio, integrates piecewise-linear power over the configured full bandwidth, divides by actually covered bandwidth, and returns dB. Coverage, contributing points, and boundary interpolation are audited; positive-width overlap between neighboring tone bands is rejected.
+
+Multisine tone features consume the P8 `sparse_tones SpectrumData` directly. Missing tones retain their authoritative positions as `NaN/valid_mask=false`; unexpected tones fail, and no sparse-to-dense spectrum is constructed. P8 phase status, source magnitude semantics, QC linkage, and tone-set hashes remain traceable. P8 currently provides no validated reliability-weight formula, so `reliability_weights` remains `None` rather than being filled with synthetic ones.
+
+Both paths call the same sample-local normalization implementation: `none`, `subtract_mean_db`, or `zscore_within_sample`. Missing tones do not enter mean or population-standard-deviation calculations. Tone schema matching requires identical tone ID/hash, canonical names, order, length, units, and normalization; it never reindexes a mismatched pair. The common-valid mask is a separate AND view and does not modify either FeatureSet.
+
+Matching schema does not imply absolute physical comparability. With `normalization=none`, absolute comparison is allowed only for compatible non-empty magnitude references or a shared explicit calibration ID with the same magnitude quantity. Normalized features remain shape-only candidates and preserve any original SPL/transfer-ratio reference mismatch. P3-C does not fit an affine calibration.
+
+Paired output is written under `processed/features/tone_projection_from_sweep/` and `processed/features/tone_measurement_from_multisine/` with `tone_feature_index.csv`, `matched_tone_schema.json`, `matched_tone_audit.csv`, `preprocessing_failures.csv`, and a hash-audited `preprocessing_manifest.json`. The directory is immutable and the FeatureSet NPZ format uses `allow_pickle=False` on load.
 
 ## P1 multisine adapter and unified dispatcher
 

@@ -145,13 +145,13 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.3.0"
+    assert manifest["run_manifest_schema_version"] == "1.4.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.9",
-        "config_schema": "2.8.0",
+        "pipeline": "2.0.0-dev.10",
+        "config_schema": "2.9.0",
         "measurement_schema": "2.4.0",
-        "feature_schema": "2.1.0",
+        "feature_schema": "2.2.0",
     }
     assert len(manifest["git"]["commit"]) == 40
     assert isinstance(manifest["git"]["dirty"], bool)
@@ -175,6 +175,7 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["stage_gate"]["P2"] == "completed"
     assert manifest["stage_gate"]["P3_A"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P3_B"] == "not_applicable_sparse"
+    assert manifest["stage_gate"]["P3_C"] == "paired_run_required"
     assert manifest["stage_gate"]["P4_P6"] == "not_implemented"
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
@@ -219,6 +220,7 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
     assert result.run_manifest["stage_gate"]["P2"] == "completed"
     assert result.run_manifest["stage_gate"]["P3_A"] == "completed"
     assert result.run_manifest["stage_gate"]["P3_B"] == "not_requested"
+    assert result.run_manifest["stage_gate"]["P3_C"] == "paired_run_required"
     assert result.run_manifest["preprocessing"]["processing_status"] == "completed"
     assert result.run_manifest["preprocessing"]["preprocessing_id"].startswith(
         "sha256:"

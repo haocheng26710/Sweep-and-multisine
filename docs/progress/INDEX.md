@@ -12,6 +12,7 @@
 | DEV-B5 — P1 multisine adapter、统一双入口调度及 P7→S3→P8 E2E | 2026-08-05 | 完成 | [DEV-B5_DUAL_INPUT_ADAPTER_AND_E2E.md](./DEV-B5_DUAL_INPUT_ADAPTER_AND_E2E.md) | `b471463` |
 | DEV-C1 — P2-A 双入口共享单测量 QC 核心 | 2026-08-05 | 完成 | [DEV-C1_P2A_SHARED_QC_CORE.md](./DEV-C1_P2A_SHARED_QC_CORE.md) | `3621ecf` |
 | DEV-C2 — P3-A dense sweep 公共频率网格与基础 FeatureSet | 2026-08-05 | 完成 | [DEV-C2_P3A_DENSE_FEATURE_CORE.md](./DEV-C2_P3A_DENSE_FEATURE_CORE.md) | `c82ac65` |
-| DEV-C3 — P3-B 明确、可审计的 dense-spectrum smoothing | 2026-08-05 | 完成 | [DEV-C3_P3B_DENSE_SMOOTHING.md](./DEV-C3_P3B_DENSE_SMOOTHING.md) | 本报告与实现同一提交（`feat(features): add auditable dense smoothing`） |
+| DEV-C3 — P3-B 明确、可审计的 dense-spectrum smoothing | 2026-08-05 | 完成 | [DEV-C3_P3B_DENSE_SMOOTHING.md](./DEV-C3_P3B_DENSE_SMOOTHING.md) | `5d54938` |
+| DEV-C4 — P3-C 严格匹配的 sweep projection 与 multisine tone FeatureSet | 2026-08-05 | 完成 | [DEV-C4_P3C_MATCHED_TONE_FEATURES.md](./DEV-C4_P3C_MATCHED_TONE_FEATURES.md) | 本报告与实现同一提交（`feat(features): add matched tone feature sets`） |
 
-当前科研资格边界：截至 DEV-C3，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema 和 research hard gate 的合格 `real_experiment` 才能进入 `research_analysis`。P2-A 与 P3 smoothing 参数仍为 provisional；P2-B、matched/sparse-tone FeatureSet、P4–P6 和 P9 尚未实现，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C4，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema 和 research hard gate 的合格 `real_experiment` 才能进入 `research_analysis`。P2-A、P3 smoothing 与 matched-tone 参数仍为 provisional；P2-B、P4–P6、P9、真实 tone-set/校准冻结尚未实现，因此不能声明科研结论。
