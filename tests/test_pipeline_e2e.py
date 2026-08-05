@@ -145,11 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.4.0"
+    assert manifest["run_manifest_schema_version"] == "1.5.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.10",
-        "config_schema": "2.9.0",
+        "pipeline": "2.0.0-dev.11",
+        "config_schema": "2.10.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.2.0",
     }
@@ -176,7 +176,10 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["stage_gate"]["P3_A"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P3_B"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P3_C"] == "paired_run_required"
-    assert manifest["stage_gate"]["P4_P6"] == "not_implemented"
+    assert manifest["stage_gate"]["P4_A"] == "analysis_scope_required"
+    assert manifest["stage_gate"]["P4_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P5_P6"] == "not_implemented"
+    assert "P4_P6" not in manifest["stage_gate"]
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
     for item in manifest["artifacts"]:
@@ -317,6 +320,9 @@ def test_missing_sidecar_writes_quarantine_failure_manifest(tmp_path) -> None:
     assert manifest["success"] is False
     assert manifest["failure"]["category"] == "missing_input"
     assert manifest["failure"]["exception_type"] == "P1AdapterError"
+    assert manifest["stage_gate"]["P4_A"] == "not_run"
+    assert manifest["stage_gate"]["P4_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P5_P6"] == "not_implemented"
     assert (expected / "config_snapshot.yaml").is_file()
     assert (expected / "measurements.csv").is_file()
     assert (expected / "measurement_qc.csv").is_file()
@@ -391,6 +397,7 @@ def test_missing_canonical_stimulus_manifest_writes_failure_bundle(tmp_path) -> 
     assert result.processing_status == "failed"
     assert result.run_manifest["failure"]["category"] == "missing_input"
     assert result.run_manifest["stage_gate"]["P8"] == "not_run"
+    assert result.run_manifest["stage_gate"]["P4_A"] == "not_run"
     manifest_input = next(
         item
         for item in result.run_manifest["inputs"]

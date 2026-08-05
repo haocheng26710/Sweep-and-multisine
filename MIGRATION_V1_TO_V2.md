@@ -108,6 +108,16 @@ The two P3-C preprocessing IDs remain source-specific: sweep projection includes
 
 Run-manifest schema 1.4 adds `P3_C`. Single-measurement runs record `paired_run_required`; the explicit paired validation runner owns P3-C construction. Pipeline version is `2.0.0-dev.10`. Measurement schema remains 2.4 because P3-C adds FeatureSet and preprocessing-output semantics rather than changing `MeasurementMeta` or `SpectrumData` layout.
 
+## Configuration schema 2.9 to 2.10 and P4-A metrics schema 1.0
+
+Configuration 2.10 adds the strict, provisional `direction_metrics` block: common-valid-feature count/fraction, minimum direction count, explicit effective-rank centering, repeatability distance, and morphology-gain distance/minimum denominator. A 2.9/measurement-2.4/feature-2.2 configuration migrates in memory to 2.10 and receives these defaults; an already explicit DEV-C3 smoothing definition is preserved exactly and the source YAML is not rewritten.
+
+P4-A has independent version-1.0 schemas for `AnalysisScope` and `metrics_manifest.json`. It accepts only compatible, already-created `FeatureSet` objects selected by explicit sample IDs or a hash-frozen partition. It does not read source TXT/WAV, accept `SpectrumData`, discover a directory, align names, resample, or fill invalid values. Configuration, feature kind, preprocessing ID, feature schema, names/order, units, representation, provenance, and tone identity where applicable must agree.
+
+Direction statistics use the logical intersection of all selected `valid_mask` arrays. Repeat pairs retain CONT, REPOS, and REASM as separate audited definitions. Morphology gain uses the median between-direction sample-pair distance divided by the median within-direction REPOS distance; neither CONT nor REASM can substitute for the denominator. Effective rank uses singular values directly: `p_i=sigma_i/sum(sigma)` and `exp(-sum(p_i log p_i))` over positive proportions.
+
+Pipeline version is `2.0.0-dev.11`; run-manifest schema 1.5 replaces the former combined `P4_P6` gate with `P4_A`, `P4_B`, and `P5_P6`. Successful single-measurement runs report `P4_A=analysis_scope_required`; import failures report `P4_A=not_run`. Feature and measurement schemas remain 2.2 and 2.4 because P4-A adds derived metrics artifacts, not fields to `FeatureSet`, `MeasurementMeta`, or `SpectrumData`.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -116,7 +126,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A/P3-B; sparse tones record both stages as not applicable. A single-measurement run records `P3_C=paired_run_required`; the paired validation command is `python scripts/run_matched_tone_validation.py --run-id <run_id>`. P4–P6 remain explicit `not_implemented` stage gates.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. Dense REW spectra continue through P3-A/P3-B; sparse tones record both stages as not applicable. A single-measurement run records `P3_C=paired_run_required` and `P4_A=analysis_scope_required`; the paired validation command is `python scripts/run_matched_tone_validation.py --run-id <run_id>`. `P4_B` and `P5_P6` remain explicit `not_implemented` gates.
 
 ## New grouping fields
 

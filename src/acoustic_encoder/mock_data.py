@@ -16,9 +16,13 @@ from scipy.io import wavfile
 from .schemas import (
     DataOrigin,
     DatasetRole,
+    FeatureKind,
+    FeatureSet,
     MeasurementMeta,
     MeasurementMode,
+    PhaseStatus,
     QCStatus,
+    Representation,
     SourceFormat,
 )
 from .stimulus_multisine import generate_multisine
@@ -416,3 +420,259 @@ def generate_dual_mode_mock(
         encoding="utf-8",
     )
     return manifest_path
+
+
+def generate_directional_feature_set_mock(
+    *,
+    configuration: str = "U4ENC",
+    direction_order_deg: Iterable[float] = (0.0, 90.0, 180.0, 270.0),
+    feature_count: int = 71,
+    random_state: int = 20260805,
+    rank_mode: str = "directional",
+    feature_kind: FeatureKind = FeatureKind.DENSE_DEMEANED_DB,
+    repeat_noise_scale: float = 1.0,
+    included_repeat_types: Iterable[str] = ("CONT", "REPOS", "REASM"),
+    missing_feature_indices_by_sample: Mapping[str, Iterable[int]] | None = None,
+) -> tuple[FeatureSet, ...]:
+    """Build controlled P4 FeatureSets without creating raw TXT/WAV/SpectrumData."""
+    if not isinstance(feature_count, int) or feature_count < 2:
+        raise ValueError("feature_count must be an integer >= 2")
+    directions = tuple(float(value) for value in direction_order_deg)
+    if (
+        not directions
+        or any(not np.isfinite(value) or not 0.0 <= value < 360.0 for value in directions)
+        or len(set(directions)) != len(directions)
+    ):
+        raise ValueError("direction_order_deg must contain unique angles in [0, 360)")
+    repeat_types = tuple(str(value).upper() for value in included_repeat_types)
+    unsupported = set(repeat_types) - {"CONT", "REPOS", "REASM"}
+    if unsupported:
+        raise ValueError(f"unsupported repeat types: {sorted(unsupported)}")
+    if rank_mode not in {"directional", "rank_one", "orthogonal", "identical", "zero"}:
+        raise ValueError(f"unsupported rank_mode: {rank_mode}")
+    try:
+        feature_kind = FeatureKind(feature_kind)
+    except ValueError as exc:
+        raise ValueError(f"unsupported feature_kind: {feature_kind!r}") from exc
+    supported_feature_kinds = {
+        FeatureKind.DENSE_RAW_SPL,
+        FeatureKind.DENSE_DEMEANED_DB,
+        FeatureKind.DENSE_ZSCORE,
+        FeatureKind.TONE_PROJECTION_FROM_SWEEP,
+        FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE,
+    }
+    if feature_kind not in supported_feature_kinds:
+        raise ValueError(f"unsupported P4-A mock feature_kind: {feature_kind.value}")
+    try:
+        repeat_noise_scale = float(repeat_noise_scale)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("repeat_noise_scale must be finite and non-negative") from exc
+    if not np.isfinite(repeat_noise_scale) or repeat_noise_scale < 0.0:
+        raise ValueError("repeat_noise_scale must be finite and non-negative")
+    if rank_mode == "orthogonal" and feature_count < len(directions):
+        raise ValueError("orthogonal rank_mode requires one feature per direction")
+
+    frequency_hz = 1000.0 + 10.0 * np.arange(feature_count, dtype=np.float64)
+    tone_kind = feature_kind in {
+        FeatureKind.TONE_PROJECTION_FROM_SWEEP,
+        FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE,
+    }
+    if tone_kind:
+        feature_names = tuple(
+            f"tone_{index:06d}_{int(frequency) if frequency.is_integer() else frequency:g}_hz"
+            for index, frequency in enumerate(frequency_hz)
+        )
+        tone_set_id = f"DEV-C5-S3-TONES-{feature_count}"
+        tone_set_sha256 = hashlib.sha256(
+            np.asarray(frequency_hz, dtype="<f8").tobytes()
+        ).hexdigest()
+        tone_schema_id = (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(feature_names, separators=(",", ":")).encode("ascii")
+            ).hexdigest()
+        )
+    else:
+        feature_names = tuple(
+            f"f_{int(frequency) if frequency.is_integer() else frequency:g}_hz"
+            for frequency in frequency_hz
+        )
+        tone_set_id = None
+        tone_set_sha256 = None
+        tone_schema_id = None
+    missing_map = {
+        str(sample_id): tuple(int(index) for index in indices)
+        for sample_id, indices in (missing_feature_indices_by_sample or {}).items()
+    }
+    generator = np.random.default_rng(random_state)
+    repeat_specs = (
+        ("CONT", "S01", "R01", "P01", "AS01", "B01", 0.005),
+        ("CONT", "S01", "R02", "P01", "AS01", "B01", 0.005),
+        ("CONT", "S02", "R01", "P01", "AS01", "B02", 0.005),
+        ("CONT", "S02", "R02", "P01", "AS01", "B02", 0.005),
+        ("REPOS", "S01", "R01", "P01", "AS01", "B03", 0.04),
+        ("REPOS", "S01", "R02", "P02", "AS01", "B04", 0.04),
+        ("REASM", "S01", "R01", "P01", "AS01", "B05", 0.08),
+        ("REASM", "S01", "R02", "P01", "AS02", "B06", 0.08),
+    )
+    features: list[FeatureSet] = []
+    for direction_index, angle in enumerate(directions):
+        if rank_mode == "directional":
+            base = known_transfer_db(
+                frequency_hz,
+                angle_deg=angle,
+                configuration=configuration,
+            )
+            base = base - np.mean(base)
+        elif rank_mode == "rank_one":
+            base = (direction_index + 1.0) * np.linspace(-1.0, 1.0, feature_count)
+        elif rank_mode == "orthogonal":
+            base = np.zeros(feature_count, dtype=np.float64)
+            base[direction_index] = 1.0
+        elif rank_mode == "identical":
+            base = np.linspace(-1.0, 1.0, feature_count)
+        else:
+            base = np.zeros(feature_count, dtype=np.float64)
+
+        for repeat_type, session, repeat_id, reposition, assembly, block, noise in repeat_specs:
+            if repeat_type not in repeat_types:
+                continue
+            sample_id = (
+                f"mock_{configuration}_A{int(round(angle)):03d}_{session}_"
+                f"{repeat_type}_{repeat_id}_{reposition}_{assembly}_{block}"
+            )
+            values = np.asarray(
+                base
+                + generator.normal(
+                    0.0,
+                    noise * repeat_noise_scale,
+                    feature_count,
+                ),
+                dtype=np.float64,
+            )
+            valid_mask = np.ones(feature_count, dtype=bool)
+            for index in missing_map.get(sample_id, ()):
+                if index < 0 or index >= feature_count:
+                    raise ValueError(
+                        f"missing feature index {index} is outside sample {sample_id}"
+                    )
+                valid_mask[index] = False
+                values[index] = np.nan
+            identity_payload = json.dumps(
+                {
+                    "sample_id": sample_id,
+                    "random_state": random_state,
+                    "rank_mode": rank_mode,
+                    "values": values.tolist(),
+                    "valid_mask": valid_mask.tolist(),
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+            source_sha256 = hashlib.sha256(identity_payload).hexdigest()
+            meta = MeasurementMeta(
+                sample_id=sample_id,
+                **SCHEMA_VERSION_QUARTET,
+                device_version="V2",
+                configuration=configuration,
+                angle_deg=angle,
+                session_id=session,
+                repeat_type=repeat_type,
+                repeat_id=repeat_id,
+                reposition_round_id=reposition,
+                assembly_id=assembly,
+                acquisition_block_id=block,
+                experiment_step="DEV_C5_P4A_MOCK",
+                measurement_mode=(
+                    MeasurementMode.SCHROEDER_MULTISINE
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else MeasurementMode.REW_SWEEP
+                ),
+                source_format=(
+                    SourceFormat.MOCK_AUDIO
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else SourceFormat.MOCK_DENSE
+                ),
+                source_path=f"mock-feature://{sample_id}",
+                data_origin=DataOrigin.SIMULATED,
+                dataset_role=DatasetRole.SOFTWARE_VALIDATION,
+                source_sha256=source_sha256,
+                provenance_uri="mock-feature://DEV-C5-P4A",
+                eligible_for_scientific_analysis=False,
+                stimulus_id=(
+                    "DEV-C5-S3-STIMULUS"
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else None
+                ),
+                stimulus_hash=(
+                    tone_set_sha256
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else None
+                ),
+                tone_set_id=(
+                    tone_set_id
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else None
+                ),
+                sidecar_path=(
+                    f"mock-feature://{sample_id}.json"
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else None
+                ),
+                audio_channel=(
+                    0
+                    if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                    else None
+                ),
+                qc_status=QCStatus.VALID,
+            )
+            features.append(
+                FeatureSet(
+                    sample_id=sample_id,
+                    feature_schema_version=SCHEMA_VERSION_QUARTET[
+                        "feature_schema_version"
+                    ],
+                    feature_kind=feature_kind,
+                    feature_names=feature_names,
+                    values=values,
+                    valid_mask=valid_mask,
+                    units=("dB",) * feature_count,
+                    source_measurement_mode=(
+                        MeasurementMode.SCHROEDER_MULTISINE
+                        if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                        else MeasurementMode.REW_SWEEP
+                    ),
+                    source_representation=(
+                        Representation.SPARSE_TONES
+                        if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                        else Representation.DENSE_SPECTRUM
+                    ),
+                    preprocessing_id=(
+                        "sha256:"
+                        + hashlib.sha256(
+                            (
+                                f"DEV-C5:{feature_count}:{rank_mode}:"
+                                f"{feature_kind.value}:{repeat_noise_scale:.17g}"
+                            ).encode("ascii")
+                        ).hexdigest()
+                    ),
+                    meta=meta,
+                    tone_set_id=tone_set_id,
+                    tone_set_sha256=tone_set_sha256,
+                    tone_schema_id=tone_schema_id,
+                    normalization_method=("subtract_mean_db" if tone_kind else None),
+                    source_magnitude_quantity=("transfer_gain" if tone_kind else None),
+                    source_phase_status=(
+                        PhaseStatus.RELATIVE_UNRELIABLE
+                        if feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+                        else PhaseStatus.UNAVAILABLE if tone_kind else None
+                    ),
+                    source_qc_status=QCStatus.VALID,
+                    source_qc_sha256=(
+                        "sha256:"
+                        + hashlib.sha256(f"QC:{sample_id}".encode("utf-8")).hexdigest()
+                    ),
+                    source_qc_eligible_for_downstream=True,
+                )
+            )
+    return tuple(features)

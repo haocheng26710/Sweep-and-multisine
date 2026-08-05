@@ -164,10 +164,10 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
         load_config(path)
 
 
-def test_dev_c4_uses_incremented_pipeline_config_and_feature_versions() -> None:
+def test_dev_c5_uses_incremented_pipeline_and_config_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.10",
-        "config_schema_version": "2.9.0",
+        "pipeline_version": "2.0.0-dev.11",
+        "config_schema_version": "2.10.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.2.0",
     }
@@ -222,6 +222,27 @@ def test_matched_tone_defaults_are_explicit_and_provisional() -> None:
             "minimum_std_db": 1.0e-9,
         },
         "matching": {"minimum_common_valid_tones": 5},
+    }
+
+
+def test_dev_c5_direction_metrics_validation_config_resolves() -> None:
+    resolved = load_config(
+        PROJECT_ROOT / "config" / "validation_dev_c5_direction_metrics.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+
+    assert resolved["direction_metrics"] == {
+        "schema_version": "1.0.0",
+        "provisional": True,
+        "minimum_common_valid_features": 60,
+        "minimum_common_valid_fraction": 0.8,
+        "minimum_direction_count": 4,
+        "center_direction_matrix": False,
+        "repeatability_distance_metric": "rms",
+        "morphology_gain": {
+            "distance_metric": "rms",
+            "minimum_denominator": 1.0e-12,
+        },
     }
 
 
@@ -563,7 +584,7 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.9.0",
+        "config": "2.10.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -589,7 +610,7 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.9.0"
+    assert resolved["schema_versions"]["config"] == "2.10.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
@@ -626,7 +647,7 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.9.0",
+        "config": "2.10.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -637,6 +658,69 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     assert any(
         "2.8.0" in warning for warning in resolved["_runtime"]["migration_warnings"]
     )
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+def test_dev_c4_config_migrates_to_direction_metrics_without_rewriting(
+    tmp_path,
+) -> None:
+    path = tmp_path / "dev-c4.yaml"
+    smoothing = {
+        "method": "gaussian_linear_hz",
+        "sigma_hz": 35.0,
+        "truncate_sigma": 3.5,
+        "boundary": "reflect",
+        "minimum_kernel_coverage": 0.8,
+    }
+    payload = {
+        "measurement_mode": "rew_sweep",
+        "schema_versions": {
+            "config": "2.9.0",
+            "measurement": "2.4.0",
+            "feature": "2.2.0",
+        },
+        "preprocessing": {
+            "schema_version": "1.1.0",
+            "smoothing_domain": "db",
+            "smoothing": smoothing,
+        },
+        "matched_tone_features": {
+            "schema_version": "1.0.0",
+            "provisional": True,
+            "tone_ordering": "manifest_tone_index",
+            "sweep_extraction": {"method": "single_point_linear"},
+            "normalization": {
+                "method": "subtract_mean_db",
+                "minimum_valid_tones": 5,
+                "minimum_std_db": 1.0e-9,
+            },
+            "matching": {"minimum_common_valid_tones": 5},
+        },
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"] == {
+        "config": "2.10.0",
+        "measurement": "2.4.0",
+        "feature": "2.2.0",
+    }
+    assert resolved["preprocessing"]["smoothing"] == smoothing
+    assert resolved["direction_metrics"] == {
+        "schema_version": "1.0.0",
+        "provisional": True,
+        "minimum_common_valid_features": 5,
+        "minimum_common_valid_fraction": 0.8,
+        "minimum_direction_count": 2,
+        "center_direction_matrix": False,
+        "repeatability_distance_metric": "rms",
+        "morphology_gain": {
+            "distance_metric": "rms",
+            "minimum_denominator": 1.0e-12,
+        },
+    }
+    assert any("2.9.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
 
 
@@ -674,4 +758,50 @@ def test_legacy_root_smoothing_hz_is_explicitly_rejected() -> None:
     resolved["preprocessing"]["smoothing_hz"] = 50
 
     with pytest.raises(ConfigError, match="smoothing_hz is ambiguous"):
+        validate_config(resolved)
+
+
+def test_default_direction_metrics_contract_is_explicit_and_provisional() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["direction_metrics"] == {
+        "schema_version": "1.0.0",
+        "provisional": True,
+        "minimum_common_valid_features": 5,
+        "minimum_common_valid_fraction": 0.8,
+        "minimum_direction_count": 2,
+        "center_direction_matrix": False,
+        "repeatability_distance_metric": "rms",
+        "morphology_gain": {
+            "distance_metric": "rms",
+            "minimum_denominator": 1.0e-12,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "message"),
+    [
+        (("minimum_common_valid_features",), 0, "common_valid_features"),
+        (("minimum_common_valid_fraction",), 0.0, "common_valid_fraction"),
+        (("minimum_common_valid_fraction",), 1.1, "common_valid_fraction"),
+        (("minimum_direction_count",), 0, "minimum_direction_count"),
+        (("center_direction_matrix",), "false", "center_direction_matrix"),
+        (("repeatability_distance_metric",), "pearson", "repeatability"),
+        (("morphology_gain", "distance_metric"), "cosine", "morphology_gain"),
+        (("morphology_gain", "minimum_denominator"), 0.0, "minimum_denominator"),
+    ],
+)
+def test_direction_metrics_config_rejects_invalid_values(
+    path: tuple[str, ...],
+    value: object,
+    message: str,
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    target = resolved["direction_metrics"]
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+
+    with pytest.raises(ConfigError, match=message):
         validate_config(resolved)

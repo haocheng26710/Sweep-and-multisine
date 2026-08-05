@@ -1,0 +1,21 @@
+pipeline_version: 2.0.0-dev.11
+schema_versions:
+  config: 2.10.0
+  measurement: 2.4.0
+  feature: 2.2.0
+
+measurement_mode: rew_sweep
+run_purpose: software_validation
+random_state: 20260805
+
+direction_metrics:
+  schema_version: 1.0.0
+  provisional: true
+  minimum_common_valid_features: 60
+  minimum_common_valid_fraction: 0.8
+  minimum_direction_count: 4
+  center_direction_matrix: false
+  repeatability_distance_metric: rms
+  morphology_gain:
+    distance_metric: rms
+    minimum_denominator: 1.0e-12

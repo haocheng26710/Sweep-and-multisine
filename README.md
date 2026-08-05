@@ -120,7 +120,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. Because a single-measurement run cannot form a cross-mode pair, it records `P3_C=paired_run_required`. `P4_P6` remains `not_implemented`.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. Because a single-measurement run cannot form a cross-mode pair, it records `P3_C=paired_run_required`. A single-measurement run records `P4_A=analysis_scope_required`; `P4_B` and `P5_P6` remain `not_implemented`.
 
 Run the deterministic paired DEV-C4 validation:
 
@@ -129,6 +129,14 @@ python scripts/run_matched_tone_validation.py --run-id DEV-C4_P3C_FINAL
 ```
 
 This generates only `simulated/software_validation` inputs and matched outputs. It refuses an existing run directory and never marks the result scientifically eligible.
+
+Run the deterministic FeatureSet-only DEV-C5/P4-A validation:
+
+```powershell
+python scripts/run_direction_metrics_validation.py --config config/validation_dev_c5_direction_metrics.yaml --run-id DEV-C5_P4A_FINAL
+```
+
+P4-A accepts only an explicit `AnalysisScope` plus compatible `FeatureSet` objects. It does not read TXT, WAV, or `SpectrumData`, discover a directory, reindex features, or fill invalid values. The validation writes hash-audited direction templates, five similarity/distance matrices, repeat and between-direction sample pairs, singular values, summary metrics, and a selection audit under `outputs/simulated/software_validation/<run_id>/metrics/`. Direction templates are descriptive only and are not reusable as P5 training dictionaries or P9 tone-selection inputs.
 
 ## P7 signal definition
 

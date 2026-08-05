@@ -52,6 +52,20 @@ _MATCHED_TONE_DEFAULTS: dict[str, Any] = {
     "matching": {"minimum_common_valid_tones": 5},
 }
 
+_DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "minimum_common_valid_features": 5,
+    "minimum_common_valid_fraction": 0.8,
+    "minimum_direction_count": 2,
+    "center_direction_matrix": False,
+    "repeatability_distance_metric": "rms",
+    "morphology_gain": {
+        "distance_metric": "rms",
+        "minimum_denominator": 1.0e-12,
+    },
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -106,6 +120,13 @@ def load_config(
         _MATCHED_TONE_DEFAULTS,
         supplied_matched_tones,
     )
+    supplied_direction_metrics = resolved.get("direction_metrics", {})
+    if not isinstance(supplied_direction_metrics, Mapping):
+        raise ConfigError("direction_metrics must be a mapping")
+    resolved["direction_metrics"] = deep_merge(
+        _DIRECTION_METRICS_DEFAULTS,
+        supplied_direction_metrics,
+    )
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -126,10 +147,11 @@ def load_config(
         ("2.6.0", "2.4.0", "2.0.0"),
         ("2.7.0", "2.4.0", "2.1.0"),
         ("2.8.0", "2.4.0", "2.1.0"),
+        ("2.9.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
-        if old_config_version != "2.8.0" and (
+        if old_config_version not in {"2.8.0", "2.9.0"} and (
             not isinstance(smoothing, Mapping)
             or smoothing.get("method") != "none"
         ):
@@ -202,6 +224,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     preprocessing = config.get("preprocessing")
     validate_preprocessing_config(preprocessing)
     validate_matched_tone_config(config.get("matched_tone_features"))
+    validate_direction_metrics_config(config.get("direction_metrics"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -369,6 +392,78 @@ def validate_matched_tone_config(value: Any) -> None:
     ):
         raise ConfigError(
             "matched tone minimum_common_valid_tones must be an integer >= 1"
+        )
+
+
+def validate_direction_metrics_config(value: Any) -> None:
+    """Validate the complete provisional P4-A metrics contract."""
+    required = {
+        "schema_version",
+        "provisional",
+        "minimum_common_valid_features",
+        "minimum_common_valid_fraction",
+        "minimum_direction_count",
+        "center_direction_matrix",
+        "repeatability_distance_metric",
+        "morphology_gain",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ConfigError(
+            "direction_metrics must contain exactly: " + ", ".join(sorted(required))
+        )
+    if value.get("schema_version") != "1.0.0":
+        raise ConfigError("direction_metrics.schema_version must be 1.0.0")
+    if not isinstance(value.get("provisional"), bool):
+        raise ConfigError("direction_metrics.provisional must be boolean")
+    minimum_features = value.get("minimum_common_valid_features")
+    if (
+        isinstance(minimum_features, bool)
+        or not isinstance(minimum_features, int)
+        or minimum_features < 1
+    ):
+        raise ConfigError("direction_metrics.minimum_common_valid_features must be >= 1")
+    minimum_fraction = _finite_number(
+        value,
+        "minimum_common_valid_fraction",
+        "direction_metrics minimum_common_valid_fraction",
+    )
+    if not 0.0 < minimum_fraction <= 1.0:
+        raise ConfigError(
+            "direction_metrics.minimum_common_valid_fraction must lie in (0, 1]"
+        )
+    minimum_directions = value.get("minimum_direction_count")
+    if (
+        isinstance(minimum_directions, bool)
+        or not isinstance(minimum_directions, int)
+        or minimum_directions < 1
+    ):
+        raise ConfigError("direction_metrics.minimum_direction_count must be >= 1")
+    if not isinstance(value.get("center_direction_matrix"), bool):
+        raise ConfigError("direction_metrics.center_direction_matrix must be boolean")
+    distance_metrics = {"euclidean", "rms", "median_absolute_difference"}
+    if value.get("repeatability_distance_metric") not in distance_metrics:
+        raise ConfigError(
+            "direction_metrics.repeatability_distance_metric is unsupported"
+        )
+    gain = value.get("morphology_gain")
+    if not isinstance(gain, Mapping) or set(gain) != {
+        "distance_metric",
+        "minimum_denominator",
+    }:
+        raise ConfigError(
+            "direction_metrics.morphology_gain requires distance_metric and "
+            "minimum_denominator"
+        )
+    if gain.get("distance_metric") not in distance_metrics:
+        raise ConfigError("direction_metrics.morphology_gain.distance_metric is unsupported")
+    denominator = _finite_number(
+        gain,
+        "minimum_denominator",
+        "direction_metrics morphology_gain minimum_denominator",
+    )
+    if denominator <= 0.0:
+        raise ConfigError(
+            "direction_metrics.morphology_gain.minimum_denominator must be positive"
         )
 
 

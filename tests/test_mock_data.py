@@ -9,7 +9,17 @@ import numpy as np
 from scipy.io import wavfile
 
 from acoustic_encoder.config import load_config
-from acoustic_encoder.mock_data import generate_dual_mode_mock
+from acoustic_encoder.mock_data import (
+    generate_directional_feature_set_mock,
+    generate_dual_mode_mock,
+)
+from acoustic_encoder.schemas import (
+    DataOrigin,
+    DatasetRole,
+    FeatureKind,
+    MeasurementMode,
+    Representation,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -128,3 +138,104 @@ def test_s3_negative_clock_drift_compresses_time_axis(tmp_path) -> None:
     assert negative_audio.size < zero_audio.size
     assert sidecar["sampling_clock_drift_ppm"] == -100.0
     assert sidecar["recording_delay_samples"] == 1379
+
+
+def test_directional_feature_mock_has_controlled_four_direction_repeat_structure() -> None:
+    features = generate_directional_feature_set_mock(
+        configuration="U4ENC",
+        direction_order_deg=(0.0, 90.0, 180.0, 270.0),
+        feature_count=8,
+        random_state=20260805,
+    )
+
+    assert len(features) == 32
+    assert {feature.meta.angle_deg for feature in features} == {
+        0.0,
+        90.0,
+        180.0,
+        270.0,
+    }
+    assert {feature.meta.repeat_type for feature in features} == {
+        "CONT",
+        "REPOS",
+        "REASM",
+    }
+    assert {feature.meta.session_id for feature in features} == {"S01", "S02"}
+    assert {feature.meta.assembly_id for feature in features} == {"AS01", "AS02"}
+    assert all(feature.feature_kind is FeatureKind.DENSE_DEMEANED_DB for feature in features)
+    assert all(feature.meta.data_origin is DataOrigin.SIMULATED for feature in features)
+    assert all(
+        feature.meta.dataset_role is DatasetRole.SOFTWARE_VALIDATION
+        and not feature.meta.eligible_for_scientific_analysis
+        for feature in features
+    )
+    first_values = [
+        feature.values
+        for feature in features
+        if feature.meta.angle_deg == 0.0 and feature.meta.repeat_type == "CONT"
+    ]
+    assert len(first_values) == 4
+    assert not np.array_equal(first_values[0], first_values[1])
+
+
+def test_directional_feature_mock_controls_rank_noise_and_missing_repeats() -> None:
+    identical = generate_directional_feature_set_mock(
+        feature_count=4,
+        rank_mode="identical",
+        repeat_noise_scale=0.0,
+        included_repeat_types=("CONT",),
+    )
+    rank_one = generate_directional_feature_set_mock(
+        feature_count=4,
+        rank_mode="rank_one",
+        repeat_noise_scale=0.0,
+        included_repeat_types=("CONT",),
+    )
+    orthogonal = generate_directional_feature_set_mock(
+        feature_count=4,
+        rank_mode="orthogonal",
+        repeat_noise_scale=0.0,
+        included_repeat_types=("CONT",),
+    )
+    zero = generate_directional_feature_set_mock(
+        feature_count=4,
+        rank_mode="zero",
+        repeat_noise_scale=0.0,
+        included_repeat_types=("CONT",),
+    )
+
+    direction_rows = lambda items: np.stack(  # noqa: E731
+        [
+            next(feature.values for feature in items if feature.meta.angle_deg == angle)
+            for angle in (0.0, 90.0, 180.0, 270.0)
+        ]
+    )
+    assert np.linalg.matrix_rank(direction_rows(identical)) == 1
+    assert np.linalg.matrix_rank(direction_rows(rank_one)) == 1
+    assert np.linalg.matrix_rank(direction_rows(orthogonal)) == 4
+    assert not np.any(direction_rows(zero))
+    assert {feature.meta.repeat_type for feature in identical} == {"CONT"}
+
+
+def test_directional_feature_mock_can_expose_a_missing_multisine_tone() -> None:
+    initial = generate_directional_feature_set_mock(
+        feature_count=6,
+        feature_kind=FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE,
+        included_repeat_types=("REPOS",),
+    )
+    sample_id = initial[0].sample_id
+    features = generate_directional_feature_set_mock(
+        feature_count=6,
+        feature_kind=FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE,
+        included_repeat_types=("REPOS",),
+        missing_feature_indices_by_sample={sample_id: (2,)},
+    )
+    first = features[0]
+
+    assert first.feature_kind is FeatureKind.TONE_MEASUREMENT_FROM_MULTISINE
+    assert first.source_measurement_mode is MeasurementMode.SCHROEDER_MULTISINE
+    assert first.source_representation is Representation.SPARSE_TONES
+    assert first.tone_set_id == "DEV-C5-S3-TONES-6"
+    assert not first.valid_mask[2]
+    assert np.isnan(first.values[2])
+    assert all(name.startswith("tone_") for name in first.feature_names)

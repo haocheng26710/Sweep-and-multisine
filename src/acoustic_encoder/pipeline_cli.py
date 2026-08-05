@@ -46,7 +46,8 @@ def pipeline_main(
                 "DEV-C stage gate: configuration is valid; provide --input, "
                 "--metadata, and --run-id to execute P1/P2/P8 plus dense "
                 "P3-A/P3-B. Dense smoothing runs only when explicitly "
-                "configured; sparse P3 remains not applicable; P4-P6 remain "
+                "configured; sparse P3 remains not applicable; P4-A requires "
+                "an explicit FeatureSet analysis scope; P4-B/P5/P6 remain "
                 "not implemented.",
                 file=sys.stderr,
             )
@@ -85,7 +86,8 @@ def pipeline_main(
     )
     print(
         "DEV-C stage gate reached: dense P3-A/P3-B is available; sparse P3 is "
-        "not applicable; P4-P6 remain not implemented.",
+        "not applicable; P4-A requires an explicit FeatureSet analysis scope; "
+        "P4-B/P5/P6 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:
