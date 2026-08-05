@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import hashlib
-import json
 from typing import Mapping
 
 import numpy as np
@@ -15,7 +13,7 @@ from .preprocessing import (
     preprocessing_id,
     smooth_dense_grid,
 )
-from .quality_control import MeasurementQCResult
+from .quality_control import MeasurementQCResult, measurement_qc_sha256
 from .research_gate import enforce_research_gate
 from .schemas import (
     FeatureKind,
@@ -107,12 +105,6 @@ def _feature(
     prep_id: str,
     measurement_qc: MeasurementQCResult,
 ) -> FeatureSet:
-    qc_payload = json.dumps(
-        measurement_qc.to_dict(),
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
     return FeatureSet(
         sample_id=spectrum.meta.sample_id,
         feature_schema_version=spectrum.meta.feature_schema_version,
@@ -126,7 +118,7 @@ def _feature(
         preprocessing_id=prep_id,
         meta=spectrum.meta,
         source_qc_status=measurement_qc.aggregate_status,
-        source_qc_sha256=f"sha256:{hashlib.sha256(qc_payload).hexdigest()}",
+        source_qc_sha256=measurement_qc_sha256(measurement_qc),
         source_qc_warning_reasons=measurement_qc.warning_reasons,
         source_qc_exclude_candidate_reasons=(
             measurement_qc.exclude_candidate_reasons

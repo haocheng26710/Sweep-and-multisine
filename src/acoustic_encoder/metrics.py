@@ -11,6 +11,12 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from .dataset_quality_control import (
+    DatasetQCReference,
+    DatasetQCResult,
+    dataset_qc_sha256,
+    feature_set_content_sha256 as dataset_feature_set_content_sha256,
+)
 from .research_gate import RunPurpose, enforce_research_gate, normalize_run_purpose
 from .schemas import FeatureKind, FeatureSet, QCStatus, Representation
 from .version import FEATURE_SCHEMA_VERSION
@@ -30,6 +36,11 @@ class ScopeRole(str, Enum):
     CALIBRATION = "calibration"
     TEST = "test"
     DESCRIPTIVE = "descriptive"
+
+
+class AnalysisTier(str, Enum):
+    PROVISIONAL_SOFTWARE_VALIDATION = "provisional_software_validation"
+    CANONICAL_COHORT = "canonical_cohort"
 
 
 def frozen_partition_sha256(
@@ -98,10 +109,23 @@ class AnalysisScope:
     direction_order_deg: tuple[float, ...]
     selection_policy: SelectionPolicy
     qc_inclusion_policy: QCInclusionPolicy
+    analysis_tier: AnalysisTier = AnalysisTier.PROVISIONAL_SOFTWARE_VALIDATION
+    dataset_qc_reference: DatasetQCReference | None = None
 
     def __post_init__(self) -> None:
-        if self.schema_version != "1.0.0":
-            raise MetricsInputError("analysis scope schema_version must be 1.0.0")
+        if self.schema_version not in {"1.0.0", "1.1.0"}:
+            raise MetricsInputError("analysis scope schema_version must be 1.0.0 or 1.1.0")
+        object.__setattr__(self, "analysis_tier", AnalysisTier(self.analysis_tier))
+        if self.schema_version == "1.0.0" and (
+            self.analysis_tier is not AnalysisTier.PROVISIONAL_SOFTWARE_VALIDATION
+            or self.dataset_qc_reference is not None
+        ):
+            raise MetricsInputError("analysis scope schema 1.0.0 is provisional only")
+        if (
+            self.analysis_tier is AnalysisTier.CANONICAL_COHORT
+            and self.dataset_qc_reference is None
+        ):
+            raise MetricsInputError("canonical analysis scope requires a dataset QC reference")
         if not self.analysis_scope_id.strip():
             raise MetricsInputError("analysis_scope_id must be non-empty")
         object.__setattr__(self, "run_purpose", normalize_run_purpose(self.run_purpose))
@@ -341,56 +365,7 @@ def _metrics_thresholds(
 
 def feature_set_content_sha256(feature: FeatureSet) -> str:
     """Hash one in-memory FeatureSet without relying on its source artifact path."""
-    payload = {
-        "sample_id": feature.sample_id,
-        "feature_schema_version": feature.feature_schema_version,
-        "feature_kind": feature.feature_kind.value,
-        "feature_names": feature.feature_names,
-        "units": feature.units,
-        "source_measurement_mode": feature.source_measurement_mode.value,
-        "source_representation": feature.source_representation.value,
-        "preprocessing_id": feature.preprocessing_id,
-        "tone_set_id": feature.tone_set_id,
-        "tone_set_sha256": feature.tone_set_sha256,
-        "tone_schema_id": feature.tone_schema_id,
-        "normalization_method": feature.normalization_method,
-        "source_magnitude_quantity": feature.source_magnitude_quantity,
-        "source_magnitude_reference": feature.source_magnitude_reference,
-        "source_phase_status": (
-            None
-            if feature.source_phase_status is None
-            else feature.source_phase_status.value
-        ),
-        "reliability_weight_source": feature.reliability_weight_source,
-        "fit_scope_id": feature.fit_scope_id,
-        "calibration_id": feature.calibration_id,
-        "meta": feature.meta.to_dict(),
-        "source_qc_status": (
-            None if feature.source_qc_status is None else feature.source_qc_status.value
-        ),
-        "source_qc_sha256": feature.source_qc_sha256,
-        "source_qc_warning_reasons": feature.source_qc_warning_reasons,
-        "source_qc_exclude_candidate_reasons": (
-            feature.source_qc_exclude_candidate_reasons
-        ),
-        "source_qc_unavailable_checks": feature.source_qc_unavailable_checks,
-        "source_qc_eligible_for_downstream": (
-            feature.source_qc_eligible_for_downstream
-        ),
-    }
-    digest = hashlib.sha256(
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode("utf-8")
-    )
-    digest.update(np.asarray(feature.values, dtype="<f8").tobytes())
-    digest.update(np.asarray(feature.valid_mask, dtype=np.uint8).tobytes())
-    if feature.reliability_weights is not None:
-        digest.update(np.asarray(feature.reliability_weights, dtype="<f8").tobytes())
-    return f"sha256:{digest.hexdigest()}"
+    return dataset_feature_set_content_sha256(feature)
 
 
 def _selection(
@@ -998,8 +973,47 @@ def analyze_direction_feature_sets(
     feature_sets: Sequence[FeatureSet],
     analysis_scope: AnalysisScope,
     metrics_config: Mapping[str, Any],
+    dataset_qc_result: DatasetQCResult | None = None,
 ) -> DirectionMetricsResult:
     """Select and summarize one compatible, explicit FeatureSet analysis scope."""
+    if analysis_scope.analysis_tier is AnalysisTier.CANONICAL_COHORT:
+        if dataset_qc_result is None:
+            raise MetricsInputError(
+                "canonical P4 analysis requires the referenced DatasetQCResult"
+            )
+        reference = analysis_scope.dataset_qc_reference
+        assert reference is not None
+        if (
+            reference.analysis_scope_id != analysis_scope.analysis_scope_id
+            or dataset_qc_result.analysis_scope_id != analysis_scope.analysis_scope_id
+        ):
+            raise MetricsInputError("canonical P4 dataset QC analysis scope mismatch")
+        if reference.dataset_qc_result_sha256 != dataset_qc_sha256(dataset_qc_result):
+            raise MetricsInputError("canonical P4 dataset QC result hash mismatch")
+        if analysis_scope.requested_sample_ids != dataset_qc_result.scoped_sample_ids:
+            raise MetricsInputError("canonical P4 dataset QC sample scope mismatch")
+        if analysis_scope.run_purpose != dataset_qc_result.run_purpose:
+            raise MetricsInputError("canonical P4 dataset QC run purpose mismatch")
+        if not dataset_qc_result.canonical_ready:
+            raise MetricsInputError(
+                "canonical P4 blocked by dataset QC: "
+                + ", ".join(dataset_qc_result.canonical_ready_reasons)
+            )
+        audit_by_id = {item.sample_id: item for item in dataset_qc_result.input_audit}
+        if set(audit_by_id) != set(analysis_scope.requested_sample_ids):
+            raise MetricsInputError("canonical P4 dataset QC input audit is incomplete")
+        for feature in feature_sets:
+            if feature.sample_id not in audit_by_id:
+                continue
+            audit_record = audit_by_id[feature.sample_id]
+            if feature_set_content_sha256(feature) != audit_record.feature_content_sha256:
+                raise MetricsInputError(
+                    f"canonical P4 FeatureSet content mismatch: {feature.sample_id}"
+                )
+            if feature.source_qc_sha256 != audit_record.p2a_qc_sha256:
+                raise MetricsInputError(
+                    f"canonical P4 P2-A hash mismatch: {feature.sample_id}"
+                )
     (
         minimum_features,
         minimum_fraction,

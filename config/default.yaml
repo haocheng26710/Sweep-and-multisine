@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.11
+pipeline_version: 2.0.0-dev.12
 schema_versions:
-  config: 2.10.0
+  config: 2.11.0
   measurement: 2.4.0
   feature: 2.2.0
 
@@ -54,6 +54,68 @@ direction_metrics:
   morphology_gain:
     distance_metric: rms
     minimum_denominator: 1.0e-12
+
+dataset_quality_control:
+  schema_version: 1.0.0
+  provisional: true
+  condition_completeness:
+    direction_match_tolerance_deg: 1.0e-9
+    missing_status: exclude_candidate
+    duplicate_status: exclude_candidate
+    unexpected_status: exclude_candidate
+  same_condition_outliers:
+    method: coordinate_median_mad_rms
+    center: coordinate_median
+    distance: rms
+    scale: median_absolute_deviation
+    mad_scale_factor: 1.4826
+    minimum_reference_samples: 3
+    minimum_common_valid_features: 5
+    minimum_common_valid_fraction: 0.8
+    minimum_scale: 1.0e-9
+    warning_robust_z: 3.5
+    exclude_candidate_robust_z: 6.0
+    incompatible_contract_status: exclude_candidate
+    reference_role_by_evaluation_role:
+      development: development
+      training: development
+      final_test: training
+  repeatability:
+    distance: rms
+    minimum_common_valid_features: 5
+    minimum_common_valid_fraction: 0.8
+    minimum_qualified_pairs: 1
+    thresholds_by_feature_kind:
+      dense_raw_spl:
+        units: dB
+        CONT: {warning_above: 0.5, exclude_candidate_above: 1.0}
+        REPOS: {warning_above: 1.0, exclude_candidate_above: 2.0}
+        REASM: {warning_above: 2.0, exclude_candidate_above: 4.0}
+      dense_demeaned_db:
+        units: dB
+        CONT: {warning_above: 0.5, exclude_candidate_above: 1.0}
+        REPOS: {warning_above: 1.0, exclude_candidate_above: 2.0}
+        REASM: {warning_above: 2.0, exclude_candidate_above: 4.0}
+      dense_zscore:
+        units: dimensionless
+        CONT: {warning_above: 0.05, exclude_candidate_above: 0.1}
+        REPOS: {warning_above: 0.1, exclude_candidate_above: 0.2}
+        REASM: {warning_above: 0.2, exclude_candidate_above: 0.4}
+      tone_projection_from_sweep:
+        units: dB
+        CONT: {warning_above: 0.5, exclude_candidate_above: 1.0}
+        REPOS: {warning_above: 1.0, exclude_candidate_above: 2.0}
+        REASM: {warning_above: 2.0, exclude_candidate_above: 4.0}
+      tone_measurement_from_multisine:
+        units: dB
+        CONT: {warning_above: 0.5, exclude_candidate_above: 1.0}
+        REPOS: {warning_above: 1.0, exclude_candidate_above: 2.0}
+        REASM: {warning_above: 2.0, exclude_candidate_above: 4.0}
+  aggregation:
+    required_unavailable_policy: warning
+    canonical_allowed_statuses: [valid, warning]
+    canonical_block_on_required_unavailable: true
+    canonical_block_on_manual_review: true
 
 quality_control:
   schema_version: 1.0.0

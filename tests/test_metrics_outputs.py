@@ -109,8 +109,11 @@ def test_metrics_outputs_are_long_form_hash_audited_and_immutable(tmp_path) -> N
     }.issubset(audit_rows[0])
 
     manifest = json.loads(written["metrics_manifest"].read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == "1.1.0"
     assert manifest["processing_status"] == "completed"
     assert manifest["scope"]["analysis_scope_id"] == "dev-c5-output"
+    assert manifest["scope"]["analysis_tier"] == "provisional_software_validation"
+    assert manifest["scope"]["dataset_qc_reference"] is None
     assert manifest["provenance"] == {
         "data_origin": "simulated",
         "dataset_role": "software_validation",

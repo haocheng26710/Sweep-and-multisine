@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import hashlib
+import json
 from typing import Any, Iterable, Mapping
 
 import numpy as np
@@ -244,6 +246,17 @@ class MeasurementQCResult:
             if name in payload and payload[name] != expected:
                 raise ValueError(f"Serialized QC derived field mismatch: {name}")
         return result
+
+
+def measurement_qc_sha256(result: MeasurementQCResult) -> str:
+    """Return the canonical content hash used by FeatureSet audit links."""
+    encoded = json.dumps(
+        result.to_dict(),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
 def _check(

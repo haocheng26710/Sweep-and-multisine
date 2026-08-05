@@ -11,7 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .features import build_dense_feature_sets
-from .quality_control import MeasurementQCResult
+from .quality_control import MeasurementQCResult, measurement_qc_sha256
 from .schemas import (
     FeatureKind,
     FeatureSet,
@@ -100,10 +100,6 @@ def _canonical_hash(payload: Mapping[str, Any]) -> str:
         sort_keys=True,
     ).encode("utf-8")
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
-
-
-def _qc_sha256(measurement_qc: MeasurementQCResult) -> str:
-    return _canonical_hash(measurement_qc.to_dict())
 
 
 def normalize_tone_values(
@@ -501,7 +497,7 @@ def build_sweep_tone_feature_set(
         source_magnitude_reference=spectrum.magnitude_reference,
         source_phase_status=spectrum.phase_status,
         source_qc_status=measurement_qc.aggregate_status,
-        source_qc_sha256=_qc_sha256(measurement_qc),
+        source_qc_sha256=measurement_qc_sha256(measurement_qc),
         source_qc_warning_reasons=measurement_qc.warning_reasons,
         source_qc_exclude_candidate_reasons=(
             measurement_qc.exclude_candidate_reasons
@@ -686,7 +682,7 @@ def build_multisine_tone_feature_set(
         reliability_weights=None,
         reliability_weight_source=None,
         source_qc_status=measurement_qc.aggregate_status,
-        source_qc_sha256=_qc_sha256(measurement_qc),
+        source_qc_sha256=measurement_qc_sha256(measurement_qc),
         source_qc_warning_reasons=measurement_qc.warning_reasons,
         source_qc_exclude_candidate_reasons=(
             measurement_qc.exclude_candidate_reasons

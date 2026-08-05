@@ -12,6 +12,7 @@ from acoustic_encoder.quality_control import (
     QCScope,
     QCSourceStage,
     evaluate_measurement_quality,
+    measurement_qc_sha256,
 )
 from acoustic_encoder.research_gate import ResearchGateError
 from acoustic_encoder.schemas import (
@@ -220,6 +221,22 @@ def test_clean_sweep_produces_valid_typed_measurement_qc() -> None:
     assert result.sample_id == spectrum.meta.sample_id
     assert result.measurement_mode is MeasurementMode.REW_SWEEP
     assert result.aggregate_status is QCStatus.VALID
+
+
+def test_measurement_qc_sha256_is_canonical_and_content_sensitive() -> None:
+    result = evaluate_measurement_quality(
+        _clean_sweep_spectrum(),
+        _quality_config(),
+        run_purpose="software_validation",
+    )
+
+    assert measurement_qc_sha256(result) == measurement_qc_sha256(
+        MeasurementQCResult.from_dict(result.to_dict())
+    )
+    assert measurement_qc_sha256(result).startswith("sha256:")
+
+    changed = replace(result, manual_review_reasons=("manual-check",))
+    assert measurement_qc_sha256(changed) != measurement_qc_sha256(result)
     assert result.eligible_for_downstream is True
     assert {check.check_id for check in result.checks} >= {
         "p2.metadata.required_fields",

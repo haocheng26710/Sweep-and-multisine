@@ -14,7 +14,7 @@ from .metrics import DirectionMetricsResult, MetricMatrix, PairDistanceRecord
 from .schemas import artifact_sha256
 
 
-METRICS_MANIFEST_SCHEMA_VERSION = "1.0.0"
+METRICS_MANIFEST_SCHEMA_VERSION = "1.1.0"
 
 
 def _cell(value: Any) -> Any:
@@ -126,6 +126,12 @@ def _scope_payload(result: DirectionMetricsResult) -> dict[str, Any]:
         "analysis_scope_id": scope.analysis_scope_id,
         "run_purpose": scope.run_purpose.value,
         "scope_role": scope.scope_role.value,
+        "analysis_tier": scope.analysis_tier.value,
+        "dataset_qc_reference": (
+            None
+            if scope.dataset_qc_reference is None
+            else scope.dataset_qc_reference.to_dict()
+        ),
         "selector": selector,
         "direction_order_deg": list(scope.direction_order_deg),
         "selection_policy": {

@@ -1,0 +1,9 @@
+pipeline_version: 2.0.0-dev.12
+schema_versions:
+  config: 2.11.0
+  measurement: 2.4.0
+  feature: 2.2.0
+
+measurement_mode: rew_sweep
+run_purpose: software_validation
+random_state: 20260805

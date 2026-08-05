@@ -30,7 +30,7 @@ from .schemas import (
 )
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.5.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.6.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -301,7 +301,8 @@ def execute_measurement_run(
                 "P1": "failed",
                 "P7": "not_run",
                 "P8": "not_run",
-                "P2": "not_run",
+                "P2_A": "not_run",
+                "P2_B": "not_run",
                 "P3_A": "not_run",
                 "P3_B": "not_run",
                 "P3_C": "not_run",
@@ -385,7 +386,8 @@ def execute_measurement_run(
                 "P1": processing_status,
                 "P7": "not_run",
                 "P8": "not_run",
-                "P2": "not_run",
+                "P2_A": "not_run",
+                "P2_B": "not_run",
                 "P3_A": "not_run",
                 "P3_B": "not_run",
                 "P3_C": "not_run",
@@ -531,11 +533,12 @@ def execute_measurement_run(
                 if adapter.multisine_analysis is not None
                 else "not_applicable"
             ),
-            "P2": "completed",
+            "P2_A": "completed",
+            "P2_B": "dataset_scope_required",
             "P3_A": p3_a_gate,
             "P3_B": p3_b_gate,
             "P3_C": "paired_run_required",
-            "P4_A": "analysis_scope_required",
+            "P4_A": "p2_b_dataset_qc_required",
             "P4_B": "not_implemented",
             "P5_P6": "not_implemented",
         },

@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction for sweep projection and direct P8 sparse-tone measurement without rereading TXT/WAV or recomputing P1/P2/P8.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A, dense P3-A/P3-B, and paired P3-C matched-tone features are implemented. Cross-measurement P2-B, P4–P6, and P9 remain later slices.
+- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, and provisional P4-A are implemented. P4-B, P5/P6, and P9 remain closed stage gates.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -19,8 +19,9 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 
 ```text
 REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-A --> P3-A/P3-B --> sweep tone projection --+
-                                                                                                                        +--> matched P3-C FeatureSets
-WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> direct sparse tone alignment ------+
+                                                                                                                        +--> matched P3-C FeatureSets --+
+WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> direct sparse tone alignment ------+                               |
+                                                                                                                                                        +--> explicit-scope P2-B --> canonical P4 gate
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -120,7 +121,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and the configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. With `smoothing.method=none`, `P3_B=not_requested`; with a non-none method and successful preprocessing, `P3_B=completed`. Because a single-measurement run cannot form a cross-mode pair, it records `P3_C=paired_run_required`. A single-measurement run records `P4_A=analysis_scope_required`; `P4_B` and `P5_P6` remain `not_implemented`.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, and `P4_A=p2_b_dataset_qc_required`. `P4_B`, `P5_P6`, and P9 remain `not_implemented`.
 
 Run the deterministic paired DEV-C4 validation:
 
@@ -137,6 +138,14 @@ python scripts/run_direction_metrics_validation.py --config config/validation_de
 ```
 
 P4-A accepts only an explicit `AnalysisScope` plus compatible `FeatureSet` objects. It does not read TXT, WAV, or `SpectrumData`, discover a directory, reindex features, or fill invalid values. The validation writes hash-audited direction templates, five similarity/distance matrices, repeat and between-direction sample pairs, singular values, summary metrics, and a selection audit under `outputs/simulated/software_validation/<run_id>/metrics/`. Direction templates are descriptive only and are not reusable as P5 training dictionaries or P9 tone-selection inputs.
+
+Run the deterministic explicit-scope DEV-C6/P2-B validation:
+
+```powershell
+python scripts/run_dataset_qc_validation.py --config config/validation_dev_c6_dataset_qc.yaml --run-id DEV-C6_P2B_FINAL
+```
+
+The validation generates only explicit simulated FeatureSet/P2-A artifacts and never scans a directory for measurements. Its dataset bundle is written under `outputs/simulated/software_validation/<run_id>/dataset_qc/`. A warning or unavailable check remains visible and can keep `canonical_ready=false`; completion of the software path is not a claim that the dataset is scientifically complete.
 
 ## P7 signal definition
 
@@ -177,6 +186,20 @@ It is not the canonical DEV-C run lifecycle. Canonical validation runs use `run_
 P2 records schema/provenance, valid-point count, frequency coverage, magnitude bounds, and phase consistency. For REW, absent headroom, noise floor, waveform, impulse-response, and window evidence remain unavailable. For multisine, P2 translates P8 clipping, drift, non-excited energy, and per-tone SNR/leakage/stability/missing-tone evidence without rerunning FFT. Manual-review reasons and `MeasurementMeta.valid` remain separate from automatic QC and are never overwritten.
 
 All P2 thresholds live under `quality_control` in `config/default.yaml` and are explicitly provisional. Canonical runs write `quality_control.csv`, long-form `qc_checks.csv`, one-row `measurement_qc.csv`, and nested `quality_control.json` from the same result object. `SpectrumData` and `MeasurementMeta` remain authoritative; these files are audit views.
+
+## P2-B explicit-scope dataset QC
+
+`evaluate_dataset_quality(feature_sets, measurement_qc_results, scope, dataset_quality_config)` consumes only existing `FeatureSet` and P2-A objects. `DatasetQCScope` explicitly lists every measurement ID, development/training/final-test role, selection reason, expected condition ID, and the complete expected condition matrix. Expected conditions include mode, configuration, direction ID/angle, session, repeat type, reposition round, assembly, acquisition block, and expected count. Missing conditions are therefore detectable and are never inferred from whichever files happen to exist.
+
+Condition completeness, same-condition outliers, and CONT/REPOS/REASM repeatability are independent checks. Comparisons require an identical FeatureSet contract covering schema, feature kind, grid/name/order/unit identity, preprocessing, representation, and tone-set identity. Outliers use a coordinate-wise median center, RMS distance, and MAD scale; reference roles are explicit and `final_test` is forbidden as a center or scale source. Repeat distances use separate configured thresholds for each repeat type and dB/dimensionless feature profile. Insufficient evidence remains `unavailable`; data are never removed and `MeasurementMeta.valid` is never changed.
+
+The explicit CLI requires a scope file and input manifest listing each FeatureSet NPZ/JSON and P2-A JSON with SHA-256:
+
+```powershell
+python scripts/run_dataset_qc.py --config <config.yaml> --scope <scope.yaml> --inputs <inputs.json> --output-root outputs --run-id <run_id>
+```
+
+Outputs are `dataset_qc_summary.csv`, `condition_completeness.csv`, `same_condition_outliers.csv`, `repeatability_qc.csv`, `measurement_qc_rollup.csv`, `manual_review_queue.csv`, `dataset_qc.json`, and a hash-audited manifest. CSVs are regenerated from the typed JSON during bundle validation. Canonical P4 uses AnalysisScope schema 1.1 and must provide the exact P2-B scope/result hash; the existing P4-A unit/validation path is explicitly `provisional_software_validation`.
 
 ## P3-A/P3-B dense sweep features
 

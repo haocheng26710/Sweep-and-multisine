@@ -14,6 +14,7 @@
 | DEV-C2 — P3-A dense sweep 公共频率网格与基础 FeatureSet | 2026-08-05 | 完成 | [DEV-C2_P3A_DENSE_FEATURE_CORE.md](./DEV-C2_P3A_DENSE_FEATURE_CORE.md) | `c82ac65` |
 | DEV-C3 — P3-B 明确、可审计的 dense-spectrum smoothing | 2026-08-05 | 完成 | [DEV-C3_P3B_DENSE_SMOOTHING.md](./DEV-C3_P3B_DENSE_SMOOTHING.md) | `5d54938` |
 | DEV-C4 — P3-C 严格匹配的 sweep projection 与 multisine tone FeatureSet | 2026-08-05 | 完成 | [DEV-C4_P3C_MATCHED_TONE_FEATURES.md](./DEV-C4_P3C_MATCHED_TONE_FEATURES.md) | `a750116` |
-| DEV-C5 — P4-A FeatureSet-only 方向指标核心 | 2026-08-05 | 完成 | [DEV-C5_P4A_DIRECTION_METRICS_CORE.md](./DEV-C5_P4A_DIRECTION_METRICS_CORE.md) | 本报告与实现同一提交（`feat(metrics): add FeatureSet-only direction metrics`） |
+| DEV-C5 — P4-A FeatureSet-only 方向指标核心 | 2026-08-05 | 完成 | [DEV-C5_P4A_DIRECTION_METRICS_CORE.md](./DEV-C5_P4A_DIRECTION_METRICS_CORE.md) | `9ec8cfe` |
+| DEV-C6 — P2-B 跨测量 QC、重复稳定性与条件完整性门禁 | 2026-08-05 | 完成 | [DEV-C6_P2B_CROSS_MEASUREMENT_QC.md](./DEV-C6_P2B_CROSS_MEASUREMENT_QC.md) | 本报告与实现同一提交（`feat(qc): add cross-measurement dataset quality gate`） |
 
-当前科研资格边界：截至 DEV-C5，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema 和 research hard gate 的合格 `real_experiment` 才能进入 `research_analysis`。P2-A、P3 smoothing、matched-tone 与 P4-A 参数仍为 provisional；P2-B、P4-B、P5/P6、P9、真实 tone-set/校准冻结尚未实现，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C6，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2-A、P2-B、P3 smoothing、matched-tone 与 P4-A 参数仍为 provisional；P4-B、P5/P6、P9、真实 tone-set/校准/阈值冻结尚未实现，因此不能声明科研结论。

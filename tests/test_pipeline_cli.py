@@ -31,9 +31,10 @@ def test_legacy_sweep_config_command_remains_a_successful_stage_gate() -> None:
 
     assert completed.returncode == 0, completed.stderr
     assert '"measurement_mode": "rew_sweep"' in completed.stdout
-    assert "P1/P2/P8 plus dense P3-A/P3-B" in completed.stderr
-    assert "P4-A requires an explicit FeatureSet analysis scope" in completed.stderr
-    assert "P4-B/P5/P6 remain not implemented" in completed.stderr
+    assert "P1/P2-A/P8 plus dense P3-A/P3-B" in completed.stderr
+    assert "P2-B requires an explicit dataset scope" in completed.stderr
+    assert "canonical P4-A additionally requires the matching P2-B result/hash" in completed.stderr
+    assert "P4-B/P5/P6/P9 remain not implemented" in completed.stderr
 
 
 def test_analyze_multisine_and_run_pipeline_use_identical_execution_path(

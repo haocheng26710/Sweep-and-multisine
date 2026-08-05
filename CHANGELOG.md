@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.12 — P2-B cross-measurement dataset quality gate (unreleased)
+
+- Incremented the configuration schema to 2.11.0 while keeping measurement and FeatureSet schemas unchanged.
+- Added an explicit, hash-identified dataset scope and input manifest; P2-B never discovers measurements by scanning directories.
+- Added expected-condition completeness checks, robust same-condition outlier evidence, and strictly separated CONT/REPOS/REASM repeatability checks.
+- Added stable JSON/CSV dataset-QC bundles with input/output SHA-256 verification and failure-only manifests for invalid inputs.
+- Required canonical cohort P4 analysis to reference an exact, canonical-ready P2-B result while retaining provisional P4-A software-validation tests.
+- Kept all DEV-C6 validation data simulated/software-validation and scientifically ineligible; all dataset-QC thresholds remain provisional.
+
 ## 2.0.0-dev.3 — P8-A simulated synchronization and magnitude recovery (unreleased)
 
 - Incremented the configuration schema to 2.2.0 while keeping measurement and feature schemas unchanged.

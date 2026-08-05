@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from copy import deepcopy
 import hashlib
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from acoustic_encoder.metrics import (
+    AnalysisTier,
     AnalysisScope,
     QCInclusionPolicy,
     ScopeRole,
@@ -16,6 +19,21 @@ from acoustic_encoder.metrics import (
     feature_set_content_sha256,
     frozen_partition_sha256,
     FrozenPartition,
+)
+from acoustic_encoder.dataset_quality_control import (
+    CohortRole,
+    DatasetQCReference,
+    DatasetQCScope,
+    DatasetScopeMember,
+    ExpectedCondition,
+    dataset_qc_sha256,
+    evaluate_dataset_quality,
+)
+from acoustic_encoder.config import load_config
+from acoustic_encoder.quality_control import (
+    MeasurementQCResult,
+    UnavailablePolicy,
+    measurement_qc_sha256,
 )
 from acoustic_encoder.research_gate import ResearchGateError, RunPurpose
 from acoustic_encoder.schemas import (
@@ -166,6 +184,122 @@ def test_feature_set_only_four_direction_tracer_builds_dictionary() -> None:
     np.testing.assert_allclose(result.direction_templates[2].mean_values, [2, 3, 4])
     assert result.effective_rank.matrix_shape == (4, 3)
     assert not result.effective_rank.centered
+
+
+def test_canonical_p4_requires_matching_dataset_qc_result() -> None:
+    features = tuple(
+        _feature(f"A{angle:03d}", float(angle), (index, index + 1, index + 2))
+        for index, angle in enumerate((0, 90, 180, 270))
+    )
+    scope = replace(
+        _scope(tuple(feature.sample_id for feature in features)),
+        schema_version="1.1.0",
+        analysis_tier=AnalysisTier.CANONICAL_COHORT,
+        dataset_qc_reference=DatasetQCReference(
+            analysis_scope_id="dev-c5-four-direction",
+            dataset_qc_result_sha256="sha256:" + "0" * 64,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="canonical.*DatasetQCResult"):
+        analyze_direction_feature_sets(features, scope, _metrics_config())
+
+
+def test_canonical_p4_accepts_exact_scope_and_dataset_qc_hash() -> None:
+    original = tuple(
+        _feature(f"A{angle:03d}", float(angle), (index, index + 1, index + 2))
+        for index, angle in enumerate((0, 90, 180, 270))
+    )
+    qcs = tuple(
+        MeasurementQCResult(
+            qc_schema_version="1.0.0",
+            sample_id=feature.sample_id,
+            measurement_mode=feature.source_measurement_mode,
+            data_origin=feature.meta.data_origin,
+            dataset_role=feature.meta.dataset_role,
+            run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+            checks=(),
+            unavailable_required_policy=UnavailablePolicy.PRESERVE,
+            manual_review_reasons=(),
+            human_valid=True,
+            human_exclusion_reason=None,
+            scientifically_eligible=False,
+        )
+        for feature in original
+    )
+    features = tuple(
+        replace(
+            feature,
+            source_qc_sha256=measurement_qc_sha256(qc),
+            source_qc_eligible_for_downstream=True,
+        )
+        for feature, qc in zip(original, qcs, strict=True)
+    )
+    scope_id = "canonical-four-direction"
+    dataset_scope = DatasetQCScope(
+        schema_version="1.0.0",
+        analysis_scope_id=scope_id,
+        run_purpose=RunPurpose.SOFTWARE_VALIDATION,
+        members=tuple(
+            DatasetScopeMember(
+                feature.sample_id,
+                CohortRole.DEVELOPMENT,
+                f"condition-{feature.sample_id}",
+                "explicit canonical fixture",
+            )
+            for feature in features
+        ),
+        expected_conditions=tuple(
+            ExpectedCondition(
+                condition_id=f"condition-{feature.sample_id}",
+                cohort_role=CohortRole.DEVELOPMENT,
+                measurement_mode=feature.source_measurement_mode,
+                configuration_id="U4ENC",
+                direction_id=feature.sample_id,
+                direction_angle_deg=float(feature.meta.angle_deg),
+                session_id="S01",
+                repeat_type="CONT",
+                reposition_round_id=None,
+                assembly_id=None,
+                acquisition_block_id="B01",
+                expected_count=1,
+            )
+            for feature in features
+        ),
+    )
+    dataset_config = deepcopy(
+        load_config(Path(__file__).resolve().parents[1] / "config" / "default.yaml")[
+            "dataset_quality_control"
+        ]
+    )
+    dataset_config["aggregation"]["required_unavailable_policy"] = "preserve"
+    dataset_config["aggregation"]["canonical_block_on_required_unavailable"] = False
+    dataset_result = evaluate_dataset_quality(
+        features,
+        qcs,
+        dataset_scope,
+        dataset_config,
+    )
+    assert dataset_result.canonical_ready is True
+    analysis_scope = replace(
+        _scope(tuple(feature.sample_id for feature in features)),
+        schema_version="1.1.0",
+        analysis_scope_id=scope_id,
+        analysis_tier=AnalysisTier.CANONICAL_COHORT,
+        dataset_qc_reference=DatasetQCReference(
+            analysis_scope_id=scope_id,
+            dataset_qc_result_sha256=dataset_qc_sha256(dataset_result),
+        ),
+    )
+
+    metrics = analyze_direction_feature_sets(
+        features,
+        analysis_scope,
+        _metrics_config(),
+        dataset_result,
+    )
+
+    assert metrics.processing_status == "completed"
 
 
 def test_p4_rejects_spectrum_data_instead_of_reading_pre_feature_input() -> None:

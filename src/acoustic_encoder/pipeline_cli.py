@@ -44,11 +44,10 @@ def pipeline_main(
         if not arguments.validate_only:
             print(
                 "DEV-C stage gate: configuration is valid; provide --input, "
-                "--metadata, and --run-id to execute P1/P2/P8 plus dense "
-                "P3-A/P3-B. Dense smoothing runs only when explicitly "
-                "configured; sparse P3 remains not applicable; P4-A requires "
-                "an explicit FeatureSet analysis scope; P4-B/P5/P6 remain "
-                "not implemented.",
+                "--metadata, and --run-id to execute P1/P2-A/P8 plus dense "
+                "P3-A/P3-B. P2-B requires an explicit dataset scope and input "
+                "manifest; canonical P4-A additionally requires the matching "
+                "P2-B result/hash. P4-B/P5/P6/P9 remain not implemented.",
                 file=sys.stderr,
             )
         return 0
@@ -85,9 +84,9 @@ def pipeline_main(
         )
     )
     print(
-        "DEV-C stage gate reached: dense P3-A/P3-B is available; sparse P3 is "
-        "not applicable; P4-A requires an explicit FeatureSet analysis scope; "
-        "P4-B/P5/P6 remain not implemented.",
+        "DEV-C stage gate reached: P2-A and dense P3-A/P3-B are available; "
+        "P2-B requires an explicit dataset scope and canonical P4-A requires "
+        "the matching P2-B result/hash. P4-B/P5/P6/P9 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:

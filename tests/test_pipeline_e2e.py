@@ -145,11 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.5.0"
+    assert manifest["run_manifest_schema_version"] == "1.6.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.11",
-        "config_schema": "2.10.0",
+        "pipeline": "2.0.0-dev.12",
+        "config_schema": "2.11.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.2.0",
     }
@@ -172,11 +172,12 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["created_at_utc"]
     assert manifest["finished_at_utc"]
     assert manifest["random_state"] == resolved["random_state"]
-    assert manifest["stage_gate"]["P2"] == "completed"
+    assert manifest["stage_gate"]["P2_A"] == "completed"
+    assert manifest["stage_gate"]["P2_B"] == "dataset_scope_required"
     assert manifest["stage_gate"]["P3_A"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P3_B"] == "not_applicable_sparse"
     assert manifest["stage_gate"]["P3_C"] == "paired_run_required"
-    assert manifest["stage_gate"]["P4_A"] == "analysis_scope_required"
+    assert manifest["stage_gate"]["P4_A"] == "p2_b_dataset_qc_required"
     assert manifest["stage_gate"]["P4_B"] == "not_implemented"
     assert manifest["stage_gate"]["P5_P6"] == "not_implemented"
     assert "P4_P6" not in manifest["stage_gate"]
@@ -220,7 +221,8 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
     assert result.run_manifest["measurement_mode"] == "rew_sweep"
     assert result.run_manifest["eligible_for_scientific_analysis"] is False
     assert result.run_manifest["stage_gate"]["P8"] == "not_applicable"
-    assert result.run_manifest["stage_gate"]["P2"] == "completed"
+    assert result.run_manifest["stage_gate"]["P2_A"] == "completed"
+    assert result.run_manifest["stage_gate"]["P2_B"] == "dataset_scope_required"
     assert result.run_manifest["stage_gate"]["P3_A"] == "completed"
     assert result.run_manifest["stage_gate"]["P3_B"] == "not_requested"
     assert result.run_manifest["stage_gate"]["P3_C"] == "paired_run_required"

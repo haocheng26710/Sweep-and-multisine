@@ -66,6 +66,80 @@ _DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
     },
 }
 
+_DATASET_QUALITY_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "provisional": True,
+    "condition_completeness": {
+        "direction_match_tolerance_deg": 1.0e-9,
+        "missing_status": "exclude_candidate",
+        "duplicate_status": "exclude_candidate",
+        "unexpected_status": "exclude_candidate",
+    },
+    "same_condition_outliers": {
+        "method": "coordinate_median_mad_rms",
+        "center": "coordinate_median",
+        "distance": "rms",
+        "scale": "median_absolute_deviation",
+        "mad_scale_factor": 1.4826,
+        "minimum_reference_samples": 3,
+        "minimum_common_valid_features": 5,
+        "minimum_common_valid_fraction": 0.8,
+        "minimum_scale": 1.0e-9,
+        "warning_robust_z": 3.5,
+        "exclude_candidate_robust_z": 6.0,
+        "incompatible_contract_status": "exclude_candidate",
+        "reference_role_by_evaluation_role": {
+            "development": "development",
+            "training": "development",
+            "final_test": "training",
+        },
+    },
+    "repeatability": {
+        "distance": "rms",
+        "minimum_common_valid_features": 5,
+        "minimum_common_valid_fraction": 0.8,
+        "minimum_qualified_pairs": 1,
+        "thresholds_by_feature_kind": {
+            "dense_raw_spl": {
+                "units": "dB",
+                "CONT": {"warning_above": 0.5, "exclude_candidate_above": 1.0},
+                "REPOS": {"warning_above": 1.0, "exclude_candidate_above": 2.0},
+                "REASM": {"warning_above": 2.0, "exclude_candidate_above": 4.0},
+            },
+            "dense_demeaned_db": {
+                "units": "dB",
+                "CONT": {"warning_above": 0.5, "exclude_candidate_above": 1.0},
+                "REPOS": {"warning_above": 1.0, "exclude_candidate_above": 2.0},
+                "REASM": {"warning_above": 2.0, "exclude_candidate_above": 4.0},
+            },
+            "dense_zscore": {
+                "units": "dimensionless",
+                "CONT": {"warning_above": 0.05, "exclude_candidate_above": 0.1},
+                "REPOS": {"warning_above": 0.1, "exclude_candidate_above": 0.2},
+                "REASM": {"warning_above": 0.2, "exclude_candidate_above": 0.4},
+            },
+            "tone_projection_from_sweep": {
+                "units": "dB",
+                "CONT": {"warning_above": 0.5, "exclude_candidate_above": 1.0},
+                "REPOS": {"warning_above": 1.0, "exclude_candidate_above": 2.0},
+                "REASM": {"warning_above": 2.0, "exclude_candidate_above": 4.0},
+            },
+            "tone_measurement_from_multisine": {
+                "units": "dB",
+                "CONT": {"warning_above": 0.5, "exclude_candidate_above": 1.0},
+                "REPOS": {"warning_above": 1.0, "exclude_candidate_above": 2.0},
+                "REASM": {"warning_above": 2.0, "exclude_candidate_above": 4.0},
+            },
+        },
+    },
+    "aggregation": {
+        "required_unavailable_policy": "warning",
+        "canonical_allowed_statuses": ["valid", "warning"],
+        "canonical_block_on_required_unavailable": True,
+        "canonical_block_on_manual_review": True,
+    },
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -127,6 +201,13 @@ def load_config(
         _DIRECTION_METRICS_DEFAULTS,
         supplied_direction_metrics,
     )
+    supplied_dataset_quality = resolved.get("dataset_quality_control", {})
+    if not isinstance(supplied_dataset_quality, Mapping):
+        raise ConfigError("dataset_quality_control must be a mapping")
+    resolved["dataset_quality_control"] = deep_merge(
+        _DATASET_QUALITY_DEFAULTS,
+        supplied_dataset_quality,
+    )
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -148,6 +229,7 @@ def load_config(
         ("2.7.0", "2.4.0", "2.1.0"),
         ("2.8.0", "2.4.0", "2.1.0"),
         ("2.9.0", "2.4.0", "2.2.0"),
+        ("2.10.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -225,6 +307,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_preprocessing_config(preprocessing)
     validate_matched_tone_config(config.get("matched_tone_features"))
     validate_direction_metrics_config(config.get("direction_metrics"))
+    validate_dataset_quality_control_config(config.get("dataset_quality_control"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -465,6 +548,197 @@ def validate_direction_metrics_config(value: Any) -> None:
         raise ConfigError(
             "direction_metrics.morphology_gain.minimum_denominator must be positive"
         )
+
+
+def validate_dataset_quality_control_config(value: Any) -> None:
+    """Validate the complete provisional P2-B dataset quality contract."""
+    required_top = {
+        "schema_version",
+        "provisional",
+        "condition_completeness",
+        "same_condition_outliers",
+        "repeatability",
+        "aggregation",
+    }
+    if not isinstance(value, Mapping) or set(value) != required_top:
+        raise ConfigError(
+            "dataset_quality_control must contain exactly: "
+            + ", ".join(sorted(required_top))
+        )
+    if value.get("schema_version") != "1.0.0":
+        raise ConfigError("dataset_quality_control.schema_version must be 1.0.0")
+    if not isinstance(value.get("provisional"), bool):
+        raise ConfigError("dataset_quality_control.provisional must be boolean")
+
+    completeness = value.get("condition_completeness")
+    expected_completeness = {
+        "direction_match_tolerance_deg",
+        "missing_status",
+        "duplicate_status",
+        "unexpected_status",
+    }
+    if not isinstance(completeness, Mapping) or set(completeness) != expected_completeness:
+        raise ConfigError("dataset condition_completeness fields are incomplete")
+    tolerance = _finite_number(
+        completeness,
+        "direction_match_tolerance_deg",
+        "dataset condition direction tolerance",
+    )
+    if tolerance < 0.0:
+        raise ConfigError("dataset condition direction tolerance must be >= 0")
+    allowed_issue_statuses = {"warning", "exclude_candidate"}
+    for name in ("missing_status", "duplicate_status", "unexpected_status"):
+        if completeness.get(name) not in allowed_issue_statuses:
+            raise ConfigError(f"dataset condition {name} must be warning or exclude_candidate")
+
+    outliers = value.get("same_condition_outliers")
+    expected_outliers = {
+        "method",
+        "center",
+        "distance",
+        "scale",
+        "mad_scale_factor",
+        "minimum_reference_samples",
+        "minimum_common_valid_features",
+        "minimum_common_valid_fraction",
+        "minimum_scale",
+        "warning_robust_z",
+        "exclude_candidate_robust_z",
+        "incompatible_contract_status",
+        "reference_role_by_evaluation_role",
+    }
+    if not isinstance(outliers, Mapping) or set(outliers) != expected_outliers:
+        raise ConfigError("dataset same_condition_outliers fields are incomplete")
+    expected_methods = {
+        "method": "coordinate_median_mad_rms",
+        "center": "coordinate_median",
+        "distance": "rms",
+        "scale": "median_absolute_deviation",
+    }
+    for name, expected in expected_methods.items():
+        if outliers.get(name) != expected:
+            raise ConfigError(f"dataset outlier {name} must be {expected}")
+    for name in ("minimum_reference_samples", "minimum_common_valid_features"):
+        count = outliers.get(name)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise ConfigError(f"dataset outlier {name} must be an integer >= 1")
+    fraction = _finite_number(
+        outliers,
+        "minimum_common_valid_fraction",
+        "dataset outlier minimum_common_valid_fraction",
+    )
+    if not 0.0 < fraction <= 1.0:
+        raise ConfigError("dataset outlier minimum_common_valid_fraction must be in (0, 1]")
+    for name in ("mad_scale_factor", "minimum_scale"):
+        if _finite_number(outliers, name, f"dataset outlier {name}") <= 0.0:
+            raise ConfigError(f"dataset outlier {name} must be positive")
+    warning = _finite_number(outliers, "warning_robust_z", "dataset outlier warning")
+    exclude = _finite_number(
+        outliers,
+        "exclude_candidate_robust_z",
+        "dataset outlier exclude_candidate",
+    )
+    if not warning < exclude:
+        raise ConfigError("dataset outlier warning/exclude thresholds are not ordered")
+    if outliers.get("incompatible_contract_status") not in allowed_issue_statuses:
+        raise ConfigError("dataset outlier incompatible_contract_status is invalid")
+    role_mapping = outliers.get("reference_role_by_evaluation_role")
+    roles = {"development", "training", "final_test"}
+    if not isinstance(role_mapping, Mapping) or set(role_mapping) != roles:
+        raise ConfigError("dataset outlier reference-role mapping is incomplete")
+    if any(role not in roles for role in role_mapping.values()):
+        raise ConfigError("dataset outlier reference role is unsupported")
+    if "final_test" in role_mapping.values():
+        raise ConfigError("final_test cannot be an outlier reference role")
+
+    repeatability = value.get("repeatability")
+    expected_repeatability = {
+        "distance",
+        "minimum_common_valid_features",
+        "minimum_common_valid_fraction",
+        "minimum_qualified_pairs",
+        "thresholds_by_feature_kind",
+    }
+    if not isinstance(repeatability, Mapping) or set(repeatability) != expected_repeatability:
+        raise ConfigError("dataset repeatability fields are incomplete")
+    if repeatability.get("distance") != "rms":
+        raise ConfigError("dataset repeatability distance must be rms")
+    for name in ("minimum_common_valid_features", "minimum_qualified_pairs"):
+        count = repeatability.get(name)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise ConfigError(f"dataset repeatability {name} must be an integer >= 1")
+    repeat_fraction = _finite_number(
+        repeatability,
+        "minimum_common_valid_fraction",
+        "dataset repeatability minimum_common_valid_fraction",
+    )
+    if not 0.0 < repeat_fraction <= 1.0:
+        raise ConfigError("dataset repeatability minimum_common_valid_fraction must be in (0, 1]")
+    profiles = repeatability.get("thresholds_by_feature_kind")
+    expected_feature_kinds = {
+        "dense_raw_spl",
+        "dense_demeaned_db",
+        "dense_zscore",
+        "tone_projection_from_sweep",
+        "tone_measurement_from_multisine",
+    }
+    if not isinstance(profiles, Mapping) or set(profiles) != expected_feature_kinds:
+        raise ConfigError("dataset repeatability feature-kind profiles are incomplete")
+    for feature_kind, profile in profiles.items():
+        if not isinstance(profile, Mapping) or set(profile) != {
+            "units", "CONT", "REPOS", "REASM"
+        }:
+            raise ConfigError(f"dataset repeatability profile {feature_kind} is incomplete")
+        if not str(profile.get("units", "")).strip():
+            raise ConfigError(f"dataset repeatability profile {feature_kind} units are required")
+        for repeat_type in ("CONT", "REPOS", "REASM"):
+            thresholds = profile.get(repeat_type)
+            if not isinstance(thresholds, Mapping) or set(thresholds) != {
+                "warning_above", "exclude_candidate_above"
+            }:
+                raise ConfigError(
+                    f"dataset repeatability {feature_kind}/{repeat_type} thresholds are incomplete"
+                )
+            repeat_warning = _finite_number(
+                thresholds,
+                "warning_above",
+                f"dataset repeatability {feature_kind}/{repeat_type} warning",
+            )
+            repeat_exclude = _finite_number(
+                thresholds,
+                "exclude_candidate_above",
+                f"dataset repeatability {feature_kind}/{repeat_type} exclude",
+            )
+            if not 0.0 <= repeat_warning < repeat_exclude:
+                raise ConfigError(
+                    f"dataset repeatability {feature_kind}/{repeat_type} thresholds are not ordered"
+                )
+
+    aggregation = value.get("aggregation")
+    expected_aggregation = {
+        "required_unavailable_policy",
+        "canonical_allowed_statuses",
+        "canonical_block_on_required_unavailable",
+        "canonical_block_on_manual_review",
+    }
+    if not isinstance(aggregation, Mapping) or set(aggregation) != expected_aggregation:
+        raise ConfigError("dataset QC aggregation fields are incomplete")
+    if aggregation.get("required_unavailable_policy") not in {"preserve", "warning"}:
+        raise ConfigError("dataset QC required_unavailable_policy is invalid")
+    statuses = aggregation.get("canonical_allowed_statuses")
+    if (
+        not isinstance(statuses, list)
+        or not statuses
+        or len(set(statuses)) != len(statuses)
+        or any(item not in {"valid", "warning", "exclude_candidate"} for item in statuses)
+    ):
+        raise ConfigError("dataset QC canonical_allowed_statuses is invalid")
+    for name in (
+        "canonical_block_on_required_unavailable",
+        "canonical_block_on_manual_review",
+    ):
+        if not isinstance(aggregation.get(name), bool):
+            raise ConfigError(f"dataset QC aggregation {name} must be boolean")
 
 
 def validate_preprocessing_config(preprocessing: Any) -> None:
