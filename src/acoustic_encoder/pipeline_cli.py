@@ -19,7 +19,7 @@ def pipeline_main(
     project_root: Path,
 ) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate configuration or execute one auditable DEV-B measurement run."
+        description="Validate configuration or execute one auditable DEV-C measurement run."
     )
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--validate-only", action="store_true")
@@ -43,8 +43,9 @@ def pipeline_main(
         print(json.dumps(resolved, indent=2, sort_keys=True, ensure_ascii=False))
         if not arguments.validate_only:
             print(
-                "DEV-B stage gate: configuration is valid; provide --input, "
-                "--metadata, and --run-id to execute P1/P8. P2-P6 remain not implemented.",
+                "DEV-C stage gate: configuration is valid; provide --input, "
+                "--metadata, and --run-id to execute P1/P2/P8. "
+                "P2 is available; P3-P6 remain not implemented.",
                 file=sys.stderr,
             )
         return 0
@@ -81,7 +82,7 @@ def pipeline_main(
         )
     )
     print(
-        "DEV-B stage gate reached: P2-P6 remain not implemented.",
+        "DEV-C stage gate reached: P2 is available; P3-P6 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:

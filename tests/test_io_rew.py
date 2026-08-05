@@ -149,6 +149,8 @@ def test_two_column_rew_marks_phase_and_unavailable_qc_explicitly() -> None:
         "headroom": "unavailable",
         "noise_floor": "unavailable",
         "raw_waveform": "unavailable",
+        "impulse_response": "unavailable",
+        "window": "unavailable",
     }
 
 

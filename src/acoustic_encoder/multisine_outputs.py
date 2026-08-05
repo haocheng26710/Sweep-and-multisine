@@ -69,14 +69,22 @@ def write_multisine_qc_outputs(
     output_directory: str | Path,
     *,
     refuse_existing: bool = True,
+    measurement_summary_filename: str = "measurement_qc.csv",
 ) -> dict[str, Path]:
     """Write authoritative spectrum plus CSV/PNG audit views without filtering."""
+    summary_component = Path(measurement_summary_filename)
+    if (
+        not measurement_summary_filename.strip()
+        or summary_component.name != measurement_summary_filename
+        or summary_component.suffix.lower() != ".csv"
+    ):
+        raise ValueError("measurement_summary_filename must be one CSV filename")
     output = Path(output_directory)
     paths = {
         "transfer_tones_csv": output / "transfer_tones.csv",
         "tone_quality_csv": output / "tone_quality.csv",
         "clock_drift_qc_csv": output / "clock_drift_qc.csv",
-        "measurement_qc_csv": output / "measurement_qc.csv",
+        "measurement_qc_csv": output / measurement_summary_filename,
         "spectrum_npz": output / "spectrum_data.npz",
         "spectrum_json": output / "spectrum_data.json",
         "synchronization_diagnostic_png": output

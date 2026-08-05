@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B now closes the tested P1 dual-input entry path; P2–P6 and P9 remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC. P2-B, P3–P6, and P9 remain later stages.
 
 ## Existing V1 configuration
 
@@ -62,6 +62,16 @@ Configuration 2.3/measurement 2.3 and configuration 2.4/measurement 2.4 version 
 
 The DEV-B run manifest has its own schema version (`1.0.0`). It records the version quartet, Git state, normalized mode, provenance, stimulus and recording identity, config/input/artifact hashes, phase/QC state, timestamps, random state, failure details, and explicit P1/P7/P8/P2-P6 stage gates.
 
+## Configuration schema 2.5 to 2.6
+
+Configuration schema 2.6 replaces the old placeholder `quality_control` keys with a versioned, provisional P2-A policy for both `rew_sweep` and `schroeder_multisine`. It defines minimum valid points, required frequency coverage, magnitude warning/exclusion bounds and dynamic range, phase policy, required-unavailable policy, and the P8 check IDs required by multisine aggregation. Numeric values must be finite; frequency and magnitude bounds, dynamic-range limits, and warning/exclusion ordering are validated.
+
+Configuration 2.3/measurement 2.3, configuration 2.4/measurement 2.4, and configuration 2.5/measurement 2.4 markers migrate in memory to configuration 2.6/measurement 2.4 without rewriting source YAML. Measurement schema remains 2.4 because the new typed QC model has its own schema (`1.0.0`) and does not add fields to `MeasurementMeta` or `SpectrumData`. Pipeline version is `2.0.0-dev.7`.
+
+Run-manifest schema 1.1 adds `qc_schema_version`, records `P2=completed` on successful import paths, and separates the remaining `P3_P6=not_implemented` gate. Canonical multisine runs rename the P8 summary view to `p8_measurement_qc.csv`; the unified P2 summary owns `measurement_qc.csv`. The shared P2 bundle also contains `quality_control.csv`, `qc_checks.csv`, and `quality_control.json`.
+
+P2-A does not reclassify historical data, infer missing provenance, alter `MeasurementMeta.valid`, delete points/tones, or turn `exclude_candidate` into a human exclusion. Simulation thresholds remain provisional and cannot be migrated into frozen real-experiment thresholds.
+
 ## Existing sweep names and commands
 
 Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command remains:
@@ -70,7 +80,7 @@ Names such as `V2_U4SYM_A000_S01_CONT_R01.txt` remain valid. The sweep command r
 python scripts/run_pipeline.py --config config/experiment_v2_u4.yaml
 ```
 
-Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it now routes REW through the P1 REW adapter or multisine through the P1/P8 adapter and writes a canonical run bundle. P2–P6 remain an explicit `not_implemented` stage gate.
+Without `--input`, the command still validates and resolves configuration only. With `--input`, `--metadata`, and `--run-id`, it routes REW through the P1 REW adapter or multisine through the P1/P8 adapter, executes shared P2-A, and writes a canonical run bundle. P3–P6 remain an explicit `not_implemented` stage gate.
 
 ## New grouping fields
 
@@ -78,4 +88,4 @@ Legacy rows may lack `reposition_round_id`, `assembly_id`, and `acquisition_bloc
 
 ## Outputs
 
-V1 outputs remain read-only. DEV-B5 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.
+V1 outputs remain read-only. DEV-C1 writes new runs under `outputs/<data_origin>/<run_purpose>/<run_id>/` (or `outputs/quarantine/<run_id>/` when metadata cannot be resolved) and refuses to overwrite an existing directory. Failure paths retain the available config, measurement/QC views, input inventory, hashes, and run manifest without writing a false success marker.

@@ -1,4 +1,4 @@
-"""Unified DEV-B entry point for sweep or multisine measurements."""
+"""Unified DEV-C entry point for sweep or multisine measurements."""
 
 from __future__ import annotations
 

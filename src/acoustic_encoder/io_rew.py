@@ -20,6 +20,8 @@ _REW_UNAVAILABLE_QC = {
     "headroom": "unavailable",
     "noise_floor": "unavailable",
     "raw_waveform": "unavailable",
+    "impulse_response": "unavailable",
+    "window": "unavailable",
 }
 
 

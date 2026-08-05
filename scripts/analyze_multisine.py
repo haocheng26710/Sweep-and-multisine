@@ -1,4 +1,4 @@
-"""Mode-locked multisine entry point using the unified DEV-B executor."""
+"""Mode-locked multisine entry point using the unified DEV-C executor."""
 
 from __future__ import annotations
 

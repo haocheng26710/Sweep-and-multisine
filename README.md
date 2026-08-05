@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. In addition to the provenance guard, P1 REW import, P7 generation, and P8 synchronization/drift/tone-QC chain, the repository now has a P1 multisine adapter, a dual-input dispatcher, and a hash-audited run bundle shared by the unified and mode-locked commands.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core: both adapters now feed one typed, auditable QC model without P2 rereading TXT/WAV or recomputing P8 signal metrics.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2–P6 FeatureSet analysis and P9 begin in DEV-C.
+- P2-A single-measurement QC is implemented; cross-measurement P2-B, P3–P6, and P9 remain later slices.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -19,7 +19,7 @@ No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-
 
 ```text
 REW TXT ----> P1 REW adapter ----------------> dense SpectrumData ---+
-                                                                    +--> P2-P6 stage gate
+                                                                    +--> shared P2-A --> P3-P6 gate
 WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones -+
 ```
 
@@ -60,7 +60,7 @@ An editable package install is optional because the provided scripts add `src/` 
 python -m pip install -e .
 ```
 
-## DEV-B commands
+## DEV-C commands
 
 Validate the unchanged sweep command and resolved configuration:
 
@@ -118,7 +118,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands stop at the explicit `P2_P6=not_implemented` stage gate. They do not claim that FeatureSet, metrics, classification, HR, or reporting ran.
+Both commands execute P2-A and then stop at the explicit `P3_P6=not_implemented` stage gate. They do not claim that cross-measurement QC, FeatureSet, metrics, classification, HR, or reporting ran.
 
 ## P7 signal definition
 
@@ -142,7 +142,7 @@ P8-B1 optionally accepts the resolved `multisine_estimation.clock_drift` mapping
 
 P8-B2 uses the final stable periods from P8-B1 and the original selected WAV channel. It counts float or integer-PCM clipping samples and runs; estimates local-bin per-tone SNR and leakage while excluding configured tone guards and other legal tones; reports complex- or power-based period variance; distinguishes missing tones from unavailable decisions; and measures non-excited-bin energy without including the preamble. QC changes neither `MeasurementMeta.valid` nor the stored tone values. Excluded candidates remain present and are identified through tone status and `SpectrumData.valid_mask`.
 
-All P8-B2 thresholds and FFT neighborhoods are under `multisine_estimation.tone_quality` in YAML. `analyze_multisine_measurement(...)` returns the authoritative sparse `SpectrumData`, per-tone records, measurement QC, the final period estimate, and clipping evidence. `write_multisine_qc_outputs(...)` writes `transfer_tones.csv`, `tone_quality.csv`, `clock_drift_qc.csv`, `measurement_qc.csv`, the serialized spectrum, `synchronization_diagnostic.png`, and `period_consistency.png`. Sparse tones are never interpolated into a dense physical response.
+All P8-B2 thresholds and FFT neighborhoods are under `multisine_estimation.tone_quality` in YAML. `analyze_multisine_measurement(...)` returns the authoritative sparse `SpectrumData`, per-tone records, measurement QC, the final period estimate, and clipping evidence. The lower-level `write_multisine_qc_outputs(...)` default remains compatible with `measurement_qc.csv`; canonical pipeline runs call it with `p8_measurement_qc.csv` so the shared P2 view can own `measurement_qc.csv`. Sparse tones are never interpolated into a dense physical response.
 
 The lower-level P8 diagnostic writer remains available for focused P8 development:
 
@@ -150,7 +150,15 @@ The lower-level P8 diagnostic writer remains available for focused P8 developmen
 python scripts/run_multisine_qc.py --recording <recording.wav> --stimulus-manifest <stimulus_manifest.json> --sidecar <recording.json> --output-directory outputs/<run_id>
 ```
 
-It is not the canonical DEV-B run lifecycle. Canonical validation runs use `run_pipeline.py` or `analyze_multisine.py`, refuse an existing run directory, isolate output by `data_origin/run_purpose`, and write `config_snapshot.yaml`, `run_manifest.json`, input/artifact hashes, the measurement index, all P8 CSV/NPZ/JSON/PNG artifacts, and explicit downstream stage gates.
+It is not the canonical DEV-C run lifecycle. Canonical validation runs use `run_pipeline.py` or `analyze_multisine.py`, refuse an existing run directory, isolate output by `data_origin/run_purpose`, and write `config_snapshot.yaml`, `run_manifest.json`, input/artifact hashes, the measurement index, all P8 artifacts, the four shared P2 views, and explicit downstream stage gates.
+
+## P2-A shared single-measurement QC
+
+`evaluate_measurement_quality(SpectrumData, quality_control_config, run_purpose=...)` produces one immutable `MeasurementQCResult` containing typed `QCCheckResult` rows. Check status is one of `valid`, `warning`, `exclude_candidate`, or `unavailable`; measurement aggregation is order-independent with `exclude_candidate > warning > valid`. A required unavailable check is promoted to a measurement warning only when configured, while the check itself remains `unavailable`.
+
+P2 records schema/provenance, valid-point count, frequency coverage, magnitude bounds, and phase consistency. For REW, absent headroom, noise floor, waveform, impulse-response, and window evidence remain unavailable. For multisine, P2 translates P8 clipping, drift, non-excited energy, and per-tone SNR/leakage/stability/missing-tone evidence without rerunning FFT. Manual-review reasons and `MeasurementMeta.valid` remain separate from automatic QC and are never overwritten.
+
+All P2 thresholds live under `quality_control` in `config/default.yaml` and are explicitly provisional. Canonical runs write `quality_control.csv`, long-form `qc_checks.csv`, one-row `measurement_qc.csv`, and nested `quality_control.json` from the same result object. `SpectrumData` and `MeasurementMeta` remain authoritative; these files are audit views.
 
 ## P1 multisine adapter and unified dispatcher
 

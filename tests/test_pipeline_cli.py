@@ -31,7 +31,7 @@ def test_legacy_sweep_config_command_remains_a_successful_stage_gate() -> None:
 
     assert completed.returncode == 0, completed.stderr
     assert '"measurement_mode": "rew_sweep"' in completed.stdout
-    assert "P2-P6 remain not implemented" in completed.stderr
+    assert "P2 is available; P3-P6 remain not implemented" in completed.stderr
 
 
 def test_analyze_multisine_and_run_pipeline_use_identical_execution_path(

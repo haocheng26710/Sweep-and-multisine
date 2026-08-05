@@ -71,6 +71,7 @@ def load_config(
     if prior_versions in {
         ("2.3.0", "2.3.0", FEATURE_SCHEMA_VERSION),
         ("2.4.0", "2.4.0", FEATURE_SCHEMA_VERSION),
+        ("2.5.0", "2.4.0", FEATURE_SCHEMA_VERSION),
     }:
         old_config_version = str(versions["config"])
         resolved["pipeline_version"] = PIPELINE_VERSION
@@ -190,6 +191,105 @@ def validate_config(config: Mapping[str, Any]) -> None:
         tone_quality = estimation.get("tone_quality")
         if tone_quality is not None:
             validate_tone_quality_config(tone_quality)
+    if "quality_control" in config:
+        validate_quality_control_config(config["quality_control"])
+
+
+def validate_quality_control_config(quality: Any) -> None:
+    """Validate provisional shared P2 thresholds and aggregation policies."""
+    if not isinstance(quality, Mapping):
+        raise ConfigError("quality_control must be a mapping")
+    if quality.get("schema_version") != "1.0.0":
+        raise ConfigError("quality_control.schema_version must be 1.0.0")
+    if not isinstance(quality.get("provisional"), bool):
+        raise ConfigError("quality_control.provisional must be boolean")
+    modes = quality.get("modes")
+    if not isinstance(modes, Mapping):
+        raise ConfigError("quality_control.modes must be a mapping")
+    for mode in MeasurementMode:
+        mode_quality = modes.get(mode.value)
+        label = f"quality_control.modes.{mode.value}"
+        if not isinstance(mode_quality, Mapping):
+            raise ConfigError(f"{label} must be a mapping")
+        minimum_points = mode_quality.get("minimum_valid_points")
+        if (
+            isinstance(minimum_points, bool)
+            or not isinstance(minimum_points, int)
+            or minimum_points <= 0
+        ):
+            raise ConfigError(f"{label}.minimum_valid_points must be positive")
+        frequency_range = mode_quality.get("required_frequency_range_hz")
+        try:
+            low, high = (float(value) for value in frequency_range)
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(
+                f"{label}.required_frequency_range_hz must be [positive_low, high]"
+            ) from exc
+        if not (np.isfinite(low) and np.isfinite(high) and 0.0 < low < high):
+            raise ConfigError(
+                f"{label}.required_frequency_range_hz must be [positive_low, high]"
+            )
+        if mode_quality.get("unavailable_required_check_policy") not in {
+            "preserve",
+            "warning",
+        }:
+            raise ConfigError(
+                f"{label}.unavailable_required_check_policy must be preserve or warning"
+            )
+        allowed_phase = (
+            {"optional", "required_warning"}
+            if mode is MeasurementMode.REW_SWEEP
+            else {"upstream_authoritative"}
+        )
+        if mode_quality.get("phase_policy") not in allowed_phase:
+            raise ConfigError(
+                f"{label}.phase_policy must be one of {sorted(allowed_phase)}"
+            )
+        if mode_quality.get("phase_inconsistency_status") not in {
+            "warning",
+            "exclude_candidate",
+        }:
+            raise ConfigError(
+                f"{label}.phase_inconsistency_status must be warning or exclude_candidate"
+            )
+        magnitude = mode_quality.get("magnitude_db")
+        if not isinstance(magnitude, Mapping):
+            raise ConfigError(f"{label}.magnitude_db must be a mapping")
+        try:
+            warning_low, warning_high = (
+                float(value) for value in magnitude["warning_bounds"]
+            )
+            exclude_low, exclude_high = (
+                float(value) for value in magnitude["exclude_candidate_bounds"]
+            )
+            warning_range = float(magnitude["warning_dynamic_range_db"])
+            exclude_range = float(
+                magnitude["exclude_candidate_dynamic_range_db"]
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ConfigError(f"{label}.magnitude_db thresholds must be numeric") from exc
+        numeric = (
+            warning_low,
+            warning_high,
+            exclude_low,
+            exclude_high,
+            warning_range,
+            exclude_range,
+        )
+        if not all(np.isfinite(value) for value in numeric) or not (
+            exclude_low <= warning_low < warning_high <= exclude_high
+            and 0.0 < warning_range < exclude_range
+        ):
+            raise ConfigError(
+                f"{label}.magnitude_db warning/exclude thresholds are not ordered"
+            )
+        required = mode_quality.get("required_upstream_checks")
+        if not isinstance(required, list) or any(
+            not isinstance(item, str) or not item.strip() for item in required
+        ):
+            raise ConfigError(
+                f"{label}.required_upstream_checks must be a list of check IDs"
+            )
 
 
 def _finite_number(mapping: Mapping[str, Any], key: str, label: str) -> float:

@@ -130,7 +130,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         "transfer_tones.csv",
         "tone_quality.csv",
         "clock_drift_qc.csv",
+        "p8_measurement_qc.csv",
+        "quality_control.csv",
+        "qc_checks.csv",
         "measurement_qc.csv",
+        "quality_control.json",
         "spectrum_data.npz",
         "spectrum_data.json",
         "synchronization_diagnostic.png",
@@ -141,10 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.0.0"
+    assert manifest["run_manifest_schema_version"] == "1.1.0"
+    assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.6",
-        "config_schema": "2.5.0",
+        "pipeline": "2.0.0-dev.7",
+        "config_schema": "2.6.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.0.0",
     }
@@ -167,7 +172,8 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["created_at_utc"]
     assert manifest["finished_at_utc"]
     assert manifest["random_state"] == resolved["random_state"]
-    assert manifest["stage_gate"]["P2_P6"] == "not_implemented"
+    assert manifest["stage_gate"]["P2"] == "completed"
+    assert manifest["stage_gate"]["P3_P6"] == "not_implemented"
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
     for item in manifest["artifacts"]:
@@ -208,6 +214,8 @@ def test_official_rew_reference_dispatches_to_external_validation_partition(
     assert result.run_manifest["measurement_mode"] == "rew_sweep"
     assert result.run_manifest["eligible_for_scientific_analysis"] is False
     assert result.run_manifest["stage_gate"]["P8"] == "not_applicable"
+    assert result.run_manifest["stage_gate"]["P2"] == "completed"
+    assert (result.output_directory / "quality_control.json").is_file()
     assert load_spectrum(result.output_directory / "spectrum_data").meta == result.spectrum.meta
 
 

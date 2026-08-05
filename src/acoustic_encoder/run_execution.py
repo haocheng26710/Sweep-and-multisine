@@ -16,11 +16,13 @@ from .io_rew import REWManualReviewRequired
 from .multisine_outputs import write_multisine_qc_outputs
 from .p1_adapters import P1AdapterError, P1ManualReviewRequired
 from .pipeline_dispatch import dispatch_measurement, read_measurement_meta
+from .quality_control import QC_SCHEMA_VERSION, evaluate_measurement_quality
+from .quality_control_outputs import write_quality_control_outputs
 from .research_gate import ResearchGateError
 from .schemas import MeasurementMeta, SpectrumData, artifact_sha256, save_spectrum
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.0.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.1.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,6 +258,7 @@ def execute_measurement_run(
         )
         manifest = {
             "run_manifest_schema_version": RUN_MANIFEST_SCHEMA_VERSION,
+            "qc_schema_version": QC_SCHEMA_VERSION,
             "run_id": run_id,
             "processing_status": processing_status,
             "success": False,
@@ -289,7 +292,8 @@ def execute_measurement_run(
                 "P1": "failed",
                 "P7": "not_run",
                 "P8": "not_run",
-                "P2_P6": "not_implemented",
+                "P2": "not_run",
+                "P3_P6": "not_implemented",
             },
             "failure": {
                 "category": category,
@@ -327,6 +331,7 @@ def execute_measurement_run(
         )
         failure_manifest = {
             "run_manifest_schema_version": RUN_MANIFEST_SCHEMA_VERSION,
+            "qc_schema_version": QC_SCHEMA_VERSION,
             "run_id": run_id,
             "processing_status": processing_status,
             "success": False,
@@ -366,7 +371,8 @@ def execute_measurement_run(
                 "P1": processing_status,
                 "P7": "not_run",
                 "P8": "not_run",
-                "P2_P6": "not_implemented",
+                "P2": "not_run",
+                "P3_P6": "not_implemented",
             },
             "failure": {
                 "category": category,
@@ -389,11 +395,20 @@ def execute_measurement_run(
     spectrum = adapter.spectrum
     _write_measurement_index(output / "measurements.csv", spectrum)
     if adapter.multisine_analysis is not None:
-        write_multisine_qc_outputs(adapter.multisine_analysis, output)
-        qc_status = str(adapter.multisine_analysis.measurement_qc["status"])
+        write_multisine_qc_outputs(
+            adapter.multisine_analysis,
+            output,
+            measurement_summary_filename="p8_measurement_qc.csv",
+        )
     else:
         save_spectrum(spectrum, output / "spectrum_data")
-        qc_status = spectrum.meta.qc_status.value
+    qc_result = evaluate_measurement_quality(
+        spectrum,
+        resolved_config["quality_control"],
+        run_purpose=purpose,
+    )
+    write_quality_control_outputs(qc_result, output)
+    qc_status = qc_result.aggregate_status.value
     success = qc_status == "valid"
 
     inputs = _known_inputs(
@@ -406,6 +421,7 @@ def execute_measurement_run(
     artifacts = _artifact_records(output)
     manifest: dict[str, Any] = {
         "run_manifest_schema_version": RUN_MANIFEST_SCHEMA_VERSION,
+        "qc_schema_version": QC_SCHEMA_VERSION,
         "run_id": run_id,
         "processing_status": "completed",
         "success": success,
@@ -449,7 +465,8 @@ def execute_measurement_run(
                 if adapter.multisine_analysis is not None
                 else "not_applicable"
             ),
-            "P2_P6": "not_implemented",
+            "P2": "completed",
+            "P3_P6": "not_implemented",
         },
         "failure": None,
     }

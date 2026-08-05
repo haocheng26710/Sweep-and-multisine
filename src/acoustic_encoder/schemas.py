@@ -46,6 +46,13 @@ class QCStatus(str, Enum):
     EXCLUDE_CANDIDATE = "exclude_candidate"
 
 
+class QCCheckStatus(str, Enum):
+    VALID = "valid"
+    WARNING = "warning"
+    EXCLUDE_CANDIDATE = "exclude_candidate"
+    UNAVAILABLE = "unavailable"
+
+
 class FeatureKind(str, Enum):
     DENSE_RAW_SPL = "dense_raw_spl"
     DENSE_DEMEANED_DB = "dense_demeaned_db"

@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.6
+pipeline_version: 2.0.0-dev.7
 schema_versions:
-  config: 2.5.0
+  config: 2.6.0
   measurement: 2.4.0
   feature: 2.0.0
 
@@ -26,10 +26,41 @@ preprocessing:
     boundary: reflect
 
 quality_control:
-  empty_file: exclude_candidate
-  missing_phase: warning
-  rew_headroom_when_absent: unavailable
-  rew_noise_floor_when_absent: unavailable
+  schema_version: 1.0.0
+  provisional: true
+  modes:
+    rew_sweep:
+      minimum_valid_points: 5
+      required_frequency_range_hz: [1000, 8000]
+      unavailable_required_check_policy: warning
+      phase_policy: optional
+      phase_inconsistency_status: warning
+      magnitude_db:
+        warning_bounds: [-20, 160]
+        exclude_candidate_bounds: [-100, 220]
+        warning_dynamic_range_db: 100
+        exclude_candidate_dynamic_range_db: 160
+      required_upstream_checks: []
+    schroeder_multisine:
+      minimum_valid_points: 5
+      required_frequency_range_hz: [1000, 8000]
+      unavailable_required_check_policy: warning
+      phase_policy: upstream_authoritative
+      phase_inconsistency_status: exclude_candidate
+      magnitude_db:
+        warning_bounds: [-120, 60]
+        exclude_candidate_bounds: [-180, 120]
+        warning_dynamic_range_db: 100
+        exclude_candidate_dynamic_range_db: 160
+      required_upstream_checks:
+        - p8.aggregate
+        - p8.clipping
+        - p8.clock_drift
+        - p8.non_excited_energy
+        - p8.tone.snr
+        - p8.tone.leakage
+        - p8.tone.period_variance
+        - p8.tone.missing_tone
 
 output:
   refuse_existing_run: true

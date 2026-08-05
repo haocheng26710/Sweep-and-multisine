@@ -359,6 +359,7 @@ def test_qc_output_bundle_contains_structured_tables_spectrum_and_plots(
     artifacts = write_multisine_qc_outputs(
         analysis,
         tmp_path / "outputs",
+        measurement_summary_filename="p8_measurement_qc.csv",
     )
 
     assert set(artifacts) == {
@@ -372,6 +373,7 @@ def test_qc_output_bundle_contains_structured_tables_spectrum_and_plots(
         "period_consistency_png",
     }
     assert all(path.is_file() and path.stat().st_size > 0 for path in artifacts.values())
+    assert artifacts["measurement_qc_csv"].name == "p8_measurement_qc.csv"
     with artifacts["tone_quality_csv"].open(encoding="utf-8", newline="") as handle:
         tone_rows = list(csv.DictReader(handle))
     assert len(tone_rows) == 71
