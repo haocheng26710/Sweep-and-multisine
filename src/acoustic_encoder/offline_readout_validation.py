@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 from .config import load_config
@@ -26,6 +27,18 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _git_state(project: Path) -> tuple[str, bool]:
+    commit = subprocess.run(
+        ("git", "rev-parse", "HEAD"), cwd=project, check=True,
+        capture_output=True, text=True,
+    ).stdout.strip()
+    dirty = bool(subprocess.run(
+        ("git", "status", "--porcelain"), cwd=project, check=True,
+        capture_output=True, text=True,
+    ).stdout.strip())
+    return commit, dirty
+
+
 def run_offline_readout_validation(
     *, project_root: str | Path, config_path: str | Path,
     output_root: str | Path, run_id: str,
@@ -36,6 +49,7 @@ def run_offline_readout_validation(
         raise FileExistsError(f"offline readout validation run already exists: {run_root}")
     run_root.mkdir(parents=True, exist_ok=False)
     resolved = load_config(config_path, default_path=project / "config" / "default.yaml")
+    source_commit, source_git_dirty = _git_state(project)
     sweep_config = load_config(project / "config" / "experiment_v2_u4.yaml", default_path=project / "config" / "default.yaml")
     multisine_config = load_config(project / "config" / "experiment_v2_u4_multisine.yaml", default_path=project / "config" / "default.yaml")
     stimulus = load_config(project / "config" / "stimulus_multisine_broadband.yaml", default_path=project / "config" / "default.yaml")["stimulus"]
@@ -78,7 +92,8 @@ def run_offline_readout_validation(
             "explicit_training_sample_ids": list(training_ids),
             "selected_tone_frequencies_hz": selected_frequencies if stage in {"p9a", "p9b"} else None,
             "final_test_read": False, "scientifically_eligible": False,
-            "deployment_eligible": False, "source_commit": "760ea9e4db57163d9851518966ee5d6d6df15f59",
+            "deployment_eligible": False, "source_commit": source_commit,
+            "source_git_dirty": source_git_dirty,
         })
         authority_entries[stage] = {"path": authority_path.as_posix(), "sha256": _file_sha(authority_path)}
     training_entries = []
@@ -170,6 +185,7 @@ def run_offline_readout_validation(
         "scientifically_eligible": result.scientifically_eligible,
         "deployment_eligible": result.deployment_eligible,
         "deterministic_repeat": result.semantic_sha256 == repeated.semantic_sha256,
+        "source_commit": source_commit, "source_git_dirty": source_git_dirty,
         "output_directory": run_root.as_posix(),
     }
     _write_json(run_root / "validation_summary.json", summary)

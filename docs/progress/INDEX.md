@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-C16 — T0–T3 实验前 dry-run、V2 总验收与 DEV-D 接入清单 | 2026-08-06 | 完成（提交后 clean-tree bundle 为最终权威；非科研/非部署） | [DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md](./DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md) | 本报告与实现同一提交：`chore(validation): complete pre-experiment acceptance` |
 | DEV-C15 — P9-D 冻结模型包驱动的离线单次快速读取 | 2026-08-06 | 完成（simulated software validation only） | [DEV-C15_P9D_OFFLINE_FAST_READOUT.md](./DEV-C15_P9D_OFFLINE_FAST_READOUT.md) | 本报告与实现同一提交：`feat(readout): add frozen offline direction inference` |
 | DEV-C14 — P9-C Sweep–Multisine cross-mode bridge calibration | 2026-08-06 | 完成（simulated software validation only） | [DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md](./DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md) | 本报告与实现同一提交：`feat(bridge): add leakage-safe cross-mode calibration` |
 | DEV-C13 — P9-B Sweep projection ablation、P4 保真与 P5 稳定性 | 2026-08-06 | 完成 | [DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md](./DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md) | 本报告与实现同一提交（`feat(bridge): evaluate selected-tone projection fidelity`） |
@@ -26,4 +27,4 @@
 | DEV-C11 — P6-B 冻结校准约束下的 Multisine HR readout | 2026-08-06 | 完成 | [DEV-C11_P6B_MULTISINE_HR_READOUT.md](./DEV-C11_P6B_MULTISINE_HR_READOUT.md) | 本报告与实现同一提交（`feat(hr): add calibrated multisine HR readout`） |
 | DEV-C12 — P9-A 严格防数据泄漏的 tone 候选评分与选择冻结框架 | 2026-08-06 | 完成 | [DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md](./DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md) | 本报告与实现同一提交（`feat(bridge): add leakage-safe tone selection`） |
 
-当前科研资格边界：截至 DEV-C15，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate、显式 P2-B canonical dataset gate 及后续独立批准的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2–P9-D 参数与模型仍为 provisional；P5-B/P9-B/P9-C/P9-D 均保持 final-test 封存，P6-A/P6-B/P9-D 只完成模拟 software-validation。P9-A selection、P9-B minimum-tone candidate、P9-C calibration 和 P9-D readout package 均不可部署。真实 HR 数据、批准校准、真实阈值冻结、科学资格和部署批准尚未完成，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C16，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate、显式 P2-B canonical dataset gate 及后续独立批准的合格 `real_experiment` 才能进入 canonical `research_analysis`。DEV-C16 的 ready 只允许进入少量、受控、诊断性 DEV-D 设备实验准备。P2–P9-D 参数与模型仍为 provisional；final-test 保持封存；P9-A selection、P9-B minimum-tone candidate、P9-C calibration 和 P9-D readout package 均不可部署。真实 HR 数据、批准校准、真实阈值/tone/model 冻结、科学资格和部署批准尚未完成，因此不能声明科研结论。

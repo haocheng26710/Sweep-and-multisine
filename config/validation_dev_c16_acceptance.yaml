@@ -1,0 +1,43 @@
+schema_version: 1.0.0
+acceptance_scope_id: dev-c16-pre-experiment-acceptance
+random_state: 20260806
+final_test_policy: sealed
+required_stages: [T0, T1, T2, T3]
+
+t0:
+  magnitude_tolerance_db: 0.05
+  recording_delay_samples: 1379
+  shared_magnitude_quantity: spl
+  shared_magnitude_reference: reference://dev-c16-known-identity-H
+
+t1:
+  magnitude_tolerance_db: 0.05
+  scenarios:
+    - {scenario_id: baseline, expected_status: valid, delay_samples: 0}
+    - {scenario_id: fixed_delay, expected_status: valid, delay_samples: 4800}
+    - {scenario_id: nonperiod_start, expected_status: valid, delay_samples: 1379}
+    - {scenario_id: small_noise, expected_status: valid, delay_samples: 1379, additive_noise_std: 0.00005}
+    - {scenario_id: correctable_drift, expected_status: valid, delay_samples: 1379, drift_ppm: 80, correction: enabled}
+    - {scenario_id: over_policy_drift, expected_status: exclude_candidate, delay_samples: 1379, drift_ppm: 120, correction: disabled}
+    - {scenario_id: clipping_warning, expected_status: exclude_candidate, delay_samples: 1379, clipping_run_samples: 16}
+    - {scenario_id: missing_tone, expected_status: exclude_candidate, delay_samples: 1379, missing_tone_hz: 1000, additive_noise_std: 0}
+    - {scenario_id: relative_phase, expected_status: valid, delay_samples: 1379, period_averaging: power}
+
+t2:
+  config_path: config/validation_dev_c13_p9b.yaml
+  expected_outer_fold_count: 3
+  expected_direction_count: 4
+
+t3:
+  bridge_config_path: config/validation_dev_c14_p9c.yaml
+  readout_config_path: config/validation_dev_c15_p9d.yaml
+  expected_direction_deg: 90
+
+readiness:
+  require_clean_git: true
+  require_all_v2_requirements: true
+  scientifically_eligible: false
+  canonical_analysis: false
+  deployment_eligible: false
+  approved_real_calibration: false
+  final_tone_set_frozen: false

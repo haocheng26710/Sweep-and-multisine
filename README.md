@@ -4,7 +4,7 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework. DEV-C15 adds frozen-package, persisted-P8-only offline single-measurement direction readout.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework. DEV-C15 adds frozen-package, persisted-P8-only offline single-measurement direction readout. DEV-C16 closes DEV-C with a hash-audited T0–T3 pre-experiment acceptance runner and a controlled DEV-D entry checklist; it adds no research algorithm.
 
 It does **not** yet claim to analyze real measurements:
 
@@ -12,6 +12,8 @@ It does **not** yet claim to analyze real measurements:
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
 - P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A/P6-B, provisional P9-A, simulated P9-B projection ablation, simulated P9-C bridge calibration, and simulated P9-D offline readout are implemented. No P9-C calibration or P9-D package is approved for real use or deployment.
 - Mock data are prohibited as research evidence.
+
+DEV-C16 may set `software_integration_ready=true` and `ready_for_dev_d_diagnostic_experiment=true` only after every required T0–T3/V2 gate passes from a committed clean tree. Those flags authorize only a small, controlled diagnostic equipment experiment. They never imply `scientifically_eligible`, `canonical_analysis`, `deployment_eligible`, approved real calibration, a frozen real tone set, final-test access, or measured real-system performance.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
 
@@ -312,6 +314,18 @@ python scripts/run_offline_readout_validation.py --project-root . --config confi
 ```
 
 The result records input/QC/feature/calibration audits, top-1/top-2 directions, nearest-centroid distances and a descriptive margin. The margin is not probability or confidence. Success and failure bundles are hash-audited and refuse overwrite; blocked runs retain available evidence without a false success marker. DEV-C15 validation remains `simulated/software_validation`, final-test sealed, scientifically/deployment ineligible and non-canonical.
+
+## DEV-C16 pre-experiment acceptance
+
+Run the final software-integration acceptance from an explicit config and a new output directory:
+
+```powershell
+python scripts/run_pre_experiment_acceptance.py --config config/validation_dev_c16_acceptance.yaml --output-root outputs --run-id <new-run-id>
+```
+
+The runner does not discover inputs by directory scanning and does not read final-test data. It reuses the existing P1–P9 validation runners and artifact loaders to run T0 mathematical consistency, T1 preregistered time-domain robustness, T2 leakage-safe selection/classification, T3 persisted end-to-end readout, V1/REW/config compatibility, leakage/provenance audit, full tests, compileall and diff checking. Existing output directories are rejected.
+
+The authoritative bundle is written to `outputs/simulated/software_validation/<run-id>/acceptance/` and includes `acceptance_manifest.json` plus its SHA-256 sidecar. A ready result requires all T0–T3 and all 14 V2 checks to pass, `final_test_read=false`, and `git_dirty=false`. See [the DEV-C16 report](docs/progress/DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md), [DEV-D entry checklist](docs/experiment/DEV_D_REAL_EXPERIMENT_ENTRY_CHECKLIST.md), [real-data replacement guide](docs/experiment/REAL_DATA_REPLACEMENT_GUIDE.md), and [acquisition plan template](docs/experiment/DEV_D_ACQUISITION_PLAN_TEMPLATE.md).
 
 ## P7 signal definition
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## DEV-C16 — pre-experiment T0–T3 acceptance (unreleased)
+
+- Added an explicit, immutable, schema-1.0 acceptance runner and config that reuse existing P1–P9 validation runners and artifact loaders rather than duplicate research algorithms.
+- Added T0 mathematical identity, nine-scenario T1 robustness, leakage-safe T2 selection/classification, persisted T3 cross-mode/offline-readout, 14-item V2 requirement, provenance/final-test and compatibility audits.
+- Added stable JSON/CSV/Markdown outputs, input/evidence/output SHA-256 records, manifest self-hash revalidation, deterministic semantic result hash, clean-tree/readiness gates and blocked overwrite/tamper paths.
+- Fixed DEV-C15 validation authority snapshots to record the actual runtime Git commit/dirty state instead of a stale hard-coded commit; P9-D prediction mathematics and runtime artifact contracts are unchanged.
+- Added DEV-D real-device entry, real-data replacement and acquisition-plan documentation. DEV-C16 adds no scientific feature and does not change pipeline 2.0.0-dev.21, config 2.20.0, Measurement 2.4.0, FeatureSet 2.3.0 or run-manifest 1.15.0.
+- Kept final-test sealed and all evidence simulated/external-reference software validation: scientific, canonical, deployment, real-calibration and final-tone-set eligibility remain false.
+
 ## 2.0.0-dev.21 — frozen persisted-P8 offline direction readout (unreleased)
 
 - Added schema-1.0 frozen nearest-centroid direction models and readout packages binding exact training membership, P2/P4/P5/P9 authorities, P7 stimulus/tone identity, preprocessing/QC policy and final-test seal.
