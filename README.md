@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12 adds provisional, leakage-safe P9-A tone candidate scoring and constrained selection over persisted sweep tone-projection FeatureSets.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A/P6-B, provisional P9-A, and simulated P9-B projection ablation are implemented. P9-C/P9-D remain closed stage gates.
+- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A/P6-B, provisional P9-A, simulated P9-B projection ablation, and simulated P9-C bridge calibration are implemented. P9-D remains closed; no P9-C calibration is approved for real use.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -22,6 +22,7 @@ REW TXT ----> P1 REW adapter ----------------> dense SpectrumData --> shared P2-
                                                                                                                         +--> matched P3-C FeatureSets --+--> P4-B compatibility audit --> P5-B four-protocol validation
 WAV + sidecar + P7 manifest --> P1 adapter --> P8 --> sparse tones --> shared P2-A --> direct sparse tone alignment ------+                               |
                                                                                                                                                         +--> explicit-scope P2-B --> canonical P4 gate
+matched P3-C + fold P9-A/P9-B authority ---------------------------------------------------------------> P9-C train-only bridge evaluation
 ```
 
 `MeasurementMeta`, `SpectrumData`, and `FeatureSet` are authoritative. CSV and DataFrame outputs are views. P4 and P5 will accept only `FeatureSet`, never raw TXT or WAV.
@@ -121,7 +122,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness or a comparison/classification/calibration/readout/selection scope, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, `P4_A=p2_b_dataset_qc_required`, `P4_B=comparison_scope_required`, `P5_A=classification_scope_required`, `P5_B=cross_mode_classification_scope_required`, `P6_A=hr_calibration_scope_required`, `P6_B=hr_readout_scope_required`, and `P9_A=tone_selection_scope_required`.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness or a comparison/classification/calibration/readout/selection scope, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, `P4_A=p2_b_dataset_qc_required`, `P4_B=comparison_scope_required`, `P5_A=classification_scope_required`, `P5_B=cross_mode_classification_scope_required`, `P6_A=hr_calibration_scope_required`, `P6_B=hr_readout_scope_required`, `P9_A=tone_selection_scope_required`, `P9_B=projection_ablation_scope_required`, and `P9_C=cross_mode_bridge_scope_required`.
 
 Run the deterministic paired DEV-C4 validation:
 
@@ -241,7 +242,7 @@ Run deterministic simulated validation:
 python scripts/run_tone_selection_validation.py --config config/validation_dev_c12_tone_selection.yaml --output-root outputs --run-id DEV-C12_P9A_FINAL
 ```
 
-The P9-A bundle contains candidate, scope, raw-component, normalization, eligibility, score, trace, selected-tone and summary CSV views plus typed result/selected-tone-set JSON and hash manifests. Current simulated outputs are forced to `software_validation_only`, `scientifically_eligible=false`, `deployment_allowed=false`, and `final_test_evaluation_allowed=false`. They are not P7 deployment tone sets. P9-C calibration and P9-D deployment remain unimplemented.
+The P9-A bundle contains candidate, scope, raw-component, normalization, eligibility, score, trace, selected-tone and summary CSV views plus typed result/selected-tone-set JSON and hash manifests. Current simulated outputs are forced to `software_validation_only`, `scientifically_eligible=false`, `deployment_allowed=false`, and `final_test_evaluation_allowed=false`. They are not P7 deployment tone sets. P9-C can consume only exact fold-specific P9-A/P9-B authority; P9-D deployment remains unimplemented.
 
 ## P9-B leakage-safe sweep projection ablation
 
@@ -264,6 +265,26 @@ python scripts/run_projection_ablation_validation.py --config config/validation_
 ```
 
 The bundle writes scope/selection/subset/derived-feature audits, P4 preservation, inner P5 metrics, minimum-tone decisions, outer predictions/metrics, a nested summary and a self-hashed manifest. DEV-C13 is fixed to `simulated/software_validation`, `scientifically_eligible=false`, `deployment_eligible=false`, `canonical_analysis=false`, and `final_test_read=false`. A selected minimum is only a `software_validation_candidate`, never a real-experiment or deployment approval.
+
+## P9-C leakage-safe cross-mode bridge calibration
+
+P9-C consumes only explicitly listed, persisted P3-C sweep-projection and multisine-measurement FeatureSets plus exact fold-specific P9-A/P9-B authority snapshots. It rejects global selection, incomplete LOSO/LORO/LOAO groups, held-state leakage, one-to-many pairing, hash/lineage mismatch, final-test inputs, and incompatible tone contracts. It does not read TXT/WAV, scan directories, rerun P1/P3/P8, or choose a method from held-out results.
+
+The fixed mapping is `sweep_projection_db = slope * multisine_db + intercept_db`. The preregistered arms are `identity`, `bias_only`, and `per_tone_affine`; every non-identity fit uses outer-training pairs only. Each persisted model records the exact training and held-out membership, P2-B/P4-B/P9-A/P9-B hashes, tone subset, magnitude semantics, residual diagnostics, lifecycle, and approval state. P5 predictors and fixed-label summaries are reused for the same held cohort before/after calibration.
+
+Run one explicit persisted-FeatureSet scope:
+
+```powershell
+python scripts/run_cross_mode_bridge.py --config <config.yaml> --scope <bridge_scope.json> --inputs <input_manifest.json> --output-root outputs --run-id <run-id>
+```
+
+Run the deterministic actual-chain validation:
+
+```powershell
+python scripts/run_cross_mode_bridge_validation.py --config config/validation_dev_c14_p9c.yaml --output-root outputs --run-id <run-id>
+```
+
+The validation executes six actual `P7 -> S3 -> P8 -> P3-C` chains before invoking the persisted-only P9-C CLI. It injects a known affine relation and verifies recovery, artifact/model hashes and final-test sealing. All outputs remain `simulated/software_validation`, `software_validation_only`, `not_approved`, scientifically/deployment ineligible and non-canonical.
 
 ## P7 signal definition
 

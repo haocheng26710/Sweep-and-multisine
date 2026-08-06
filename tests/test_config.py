@@ -35,7 +35,7 @@ def test_config_217_migrates_with_projection_ablation_disabled(tmp_path) -> None
     }
     path.write_text(yaml.safe_dump(payload), encoding="utf-8")
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["tone_projection_ablation"]["enabled"] is False
     assert any("P9-B is never enabled silently" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -196,8 +196,8 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
 
 def test_dev_c8_uses_incremented_pipeline_and_config_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.19",
-        "config_schema_version": "2.18.0",
+        "pipeline_version": "2.0.0-dev.20",
+        "config_schema_version": "2.19.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.3.0",
     }
@@ -234,8 +234,8 @@ def test_dev_c9_cross_mode_classification_contract_is_fixed() -> None:
         PROJECT_ROOT / "config" / "validation_dev_c9_cross_mode_classification.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
-    assert validation["pipeline_version"] == "2.0.0-dev.19"
-    assert validation["schema_versions"]["config"] == "2.18.0"
+    assert validation["pipeline_version"] == "2.0.0-dev.20"
+    assert validation["schema_versions"]["config"] == "2.19.0"
 
 
 def test_dev_c8_config_migrates_to_cross_mode_defaults_without_rewriting(tmp_path) -> None:
@@ -252,7 +252,7 @@ def test_dev_c8_config_migrates_to_cross_mode_defaults_without_rewriting(tmp_pat
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["classification"]["cross_mode"]["p4b_bias_policy"] == "audit_only"
     assert any("2.13.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -715,7 +715,7 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.18.0",
+        "config": "2.19.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -741,7 +741,7 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
@@ -778,7 +778,7 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.18.0",
+        "config": "2.19.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -833,7 +833,7 @@ def test_dev_c4_config_migrates_to_direction_metrics_without_rewriting(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.18.0",
+        "config": "2.19.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -955,7 +955,7 @@ def test_dev_c7_comparison_validation_config_resolves() -> None:
         PROJECT_ROOT / "config" / "validation_dev_c7_comparison_metrics.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["comparison_metrics"]["provisional"] is True
     assert resolved["comparison_metrics"]["cross_mode"]["bias_sign"] == (
         "multisine_minus_sweep"
@@ -1003,8 +1003,8 @@ def test_dev_c6_config_migrates_to_p4b_defaults_without_rewriting(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.19"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.20"
     assert resolved["comparison_metrics"]["schema_version"] == "1.0.0"
     assert any("2.11.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -1039,8 +1039,8 @@ def test_dev_c5_config_migrates_to_p2b_defaults_without_rewriting(tmp_path) -> N
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.19"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.20"
     assert resolved["dataset_quality_control"]["schema_version"] == "1.0.0"
     assert any("2.10.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -1080,8 +1080,8 @@ def test_dev_c10_hr_validation_config_is_explicit_and_provisional() -> None:
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
     hr = resolved["hr_calibration"]
-    assert resolved["pipeline_version"] == "2.0.0-dev.19"
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.20"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert hr["enabled"] is True
     assert hr["provisional"] is True
     assert [item["resonator_id"] for item in hr["resonators"]] == ["R1", "R2", "R3"]
@@ -1129,9 +1129,9 @@ def test_dev_c11_hr_readout_config_is_explicit_provisional_and_windowed() -> Non
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
     readout = resolved["hr_readout"]
-    assert resolved["pipeline_version"] == "2.0.0-dev.19"
+    assert resolved["pipeline_version"] == "2.0.0-dev.20"
     assert resolved["schema_versions"] == {
-        "config": "2.18.0", "measurement": "2.4.0", "feature": "2.3.0"
+        "config": "2.19.0", "measurement": "2.4.0", "feature": "2.3.0"
     }
     assert readout["enabled"] is True
     assert readout["provisional"] is True
@@ -1155,7 +1155,7 @@ def test_dev_c10_config_migrates_to_disabled_p6b_without_rewriting(tmp_path) -> 
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["schema_versions"]["feature"] == "2.3.0"
     assert resolved["hr_readout"]["enabled"] is False
     assert any("2.15.0" in item for item in resolved["_runtime"]["migration_warnings"])
@@ -1188,7 +1188,7 @@ def test_dev_c11_config_migrates_to_disabled_p9a_without_rewriting(tmp_path) -> 
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.18.0"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
     assert resolved["tone_selection"]["enabled"] is False
     assert any("tone_selection.enabled=false" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -1212,3 +1212,59 @@ def test_tone_selection_config_rejects_invalid_threshold_weight_and_quota_contra
     mutator(resolved["tone_selection"])
     with pytest.raises(ConfigError, match="tone_selection"):
         validate_config(resolved)
+
+
+def test_dev_c14_cross_mode_bridge_defaults_are_disabled_and_strict() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    bridge = resolved["cross_mode_bridge"]
+    assert bridge["schema_version"] == "1.0.0"
+    assert bridge["enabled"] is False
+    assert bridge["mapping_direction"] == "multisine_db_to_sweep_projection_db"
+    assert bridge["methods"] == ["identity", "bias_only", "per_tone_affine"]
+    assert bridge["final_test_policy"] == "sealed"
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda value: value["fit"].update({"minimum_pairs_per_tone": 1}),
+        lambda value: value["fit"].update({"minimum_input_variance_db2": 0}),
+        lambda value: value["fit"].update({"slope_bounds": [1.5, 0.5]}),
+        lambda value: value["fit"]["residual_policy"].update({"warning_above_rms_db": 2.0}),
+        lambda value: value.update({"methods": ["per_tone_affine", "identity"]}),
+        lambda value: value.update({"final_test_policy": "read"}),
+    ],
+)
+def test_cross_mode_bridge_rejects_ambiguous_or_unsafe_policy(mutator) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    mutator(resolved["cross_mode_bridge"])
+    with pytest.raises(ConfigError, match="cross_mode_bridge"):
+        validate_config(resolved)
+
+
+def test_config_218_migrates_with_cross_mode_bridge_disabled_without_rewriting(
+    tmp_path,
+) -> None:
+    path = tmp_path / "config-218.yaml"
+    payload = {
+        "pipeline_version": "2.0.0-dev.19",
+        "schema_versions": {
+            "config": "2.18.0",
+            "measurement": "2.4.0",
+            "feature": "2.3.0",
+        },
+        "measurement_mode": "rew_sweep",
+        "run_purpose": "software_validation",
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["pipeline_version"] == "2.0.0-dev.20"
+    assert resolved["schema_versions"]["config"] == "2.19.0"
+    assert resolved["cross_mode_bridge"]["enabled"] is False
+    assert any(
+        "P9-C is never enabled silently" in item
+        for item in resolved["_runtime"]["migration_warnings"]
+    )
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload

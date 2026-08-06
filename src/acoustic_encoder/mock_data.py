@@ -105,10 +105,21 @@ def _simulate_recording(
     stable_period_gain_db: tuple[float, ...] | None,
     stable_period_shift_samples: tuple[int, ...] | None,
     clipping_run_samples: int,
+    multisine_to_sweep_slope: float,
+    multisine_to_sweep_intercept_db: float,
 ) -> tuple[int, FloatArray]:
     sample_rate, audio = _read_wav_float(stimulus_wav)
     frequency = np.fft.rfftfreq(audio.size, d=1.0 / sample_rate)
     transfer_db = known_transfer_db(frequency, angle_deg=angle_deg, configuration=configuration)
+    if (
+        not np.isfinite(multisine_to_sweep_slope)
+        or multisine_to_sweep_slope <= 0.0
+        or not np.isfinite(multisine_to_sweep_intercept_db)
+    ):
+        raise ValueError("cross-mode affine injection must have finite positive slope")
+    transfer_db = (
+        transfer_db - float(multisine_to_sweep_intercept_db)
+    ) / float(multisine_to_sweep_slope)
     transfer_linear = 10.0 ** (transfer_db / 20.0)
     recording = np.fft.irfft(np.fft.rfft(audio) * transfer_linear, n=audio.size)
     period_samples = int(stimulus_manifest["period_samples"])
@@ -228,6 +239,9 @@ def generate_dual_mode_mock(
     stable_period_gain_db: Iterable[float] | None = None,
     stable_period_shift_samples: Iterable[int] | None = None,
     clipping_run_samples: int = 0,
+    multisine_to_sweep_slope: float = 1.0,
+    multisine_to_sweep_intercept_db: float = 0.0,
+    session_id: str = "S01",
     overwrite: bool = False,
 ) -> Path:
     """Generate matching mock sweep TXT and multisine WAV inputs."""
@@ -269,9 +283,11 @@ def generate_dual_mode_mock(
     sample_records: list[dict[str, Any]] = []
     sample_counter = 0
 
+    if not session_id.strip() or any(character in session_id for character in "/\\"):
+        raise ValueError("session_id must be one non-empty path-safe identifier")
     for configuration in configurations:
         for angle in angles_deg:
-            base_name = f"V2_{configuration}_A{int(angle):03d}_S01_CONT_R01"
+            base_name = f"V2_{configuration}_A{int(angle):03d}_{session_id}_CONT_R01"
             sweep_sample_id = f"mock_{base_name}_SW"
             multisine_sample_id = f"mock_{base_name}_MS"
             transfer_db = known_transfer_db(
@@ -303,6 +319,8 @@ def generate_dual_mode_mock(
                 stable_period_gain_db=gain_jitter,
                 stable_period_shift_samples=shift_jitter,
                 clipping_run_samples=clipping_run_samples,
+                multisine_to_sweep_slope=multisine_to_sweep_slope,
+                multisine_to_sweep_intercept_db=multisine_to_sweep_intercept_db,
             )
             audio_path = audio_root / f"{base_name}_MS.wav"
             audio_path.parent.mkdir(parents=True, exist_ok=True)
@@ -321,7 +339,7 @@ def generate_dual_mode_mock(
                 device_version="V2",
                 configuration=configuration,
                 angle_deg=float(angle),
-                session_id="S01",
+                session_id=session_id,
                 repeat_type="CONT",
                 repeat_id="R01",
                 acquisition_block_id="B01",
@@ -359,6 +377,8 @@ def generate_dual_mode_mock(
                 "stable_period_gain_db": gain_jitter,
                 "stable_period_shift_samples": shift_jitter,
                 "clipping_run_samples": clipping_run_samples,
+                "multisine_to_sweep_slope": multisine_to_sweep_slope,
+                "multisine_to_sweep_intercept_db": multisine_to_sweep_intercept_db,
                 "clock_drift_simulation_method": (
                     "none"
                     if sampling_clock_drift_ppm == 0.0
@@ -379,7 +399,7 @@ def generate_dual_mode_mock(
                 device_version="V2",
                 configuration=configuration,
                 angle_deg=float(angle),
-                session_id="S01",
+                session_id=session_id,
                 repeat_type="CONT",
                 repeat_id="R01",
                 acquisition_block_id="B01",
@@ -412,6 +432,9 @@ def generate_dual_mode_mock(
         "stable_period_gain_db": gain_jitter,
         "stable_period_shift_samples": shift_jitter,
         "clipping_run_samples": clipping_run_samples,
+        "multisine_to_sweep_slope": multisine_to_sweep_slope,
+        "multisine_to_sweep_intercept_db": multisine_to_sweep_intercept_db,
+        "session_id": session_id,
         "stimulus_manifest": stimulus_artifacts.manifest_path.as_posix(),
         "samples": sample_records,
     }

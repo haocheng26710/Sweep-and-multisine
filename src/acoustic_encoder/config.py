@@ -140,6 +140,43 @@ _TONE_PROJECTION_ABLATION_DEFAULTS: dict[str, Any] = {
     "cross_mode": "disabled",
 }
 
+_CROSS_MODE_BRIDGE_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "mapping_direction": "multisine_db_to_sweep_projection_db",
+    "methods": ["identity", "bias_only", "per_tone_affine"],
+    "tone_authority": "fold_specific_p9b_minimum",
+    "fit": {
+        "allowed_cohort_roles": ["development", "training"],
+        "minimum_pairs_per_tone": 4,
+        "minimum_input_variance_db2": 1.0e-6,
+        "slope_bounds": [0.5, 1.5],
+        "residual_policy": {
+            "warning_above_rms_db": 0.25,
+            "unavailable_above_rms_db": 1.0,
+        },
+    },
+    "evaluation": {
+        "minimum_common_tones": 2,
+        "minimum_pair_coverage": 1.0,
+    },
+    "direction_templates": {
+        "metric": "pearson",
+        "minimum_common_tones": 2,
+    },
+    "classification": {
+        "models": [
+            "nearest_template_correlation",
+            "nearest_centroid",
+            "logistic_regression",
+        ],
+        "minimum_training_features": 2,
+        "minimum_prediction_coverage": 1.0,
+    },
+    "final_test_policy": "sealed",
+}
+
 _DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
     "schema_version": "1.0.0",
     "provisional": True,
@@ -445,6 +482,13 @@ def load_config(
         _TONE_PROJECTION_ABLATION_DEFAULTS,
         supplied_projection_ablation,
     )
+    supplied_bridge = resolved.get("cross_mode_bridge", {})
+    if not isinstance(supplied_bridge, Mapping):
+        raise ConfigError("cross_mode_bridge must be a mapping")
+    resolved["cross_mode_bridge"] = deep_merge(
+        _CROSS_MODE_BRIDGE_DEFAULTS,
+        supplied_bridge,
+    )
     supplied_direction_metrics = resolved.get("direction_metrics", {})
     if not isinstance(supplied_direction_metrics, Mapping):
         raise ConfigError("direction_metrics must be a mapping")
@@ -510,6 +554,7 @@ def load_config(
         ("2.15.0", "2.4.0", "2.2.0"),
         ("2.16.0", "2.4.0", "2.3.0"),
         ("2.17.0", "2.4.0", "2.3.0"),
+        ("2.18.0", "2.4.0", "2.3.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -543,6 +588,11 @@ def load_config(
             migration_warnings.append(
                 "The legacy config was migrated with tone_projection_ablation.enabled=false; "
                 "P9-B is never enabled silently and the source YAML was not modified."
+            )
+        if old_config_version == "2.18.0":
+            migration_warnings.append(
+                "The legacy config was migrated with cross_mode_bridge.enabled=false; "
+                "P9-C is never enabled silently and the source YAML was not modified."
             )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
@@ -598,6 +648,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_matched_tone_config(config.get("matched_tone_features"))
     validate_tone_selection_config(config.get("tone_selection"))
     validate_tone_projection_ablation_config(config.get("tone_projection_ablation"))
+    validate_cross_mode_bridge_config(config.get("cross_mode_bridge"))
     tone_selection = config.get("tone_selection")
     projection_ablation = config.get("tone_projection_ablation")
     assert isinstance(tone_selection, Mapping) and isinstance(projection_ablation, Mapping)
@@ -1935,6 +1986,76 @@ def validate_tone_projection_ablation_config(value: Any) -> None:
         raise ConfigError("tone_projection_ablation policy gate must be boolean")
     if value["final_test_policy"] != "sealed" or value["cross_mode"] != "disabled":
         raise ConfigError("tone_projection_ablation final-test/cross-mode gates are fixed")
+
+
+def validate_cross_mode_bridge_config(value: Any) -> None:
+    """Validate the complete provisional P9-C policy without inferred defaults."""
+    if not isinstance(value, Mapping) or set(value) != {
+        "schema_version", "enabled", "provisional", "mapping_direction",
+        "methods", "tone_authority", "fit", "evaluation",
+        "direction_templates", "classification", "final_test_policy",
+    }:
+        raise ConfigError("cross_mode_bridge fields are incomplete or ambiguous")
+    if value["schema_version"] != "1.0.0" or not isinstance(value["enabled"], bool) or not isinstance(value["provisional"], bool):
+        raise ConfigError("cross_mode_bridge requires schema 1.0.0 and boolean flags")
+    if value["mapping_direction"] != "multisine_db_to_sweep_projection_db":
+        raise ConfigError("cross_mode_bridge mapping_direction is fixed")
+    if value["methods"] != ["identity", "bias_only", "per_tone_affine"]:
+        raise ConfigError("cross_mode_bridge methods must be preregistered in fixed order")
+    if value["tone_authority"] != "fold_specific_p9b_minimum" or value["final_test_policy"] != "sealed":
+        raise ConfigError("cross_mode_bridge authority/final-test policy is fixed")
+
+    def finite(number: Any, *, positive: bool = False) -> bool:
+        return (
+            not isinstance(number, bool)
+            and isinstance(number, (int, float))
+            and np.isfinite(number)
+            and (not positive or number > 0)
+        )
+
+    fit = value["fit"]
+    if not isinstance(fit, Mapping) or set(fit) != {
+        "allowed_cohort_roles", "minimum_pairs_per_tone",
+        "minimum_input_variance_db2", "slope_bounds", "residual_policy",
+    }:
+        raise ConfigError("cross_mode_bridge fit fields are incomplete")
+    if fit["allowed_cohort_roles"] != ["development", "training"]:
+        raise ConfigError("cross_mode_bridge fit roles are fixed")
+    pairs = fit["minimum_pairs_per_tone"]
+    if isinstance(pairs, bool) or not isinstance(pairs, int) or pairs < 2:
+        raise ConfigError("cross_mode_bridge minimum_pairs_per_tone must be >= 2")
+    if not finite(fit["minimum_input_variance_db2"], positive=True):
+        raise ConfigError("cross_mode_bridge minimum input variance must be positive")
+    bounds = fit["slope_bounds"]
+    if not isinstance(bounds, list) or len(bounds) != 2 or not all(finite(item) for item in bounds) or not 0.0 < bounds[0] < bounds[1]:
+        raise ConfigError("cross_mode_bridge slope bounds must be finite increasing positive values")
+    residual = fit["residual_policy"]
+    if not isinstance(residual, Mapping) or set(residual) != {
+        "warning_above_rms_db", "unavailable_above_rms_db"
+    }:
+        raise ConfigError("cross_mode_bridge residual policy is incomplete")
+    warning = residual["warning_above_rms_db"]
+    unavailable = residual["unavailable_above_rms_db"]
+    if not finite(warning) or not finite(unavailable) or not 0.0 <= warning < unavailable:
+        raise ConfigError("cross_mode_bridge residual thresholds must be finite and increasing")
+    evaluation = value["evaluation"]
+    if not isinstance(evaluation, Mapping) or set(evaluation) != {"minimum_common_tones", "minimum_pair_coverage"}:
+        raise ConfigError("cross_mode_bridge evaluation fields are incomplete")
+    minimum_tones = evaluation["minimum_common_tones"]
+    coverage = evaluation["minimum_pair_coverage"]
+    if isinstance(minimum_tones, bool) or not isinstance(minimum_tones, int) or minimum_tones < 2 or not finite(coverage, positive=True) or coverage > 1.0:
+        raise ConfigError("cross_mode_bridge evaluation thresholds are invalid")
+    templates = value["direction_templates"]
+    if not isinstance(templates, Mapping) or set(templates) != {"metric", "minimum_common_tones"} or templates["metric"] != "pearson" or isinstance(templates["minimum_common_tones"], bool) or not isinstance(templates["minimum_common_tones"], int) or templates["minimum_common_tones"] < 2:
+        raise ConfigError("cross_mode_bridge direction-template policy is invalid")
+    classification = value["classification"]
+    allowed_models = {"nearest_template_correlation", "nearest_centroid", "logistic_regression"}
+    if not isinstance(classification, Mapping) or set(classification) != {"models", "minimum_training_features", "minimum_prediction_coverage"} or not isinstance(classification["models"], list) or not classification["models"] or len(classification["models"]) != len(set(classification["models"])) or set(classification["models"]) - allowed_models:
+        raise ConfigError("cross_mode_bridge classification policy is invalid")
+    minimum_features = classification["minimum_training_features"]
+    prediction_coverage = classification["minimum_prediction_coverage"]
+    if isinstance(minimum_features, bool) or not isinstance(minimum_features, int) or minimum_features < 2 or not finite(prediction_coverage, positive=True) or prediction_coverage > 1.0:
+        raise ConfigError("cross_mode_bridge classification thresholds are invalid")
 
 
 def validate_tone_selection_config(value: Any) -> None:

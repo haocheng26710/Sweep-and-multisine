@@ -9,7 +9,13 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_fscore_support,
+)
 from sklearn.preprocessing import StandardScaler
 
 from .comparison_metrics import FrequencyBand, feature_frequencies_hz, frequency_band_mask
@@ -41,6 +47,7 @@ class DirectionPredictionSummary:
     prediction_count: int
     total_prediction_count: int
     confusion_matrix: tuple[tuple[int, ...], ...]
+    per_class_metrics: tuple[Mapping[str, Any], ...] = ()
 
 
 def summarize_direction_predictions(
@@ -64,6 +71,12 @@ def summarize_direction_predictions(
     if isinstance(total, bool) or not isinstance(total, int) or total < truth_values.size:
         raise ClassificationInputError("total_prediction_count cannot be below available predictions")
     matrix = confusion_matrix(truth_values, prediction_values, labels=labels)
+    precision, recall, f1, support = precision_recall_fscore_support(
+        truth_values,
+        prediction_values,
+        labels=labels,
+        zero_division=0.0,
+    )
     return DirectionPredictionSummary(
         float(balanced_accuracy_score(truth_values, prediction_values)),
         float(f1_score(truth_values, prediction_values, labels=labels, average="macro", zero_division=0.0)),
@@ -71,6 +84,16 @@ def summarize_direction_predictions(
         int(truth_values.size),
         int(total),
         tuple(tuple(int(value) for value in row) for row in matrix),
+        tuple(
+            {
+                "direction_deg": float(label),
+                "precision": float(precision[index]),
+                "recall": float(recall[index]),
+                "f1": float(f1[index]),
+                "support": int(support[index]),
+            }
+            for index, label in enumerate(labels)
+        ),
     )
 
 

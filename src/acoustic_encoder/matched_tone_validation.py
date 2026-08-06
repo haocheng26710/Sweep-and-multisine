@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -12,10 +12,12 @@ import numpy as np
 
 from .io_rew import load_rew_measurement
 from .matched_tone_outputs import write_matched_tone_outputs
+from .multisine_outputs import write_multisine_qc_outputs
 from .mock_data import generate_dual_mode_mock
 from .p1_adapters import analyze_multisine_adapter
 from .quality_control import evaluate_measurement_quality
-from .schemas import MeasurementMeta, MeasurementMode
+from .schemas import MeasurementMeta, MeasurementMode, artifact_sha256
+from .version import SCHEMA_VERSION_QUARTET
 from .tone_features import (
     MatchedToneView,
     ToneFeatureProcessingResult,
@@ -63,6 +65,12 @@ def run_simulated_matched_tone_validation(
     stimulus_config: Mapping[str, Any],
     random_state: int = 20260805,
     recording_delay_samples: int = 1379,
+    multisine_to_sweep_slope: float = 1.0,
+    multisine_to_sweep_intercept_db: float = 0.0,
+    shared_magnitude_quantity: str | None = None,
+    shared_magnitude_reference: str | None = None,
+    session_id: str = "S01",
+    angle_deg: int = 0,
 ) -> SimulatedMatchedToneValidationResult:
     """Run one immutable, scientifically-ineligible known-H matched validation."""
     run_directory = (
@@ -90,9 +98,12 @@ def run_simulated_matched_tone_validation(
         inputs_directory,
         stimulus_config,
         configurations=("U4ENC",),
-        angles_deg=(0,),
+        angles_deg=(angle_deg,),
         random_state=random_state,
         recording_delay_samples=recording_delay_samples,
+        multisine_to_sweep_slope=multisine_to_sweep_slope,
+        multisine_to_sweep_intercept_db=multisine_to_sweep_intercept_db,
+        session_id=session_id,
     )
     mock_manifest = json.loads(mock_manifest_path.read_text(encoding="utf-8"))
     samples = [MeasurementMeta.from_dict(item) for item in mock_manifest["samples"]]
@@ -122,6 +133,47 @@ def run_simulated_matched_tone_validation(
         multisine_resolved,
     )
     multisine_spectrum = multisine_analysis.spectrum
+    p8_directory = run_directory / "p8"
+    p8_artifacts = write_multisine_qc_outputs(multisine_analysis, p8_directory)
+    p8_run_manifest_path = p8_directory / "run_manifest.json"
+    p8_run_manifest_path.write_text(
+        json.dumps(
+            {
+                **SCHEMA_VERSION_QUARTET,
+                "run_manifest_schema_version": "1.14.0",
+                "processing_status": "completed",
+                "measurement_mode": "schroeder_multisine",
+                "sample_id": multisine_spectrum.meta.sample_id,
+                "data_origin": "simulated",
+                "run_purpose": "software_validation",
+                "eligible_for_scientific_analysis": False,
+                "artifacts": {
+                    name: {
+                        "path": path.as_posix(),
+                        "sha256": artifact_sha256(path),
+                    }
+                    for name, path in sorted(p8_artifacts.items())
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    if (shared_magnitude_quantity is None) != (shared_magnitude_reference is None):
+        raise ValueError("shared simulated magnitude quantity/reference must be supplied together")
+    if shared_magnitude_quantity is not None and shared_magnitude_reference is not None:
+        sweep_spectrum = replace(
+            sweep_spectrum,
+            magnitude_quantity=shared_magnitude_quantity,
+            magnitude_reference=shared_magnitude_reference,
+        )
+        multisine_spectrum = replace(
+            multisine_spectrum,
+            magnitude_quantity=shared_magnitude_quantity,
+            magnitude_reference=shared_magnitude_reference,
+        )
 
     sweep_qc = evaluate_measurement_quality(
         sweep_spectrum,
@@ -160,7 +212,11 @@ def run_simulated_matched_tone_validation(
         np.max(
             np.abs(
                 sweep_result.feature_set.values[common]
-                - multisine_result.feature_set.values[common]
+                - (
+                    multisine_to_sweep_slope
+                    * multisine_result.feature_set.values[common]
+                    + multisine_to_sweep_intercept_db
+                )
             )
         )
     )

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0-dev.20 — leakage-safe cross-mode bridge calibration (unreleased)
+
+- Added explicit persisted-FeatureSet P9-C scope, matched-pair and outer-fold authority models with strict one-to-one metadata, lineage, P2-B/P4-B/P9-A/P9-B hash and final-test gates.
+- Added train-only `identity`, `bias_only`, and per-tone affine bridge arms, held-out tone/template/classification comparisons, fit diagnostics, typed model serialization, stable CSV/JSON outputs and model/manifest SHA-256 verification.
+- Added deterministic six-pair `P7 -> S3 -> P8 -> P3-C -> P9-C` validation with known affine injection; all outputs are simulated software validation and cannot become scientific, canonical or deployment artifacts.
+- Incremented config schema to 2.19.0 and run-manifest schema to 1.14.0; measurement and FeatureSet remain 2.4.0/2.3.0. Legacy config 2.18 migrates in memory with P9-C disabled and an explicit warning.
+
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
 ## 2.0.0-dev.19 — selected-tone projection fidelity (unreleased)

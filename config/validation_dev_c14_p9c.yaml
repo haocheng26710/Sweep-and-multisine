@@ -1,0 +1,31 @@
+measurement_mode: schroeder_multisine
+run_purpose: software_validation
+random_state: 20260806
+
+cross_mode_bridge:
+  enabled: true
+  methods: [identity, bias_only, per_tone_affine]
+  fit:
+    minimum_pairs_per_tone: 4
+    minimum_input_variance_db2: 1.0e-6
+    slope_bounds: [0.5, 1.5]
+    residual_policy:
+      warning_above_rms_db: 0.25
+      unavailable_above_rms_db: 1.0
+  evaluation:
+    minimum_common_tones: 5
+    minimum_pair_coverage: 1.0
+  direction_templates:
+    metric: pearson
+    minimum_common_tones: 5
+  classification:
+    models: [nearest_template_correlation, nearest_centroid, logistic_regression]
+    minimum_training_features: 5
+    minimum_prediction_coverage: 1.0
+
+cross_mode_bridge_validation:
+  injected_slope: 1.15
+  injected_intercept_db: 0.8
+  sessions: [S01, S02, S03]
+  directions_deg: [0, 90]
+  selected_tone_count: 8

@@ -1285,6 +1285,13 @@ def _absolute_comparison_reason(sweep: FeatureSet, multisine: FeatureSet) -> str
     return "magnitude_reference_or_calibration_mismatch"
 
 
+def absolute_comparison_unavailable_reason(
+    sweep: FeatureSet, multisine: FeatureSet
+) -> str | None:
+    """Public P4-B authority for absolute cross-mode comparability."""
+    return _absolute_comparison_reason(sweep, multisine)
+
+
 def _shape_comparison_reason(sweep: FeatureSet, multisine: FeatureSet) -> str | None:
     if sweep.units != multisine.units or set(sweep.units) != {"dB"}:
         return "shape_units_not_compatible_db"
@@ -1295,6 +1302,13 @@ def _shape_comparison_reason(sweep: FeatureSet, multisine: FeatureSet) -> str | 
     if sweep.calibration_id != multisine.calibration_id:
         return "shape_calibration_state_mismatch"
     return None
+
+
+def shape_comparison_unavailable_reason(
+    sweep: FeatureSet, multisine: FeatureSet
+) -> str | None:
+    """Public P4-B authority for centered/shape cross-mode comparability."""
+    return _shape_comparison_reason(sweep, multisine)
 
 
 def compute_cross_mode_metrics(
