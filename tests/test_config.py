@@ -166,8 +166,8 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
 
 def test_dev_c8_uses_incremented_pipeline_and_config_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.14",
-        "config_schema_version": "2.13.0",
+        "pipeline_version": "2.0.0-dev.15",
+        "config_schema_version": "2.14.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.2.0",
     }
@@ -183,6 +183,67 @@ def test_dev_c8_classification_contract_is_explicit_and_leakage_safe() -> None:
     assert classification["pca"] == "disabled"
     assert classification["final_test_policy"] == "sealed"
     assert classification["minimum_prediction_coverage"] == 1.0
+
+
+def test_dev_c9_cross_mode_classification_contract_is_fixed() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    cross_mode = resolved["classification"]["cross_mode"]
+    assert cross_mode == {
+        "transfer_protocols": [
+            "sweep_to_sweep", "multisine_to_multisine", "sweep_to_multisine",
+            "sweep_plus_multisine_to_multisine",
+        ],
+        "allowed_shape_normalizations": ["subtract_mean_db", "zscore_spectrum"],
+        "pooling_policy": "sample_pooled",
+        "sample_weighting": "uniform",
+        "class_weighting": "balanced",
+        "p4b_bias_policy": "audit_only",
+        "calibration_policy": "disabled",
+    }
+    validation = load_config(
+        PROJECT_ROOT / "config" / "validation_dev_c9_cross_mode_classification.yaml",
+        default_path=PROJECT_ROOT / "config" / "default.yaml",
+    )
+    assert validation["pipeline_version"] == "2.0.0-dev.15"
+    assert validation["schema_versions"]["config"] == "2.14.0"
+
+
+def test_dev_c8_config_migrates_to_cross_mode_defaults_without_rewriting(tmp_path) -> None:
+    path = tmp_path / "dev-c8.yaml"
+    payload = {
+        "pipeline_version": "2.0.0-dev.14",
+        "schema_versions": {
+            "config": "2.13.0", "measurement": "2.4.0", "feature": "2.2.0"
+        },
+        "measurement_mode": "rew_sweep",
+        "run_purpose": "software_validation",
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"]["config"] == "2.14.0"
+    assert resolved["classification"]["cross_mode"]["p4b_bias_policy"] == "audit_only"
+    assert any("2.13.0" in item for item in resolved["_runtime"]["migration_warnings"])
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("p4b_bias_policy", "apply", "audit_only"),
+        ("calibration_policy", "fit", "disabled"),
+        ("pooling_policy", "best_mode", "sample_pooled"),
+    ],
+)
+def test_cross_mode_classification_rejects_result_informed_or_calibrated_policy(
+    field, value, message
+) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    resolved["classification"]["cross_mode"][field] = value
+
+    with pytest.raises(ConfigError, match=message):
+        validate_config(resolved)
 
 
 def test_legacy_classification_validation_migrates_with_audited_warning(tmp_path) -> None:
@@ -624,7 +685,7 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.13.0",
+        "config": "2.14.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -650,7 +711,7 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.13.0"
+    assert resolved["schema_versions"]["config"] == "2.14.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
@@ -687,7 +748,7 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.13.0",
+        "config": "2.14.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -742,7 +803,7 @@ def test_dev_c4_config_migrates_to_direction_metrics_without_rewriting(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.13.0",
+        "config": "2.14.0",
         "measurement": "2.4.0",
         "feature": "2.2.0",
     }
@@ -864,7 +925,7 @@ def test_dev_c7_comparison_validation_config_resolves() -> None:
         PROJECT_ROOT / "config" / "validation_dev_c7_comparison_metrics.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
-    assert resolved["schema_versions"]["config"] == "2.13.0"
+    assert resolved["schema_versions"]["config"] == "2.14.0"
     assert resolved["comparison_metrics"]["provisional"] is True
     assert resolved["comparison_metrics"]["cross_mode"]["bias_sign"] == (
         "multisine_minus_sweep"
@@ -912,8 +973,8 @@ def test_dev_c6_config_migrates_to_p4b_defaults_without_rewriting(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.13.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.14"
+    assert resolved["schema_versions"]["config"] == "2.14.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.15"
     assert resolved["comparison_metrics"]["schema_version"] == "1.0.0"
     assert any("2.11.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -948,8 +1009,8 @@ def test_dev_c5_config_migrates_to_p2b_defaults_without_rewriting(tmp_path) -> N
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
 
-    assert resolved["schema_versions"]["config"] == "2.13.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.14"
+    assert resolved["schema_versions"]["config"] == "2.14.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.15"
     assert resolved["dataset_quality_control"]["schema_version"] == "1.0.0"
     assert any("2.10.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload

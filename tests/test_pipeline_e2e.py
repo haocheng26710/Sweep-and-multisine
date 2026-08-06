@@ -145,11 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.8.0"
+    assert manifest["run_manifest_schema_version"] == "1.9.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.14",
-        "config_schema": "2.13.0",
+        "pipeline": "2.0.0-dev.15",
+        "config_schema": "2.14.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.2.0",
     }
@@ -180,7 +180,7 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["stage_gate"]["P4_A"] == "p2_b_dataset_qc_required"
     assert manifest["stage_gate"]["P4_B"] == "comparison_scope_required"
     assert manifest["stage_gate"]["P5_A"] == "classification_scope_required"
-    assert manifest["stage_gate"]["P5_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P5_B"] == "cross_mode_classification_scope_required"
     assert manifest["stage_gate"]["P6"] == "not_implemented"
     assert "P4_P6" not in manifest["stage_gate"]
     for item in manifest["inputs"]:
@@ -327,7 +327,7 @@ def test_missing_sidecar_writes_quarantine_failure_manifest(tmp_path) -> None:
     assert manifest["stage_gate"]["P4_A"] == "not_run"
     assert manifest["stage_gate"]["P4_B"] == "not_run"
     assert manifest["stage_gate"]["P5_A"] == "classification_scope_required"
-    assert manifest["stage_gate"]["P5_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P5_B"] == "cross_mode_classification_scope_required"
     assert manifest["stage_gate"]["P6"] == "not_implemented"
     assert (expected / "config_snapshot.yaml").is_file()
     assert (expected / "measurements.csv").is_file()

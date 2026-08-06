@@ -432,6 +432,25 @@ def _predict(model_id: str, x_train: np.ndarray, y_train: np.ndarray, x_test: np
     return [_rank(row, classifier.classes_.astype(float), direction_order, higher_better=True) for row in probabilities]
 
 
+def predict_direction_fold(
+    model_id: str,
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    direction_order: tuple[float, ...],
+    random_state: int,
+) -> list[tuple[float, float | None, float, float | None]]:
+    """P5 shared fold predictor; every fitted quantity comes from ``x_train``."""
+    return _predict(
+        model_id,
+        np.asarray(x_train, dtype=np.float64),
+        np.asarray(y_train, dtype=np.float64),
+        np.asarray(x_test, dtype=np.float64),
+        direction_order,
+        random_state,
+    )
+
+
 def analyze_classification_feature_sets(
     features: Mapping[str, FeatureSet],
     scope: ClassificationScope,

@@ -48,7 +48,7 @@ def pipeline_main(
                 "P3-A/P3-B. P2-B requires an explicit dataset scope and input "
                 "manifest; canonical P4-A additionally requires the matching "
                 "P2-B result/hash. P4-B requires its explicit comparison scope; "
-                "P5-A requires an explicit classification scope; P5-B/P6/P9 "
+                "P5-A/P5-B require explicit classification scopes; P6/P9 "
                 "remain not implemented.",
                 file=sys.stderr,
             )
@@ -89,8 +89,8 @@ def pipeline_main(
         "DEV-C stage gate reached: P2-A and dense P3-A/P3-B are available; "
         "P2-B requires an explicit dataset scope and canonical P4-A requires "
         "the matching P2-B result/hash. P4-B requires its explicit comparison "
-        "scope; P5-A requires an explicit classification scope, while "
-        "P5-B/P6/P9 remain not implemented.",
+        "scope; P5-A/P5-B require explicit classification scopes, while "
+        "P6/P9 remain not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:

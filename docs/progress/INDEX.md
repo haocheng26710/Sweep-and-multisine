@@ -18,5 +18,6 @@
 | DEV-C6 — P2-B 跨测量 QC、重复稳定性与条件完整性门禁 | 2026-08-05 | 完成 | [DEV-C6_P2B_CROSS_MEASUREMENT_QC.md](./DEV-C6_P2B_CROSS_MEASUREMENT_QC.md) | 本报告与实现同一提交（`feat(qc): add cross-measurement dataset quality gate`） |
 | DEV-C7 — P4-B 频带、配置与跨测量模式通用指标 | 2026-08-05 | 完成 | [DEV-C7_P4B_BAND_CONFIG_AND_CROSS_MODE_METRICS.md](./DEV-C7_P4B_BAND_CONFIG_AND_CROSS_MODE_METRICS.md) | 本报告与实现同一提交（`feat(metrics): add band and cross-mode comparison metrics`） |
 | DEV-C8 — P5-A 防数据泄漏的分组方向分类核心 | 2026-08-06 | 完成 | [DEV-C8_P5A_GROUPED_CLASSIFICATION_CORE.md](./DEV-C8_P5A_GROUPED_CLASSIFICATION_CORE.md) | 本报告与实现同一提交（`feat(classification): add leakage-safe grouped classification core`） |
+| DEV-C9 — P5-B 严格防泄漏的四协议跨模式分类验证 | 2026-08-06 | 完成 | [DEV-C9_P5B_CROSS_MODE_CLASSIFICATION.md](./DEV-C9_P5B_CROSS_MODE_CLASSIFICATION.md) | 本报告与实现同一提交（`feat(classification): add leakage-safe cross-mode validation`） |
 
-当前科研资格边界：截至 DEV-C8，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2/P3/P4/P5-A 参数仍为 provisional；P5-A 封存 final_test、只做同模式分组验证，不执行模型选择或部署。P5-B/P6/P9、真实 tone-set/校准/阈值冻结尚未实现，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C9，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2/P3/P4/P5-A/P5-B 参数仍为 provisional；P5-B 封存 final_test，只做四个预先声明协议的交叉验证，不执行模型选择、校准、tone selection 或部署。P6/P9、真实 tone-set/校准/阈值冻结尚未实现，因此不能声明科研结论。

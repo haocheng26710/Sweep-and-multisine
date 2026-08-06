@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.15 — P5-B leakage-safe four-protocol cross-mode validation (unreleased)
+
+- Incremented configuration schema to 2.14.0 and added fixed cross-mode protocols, allowed shape normalizations, sample-pooled mixed training, audit-only P4-B bias, disabled calibration, and sealed final-test policy.
+- Added hash-identified `CrossModeClassificationScope`, explicit persisted matched-tone FeatureSet inputs, exact P2-B/P4-B links, and atomic physical-state cross-mode groups.
+- Reused the P5-A fold predictor for sweep-to-sweep, multisine-to-multisine, sweep-to-multisine, and pooled sweep-plus-multisine-to-multisine under one frozen outer-fold assignment.
+- Added training-only masks/transforms, compatibility and training-composition audits, unavailable test-tone handling, fold/macro/per-class/confusion metrics, and same-cohort transfer gaps.
+- Added immutable CSV/JSON/hash bundles, an explicit CLI, LOSO/LORO/LOAO and provenance regressions, and a four-direction simulated E2E validation. P4-B bias is never applied and no calibration is fitted.
+- Kept `final_test` sealed and every DEV-C9 artifact simulated/software-validation/scientifically ineligible; P6/P9 and scientific conclusions remain closed.
+
 ## 2.0.0-dev.14 — P5-A leakage-safe grouped direction classification (unreleased)
 
 - Incremented configuration schema to 2.13.0 and added a strict provisional classification contract with fixed protocols/models, fold-local standardization, disabled PCA, and sealed final-test policy.

@@ -215,6 +215,20 @@ _CLASSIFICATION_DEFAULTS: dict[str, Any] = {
     "standardization": "training_fold_only",
     "pca": "disabled",
     "final_test_policy": "sealed",
+    "cross_mode": {
+        "transfer_protocols": [
+            "sweep_to_sweep",
+            "multisine_to_multisine",
+            "sweep_to_multisine",
+            "sweep_plus_multisine_to_multisine",
+        ],
+        "allowed_shape_normalizations": ["subtract_mean_db", "zscore_spectrum"],
+        "pooling_policy": "sample_pooled",
+        "sample_weighting": "uniform",
+        "class_weighting": "balanced",
+        "p4b_bias_policy": "audit_only",
+        "calibration_policy": "disabled",
+    },
 }
 
 
@@ -335,6 +349,7 @@ def load_config(
         ("2.10.0", "2.4.0", "2.2.0"),
         ("2.11.0", "2.4.0", "2.2.0"),
         ("2.12.0", "2.4.0", "2.2.0"),
+        ("2.13.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -763,12 +778,13 @@ def validate_comparison_metrics_config(value: Any) -> None:
 
 
 def validate_classification_config(value: Any) -> None:
-    """Validate the fixed, provisional P5-A leakage-control contract."""
+    """Validate the fixed, provisional P5-A/P5-B leakage-control contract."""
     required = {
         "schema_version", "provisional", "frequency_bands", "protocols", "models",
         "minimum_training_features", "minimum_training_samples_per_direction",
         "minimum_prediction_coverage", "standardization",
         "pca", "final_test_policy",
+        "cross_mode",
     }
     if not isinstance(value, Mapping) or set(value) != required:
         raise ConfigError("classification fields are incomplete or ambiguous")
@@ -805,6 +821,34 @@ def validate_classification_config(value: Any) -> None:
         raise ConfigError("classification PCA must remain disabled in P5-A")
     if value.get("final_test_policy") != "sealed":
         raise ConfigError("classification final_test_policy must be sealed")
+    cross_mode = value.get("cross_mode")
+    expected_cross_fields = {
+        "transfer_protocols", "allowed_shape_normalizations", "pooling_policy",
+        "sample_weighting", "class_weighting", "p4b_bias_policy",
+        "calibration_policy",
+    }
+    if not isinstance(cross_mode, Mapping) or set(cross_mode) != expected_cross_fields:
+        raise ConfigError("classification.cross_mode fields are incomplete or ambiguous")
+    expected_transfer = {
+        "sweep_to_sweep", "multisine_to_multisine", "sweep_to_multisine",
+        "sweep_plus_multisine_to_multisine",
+    }
+    transfer = cross_mode.get("transfer_protocols")
+    if not isinstance(transfer, list) or len(transfer) != 4 or set(transfer) != expected_transfer:
+        raise ConfigError("classification cross-mode requires all four transfer protocols")
+    shape = cross_mode.get("allowed_shape_normalizations")
+    if shape != ["subtract_mean_db", "zscore_spectrum"]:
+        raise ConfigError("classification cross-mode shape normalizations are fixed")
+    if cross_mode.get("pooling_policy") != "sample_pooled":
+        raise ConfigError("classification cross-mode pooling_policy must be sample_pooled")
+    if cross_mode.get("sample_weighting") != "uniform":
+        raise ConfigError("classification cross-mode sample_weighting must be uniform")
+    if cross_mode.get("class_weighting") != "balanced":
+        raise ConfigError("classification cross-mode class_weighting must be balanced")
+    if cross_mode.get("p4b_bias_policy") != "audit_only":
+        raise ConfigError("classification P4-B bias must remain audit_only")
+    if cross_mode.get("calibration_policy") != "disabled":
+        raise ConfigError("classification cross-mode calibration must remain disabled")
 
 
 def validate_dataset_quality_control_config(value: Any) -> None:

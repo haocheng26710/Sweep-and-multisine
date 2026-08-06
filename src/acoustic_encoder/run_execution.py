@@ -30,7 +30,7 @@ from .schemas import (
 )
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.8.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.9.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -309,7 +309,7 @@ def execute_measurement_run(
                 "P4_A": "not_run",
                 "P4_B": "not_run",
                 "P5_A": "classification_scope_required",
-                "P5_B": "not_implemented",
+                "P5_B": "cross_mode_classification_scope_required",
                 "P6": "not_implemented",
             },
             "failure": {
@@ -396,7 +396,7 @@ def execute_measurement_run(
                 "P4_A": "not_run",
                 "P4_B": "not_run",
                 "P5_A": "classification_scope_required",
-                "P5_B": "not_implemented",
+                "P5_B": "cross_mode_classification_scope_required",
                 "P6": "not_implemented",
             },
             "failure": {
@@ -545,7 +545,7 @@ def execute_measurement_run(
             "P4_A": "p2_b_dataset_qc_required",
             "P4_B": "comparison_scope_required",
             "P5_A": "classification_scope_required",
-            "P5_B": "not_implemented",
+            "P5_B": "cross_mode_classification_scope_required",
             "P6": "not_implemented",
         },
         "failure": None,
