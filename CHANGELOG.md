@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.19 — selected-tone projection fidelity (unreleased)
+
+- Added explicit, hash-bound P9-B outer/inner scopes requiring one fold-specific P9-A selection while keeping final-test sealed.
+- Added deterministic P9-A rank-prefix projection of persisted sweep tone FeatureSets with spacing/quota eligibility and immutable derivation hashes.
+- Reused P4-A/P4-B metrics and P5-A grouped prediction to report P4 retention, P5 stability and inner-only minimum-tone decisions.
+- Added complete projection-ablation CSV/JSON/NPZ outputs, manifest self-hash verification, CLI, simulated E2E and regression tests.
+- Incremented config schema to 2.18.0 and run-manifest schema to 1.13.0; measurement and FeatureSet remain 2.4.0/2.3.0.
+- Kept DEV-C13 simulated/software-validation, scientifically/deployment ineligible, non-canonical and final-test sealed.
+
 ## 2.0.0-dev.18 — leakage-safe tone selection (unreleased)
 
 - Incremented configuration schema to 2.17.0 and added a strict, disabled-by-default provisional P9-A eligibility, scoring, spacing and band-quota contract.

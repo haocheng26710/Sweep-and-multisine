@@ -1,6 +1,6 @@
 # Migration from V1 sweep to the V2 dual-input schema
 
-This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC; DEV-C7 adds provisional band/configuration/cross-mode P4-B metrics; DEV-C8/C9 add provisional leakage-safe P5 validation; DEV-C10/C11 add simulated P6 calibration/readout; DEV-C12 adds provisional P9-A tone selection. P9-B/P9-C/P9-D remain later stages.
+This document is intentionally incremental. DEV-B closes the tested P1 dual-input entry path; DEV-C1 adds P2-A single-measurement QC; DEV-C2/C3 add dense preprocessing; DEV-C4 adds matched-tone FeatureSets; DEV-C5 adds provisional P4-A descriptive metrics; DEV-C6 adds explicit-scope P2-B dataset QC; DEV-C7 adds provisional band/configuration/cross-mode P4-B metrics; DEV-C8/C9 add provisional leakage-safe P5 validation; DEV-C10/C11 add simulated P6 calibration/readout; DEV-C12 adds provisional P9-A tone selection; DEV-C13 adds simulated P9-B projection ablation and minimum-tone validation. P9-C/P9-D remain later stages.
 
 ## Existing V1 configuration
 
@@ -190,7 +190,17 @@ Between-direction variance is the sample variance of per-direction medians. CONT
 
 The scoring layer supports an epsilon-stabilized variance ratio and a weighted average-rank sum. Weighted normalization uses only eligible candidates in the exact selection-training scope; ties use average rank, required missing components make a candidate ineligible, and optional missing components renormalize available weights with an explicit warning. Stable greedy selection applies score, required-component availability, frequency and candidate-ID ordering, followed by configured band minimum/maximum quotas and Hz/bin spacing. Every decision is retained in the trace; failure to meet the target is unavailable unless `allow_partial=true`.
 
-`development_selection` accepts only training/development inputs. `fold_training_selection` binds an outer fold, exact training IDs/hash and held physical states; results cannot be reused across folds. Final-test IDs are sealed audit data and never FeatureSet inputs, normalization references or decision inputs. Simulated validation can produce only `software_validation_only`; approval/deployment/final-test evaluation fail closed. P9-B projection ablation, P9-C affine calibration, P9-D fast readout/deployment, P7 WAV generation and scientific conclusions are not introduced.
+`development_selection` accepts only training/development inputs. `fold_training_selection` binds an outer fold, exact training IDs/hash and held physical states; results cannot be reused across folds. Final-test IDs are sealed audit data and never FeatureSet inputs, normalization references or decision inputs. Simulated validation can produce only `software_validation_only`; approval/deployment/final-test evaluation fail closed. P9-C affine calibration, P9-D fast readout/deployment, P7 WAV generation and scientific conclusions are not introduced.
+
+## Configuration schema 2.17 to 2.18 and P9-B projection-ablation schema 1.0
+
+Configuration 2.18 adds a strict, disabled-by-default `tone_projection_ablation` block. It freezes sweep-only input identity, predeclared prefix sizes, P9-A rank ordering, grouped outer/inner protocol, inner evidence minimums, P5 model/coverage, P4 retention definitions, decision thresholds, spacing/quota enforcement, sealed final-test and disabled cross-mode policy. A 2.17/measurement-2.4/feature-2.3 configuration migrates only in memory, receives `tone_projection_ablation.enabled=false`, emits a warning and is never rewritten. Pipeline version is `2.0.0-dev.19`; single-measurement run-manifest schema 1.13 adds `P9_B=projection_ablation_scope_required`. Measurement and FeatureSet schemas remain 2.4 and 2.3.
+
+P9-B introduces version-1.0 typed scope/fold/selection-reference/subset/derivation/P4/P5/decision/result objects and a hash-audited output manifest. It accepts only explicit persisted P3-C sweep tone FeatureSets and one exact P9-A `fold_training_selection` bundle per outer fold. Global selection, held-out membership leakage, final-test reads, mismatched candidate universe/P2-B/P4-B/training/manifest hashes, multisine input and directory discovery all fail closed.
+
+Every candidate size is an immutable prefix of the frozen P9-A selection rank. The projection slices existing P3-C columns and records source/derived hashes; it does not rerun P1/P3. P4 preservation reuses authoritative P4-A/P4-B calculations. Sweep-to-sweep classification reuses the P5-A fold predictor and fixed-label summary. Minimum tone count uses grouped inner CV inside outer-training and frozen thresholds; outer-test is evaluated only after the decision and cannot update P9-A or the minimum count.
+
+DEV-C13 validation remains `simulated/software_validation`, scientifically and deployment ineligible, non-canonical and final-test sealed. Its minimum-tone output lifecycle is `software_validation_candidate`. P9-C cross-mode calibration, P9-D readout/deployment, real threshold freezing and scientific conclusions remain outside this migration.
 
 ## Existing sweep names and commands
 

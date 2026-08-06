@@ -5,6 +5,7 @@ from acoustic_encoder.classification import (
     ClassificationFeatureReference,
     ClassificationScope,
     ClassificationScopeMember,
+    summarize_direction_predictions,
 )
 from acoustic_encoder.dataset_quality_control import (
     CohortRole,
@@ -297,3 +298,17 @@ def test_logistic_regression_is_deterministic_for_fixed_scope_seed() -> None:
     first = analyze_classification_feature_sets(artifacts, scope, config, dataset_qc_result=p2b)
     second = analyze_classification_feature_sets(artifacts, scope, config, dataset_qc_result=p2b)
     assert first.to_dict() == second.to_dict()
+
+
+def test_shared_prediction_summary_fixes_direction_order_macro_f1_and_confusion() -> None:
+    summary = summarize_direction_predictions(
+        (0.0, 0.0, 90.0, 90.0),
+        (0.0, 90.0, 90.0, 90.0),
+        (0.0, 90.0),
+        total_prediction_count=5,
+    )
+
+    assert summary.balanced_accuracy == pytest.approx(0.75)
+    assert summary.macro_f1 == pytest.approx((2 / 3 + 0.8) / 2)
+    assert summary.prediction_coverage == pytest.approx(0.8)
+    assert summary.confusion_matrix == ((1, 1), (0, 2))

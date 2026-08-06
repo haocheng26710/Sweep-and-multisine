@@ -104,6 +104,42 @@ _TONE_SELECTION_DEFAULTS: dict[str, Any] = {
     },
 }
 
+_TONE_PROJECTION_ABLATION_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "input_feature_kind": "tone_projection_from_sweep",
+    "measurement_mode": "rew_sweep",
+    "subset_sizes": [3, 4, 5, 6, 8],
+    "prefix_order": "p9a_selection_rank",
+    "outer_protocol": "leave_one_session_out",
+    "inner_protocol": "leave_one_session_out",
+    "minimum_inner_groups": 2,
+    "minimum_valid_inner_folds": 2,
+    "model": "logistic_regression",
+    "minimum_training_features": 2,
+    "minimum_prediction_coverage": 1.0,
+    "p4_denominator_floor": 1.0e-12,
+    "p4_retention_modes": {
+        "effective_rank": "higher_is_better",
+        "morphology_gain": "higher_is_better",
+        "mean_off_diagonal_pearson": "absolute_fidelity",
+        "median_direction_rms": "higher_is_better",
+        "repos_repeatability_median_rms": "lower_is_better",
+        "repos_reliability_median_db": "lower_is_better",
+        "repos_reliability_available_fraction": "higher_is_better",
+    },
+    "decision_policy": {
+        "minimum_p4_retention": 0.90,
+        "maximum_balanced_accuracy_drop": 0.05,
+        "maximum_macro_f1_drop": 0.05,
+        "minimum_prediction_coverage": 1.0,
+        "require_spacing_and_band_quotas": True,
+    },
+    "final_test_policy": "sealed",
+    "cross_mode": "disabled",
+}
+
 _DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
     "schema_version": "1.0.0",
     "provisional": True,
@@ -402,6 +438,13 @@ def load_config(
         _TONE_SELECTION_DEFAULTS,
         supplied_tone_selection,
     )
+    supplied_projection_ablation = resolved.get("tone_projection_ablation", {})
+    if not isinstance(supplied_projection_ablation, Mapping):
+        raise ConfigError("tone_projection_ablation must be a mapping")
+    resolved["tone_projection_ablation"] = deep_merge(
+        _TONE_PROJECTION_ABLATION_DEFAULTS,
+        supplied_projection_ablation,
+    )
     supplied_direction_metrics = resolved.get("direction_metrics", {})
     if not isinstance(supplied_direction_metrics, Mapping):
         raise ConfigError("direction_metrics must be a mapping")
@@ -466,6 +509,7 @@ def load_config(
         ("2.14.0", "2.4.0", "2.2.0"),
         ("2.15.0", "2.4.0", "2.2.0"),
         ("2.16.0", "2.4.0", "2.3.0"),
+        ("2.17.0", "2.4.0", "2.3.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -494,6 +538,11 @@ def load_config(
             migration_warnings.append(
                 "DEV-C11 config was migrated with tone_selection.enabled=false; "
                 "P9-A is never enabled silently and the source YAML was not modified."
+            )
+        if old_config_version == "2.17.0":
+            migration_warnings.append(
+                "The legacy config was migrated with tone_projection_ablation.enabled=false; "
+                "P9-B is never enabled silently and the source YAML was not modified."
             )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
@@ -548,6 +597,12 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_preprocessing_config(preprocessing)
     validate_matched_tone_config(config.get("matched_tone_features"))
     validate_tone_selection_config(config.get("tone_selection"))
+    validate_tone_projection_ablation_config(config.get("tone_projection_ablation"))
+    tone_selection = config.get("tone_selection")
+    projection_ablation = config.get("tone_projection_ablation")
+    assert isinstance(tone_selection, Mapping) and isinstance(projection_ablation, Mapping)
+    if projection_ablation["enabled"] is True and max(projection_ablation["subset_sizes"]) > int(tone_selection["selection"]["target_count"]):
+        raise ConfigError("tone_projection_ablation subset size exceeds P9-A target_count")
     validate_direction_metrics_config(config.get("direction_metrics"))
     validate_dataset_quality_control_config(config.get("dataset_quality_control"))
     validate_comparison_metrics_config(config.get("comparison_metrics"))
@@ -1818,6 +1873,68 @@ def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:
             raise ConfigError("preamble chirp frequencies must lie below Nyquist")
         if float(preamble.get("duration_s", 0)) <= 0:
             raise ConfigError("preamble chirp duration_s must be positive")
+
+
+def validate_tone_projection_ablation_config(value: Any) -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError("tone_projection_ablation must be a mapping")
+    required = {
+        "schema_version", "enabled", "provisional", "input_feature_kind",
+        "measurement_mode", "subset_sizes", "prefix_order", "outer_protocol",
+        "inner_protocol", "minimum_inner_groups", "minimum_valid_inner_folds",
+        "model", "minimum_training_features", "minimum_prediction_coverage",
+        "p4_denominator_floor", "p4_retention_modes", "decision_policy",
+        "final_test_policy", "cross_mode",
+    }
+    if set(value) != required:
+        raise ConfigError("tone_projection_ablation fields are incomplete or ambiguous")
+    if value["schema_version"] != "1.0.0" or not isinstance(value["enabled"], bool) or not isinstance(value["provisional"], bool):
+        raise ConfigError("tone_projection_ablation requires schema 1.0.0 and boolean flags")
+    if value["input_feature_kind"] != "tone_projection_from_sweep" or value["measurement_mode"] != "rew_sweep":
+        raise ConfigError("tone_projection_ablation accepts sweep tone projection only")
+    sizes = value["subset_sizes"]
+    if not isinstance(sizes, list) or not sizes or any(isinstance(item, bool) or not isinstance(item, int) or item < 1 for item in sizes) or sizes != sorted(set(sizes)):
+        raise ConfigError("tone_projection_ablation subset_sizes must be unique increasing positive integers")
+    if value["prefix_order"] != "p9a_selection_rank":
+        raise ConfigError("tone_projection_ablation prefix_order is fixed")
+    if value["outer_protocol"] != "leave_one_session_out" or value["inner_protocol"] != "leave_one_session_out":
+        raise ConfigError("tone_projection_ablation grouped protocols must be leave_one_session_out")
+    for name in ("minimum_inner_groups", "minimum_valid_inner_folds", "minimum_training_features"):
+        item = value[name]
+        if isinstance(item, bool) or not isinstance(item, int) or item < 2:
+            raise ConfigError(f"tone_projection_ablation {name} must be an integer >= 2")
+    if value["model"] not in {"nearest_template_correlation", "nearest_centroid", "logistic_regression"}:
+        raise ConfigError("tone_projection_ablation model is unsupported")
+    for name in ("minimum_prediction_coverage", "p4_denominator_floor"):
+        item = _finite_number(value, name, f"tone_projection_ablation {name}")
+        if item <= 0.0 or (name == "minimum_prediction_coverage" and item > 1.0):
+            raise ConfigError(f"tone_projection_ablation {name} is out of range")
+    modes = value["p4_retention_modes"]
+    expected_metrics = {
+        "effective_rank", "morphology_gain", "mean_off_diagonal_pearson",
+        "median_direction_rms", "repos_repeatability_median_rms",
+        "repos_reliability_median_db", "repos_reliability_available_fraction",
+    }
+    if not isinstance(modes, Mapping) or set(modes) != expected_metrics or set(modes.values()) - {"higher_is_better", "lower_is_better", "absolute_fidelity"}:
+        raise ConfigError("tone_projection_ablation P4 retention modes are invalid")
+    policy = value["decision_policy"]
+    if not isinstance(policy, Mapping) or set(policy) != {
+        "minimum_p4_retention", "maximum_balanced_accuracy_drop",
+        "maximum_macro_f1_drop", "minimum_prediction_coverage",
+        "require_spacing_and_band_quotas",
+    }:
+        raise ConfigError("tone_projection_ablation decision policy is incomplete")
+    for name in ("minimum_p4_retention", "minimum_prediction_coverage"):
+        item = _finite_number(policy, name, f"tone_projection_ablation decision {name}")
+        if not 0.0 <= item <= 1.0:
+            raise ConfigError(f"tone_projection_ablation decision {name} is out of range")
+    for name in ("maximum_balanced_accuracy_drop", "maximum_macro_f1_drop"):
+        if _finite_number(policy, name, f"tone_projection_ablation decision {name}") < 0.0:
+            raise ConfigError(f"tone_projection_ablation decision {name} must be non-negative")
+    if not isinstance(policy["require_spacing_and_band_quotas"], bool):
+        raise ConfigError("tone_projection_ablation policy gate must be boolean")
+    if value["final_test_policy"] != "sealed" or value["cross_mode"] != "disabled":
+        raise ConfigError("tone_projection_ablation final-test/cross-mode gates are fixed")
 
 
 def validate_tone_selection_config(value: Any) -> None:

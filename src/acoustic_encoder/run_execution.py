@@ -30,7 +30,7 @@ from .schemas import (
 )
 
 
-RUN_MANIFEST_SCHEMA_VERSION = "1.12.0"
+RUN_MANIFEST_SCHEMA_VERSION = "1.13.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -313,6 +313,7 @@ def execute_measurement_run(
                 "P6_A": "hr_calibration_scope_required",
                 "P6_B": "hr_readout_scope_required",
                 "P9_A": "tone_selection_scope_required",
+                "P9_B": "projection_ablation_scope_required",
             },
             "failure": {
                 "category": category,
@@ -402,6 +403,7 @@ def execute_measurement_run(
                 "P6_A": "hr_calibration_scope_required",
                 "P6_B": "hr_readout_scope_required",
                 "P9_A": "tone_selection_scope_required",
+                "P9_B": "projection_ablation_scope_required",
             },
             "failure": {
                 "category": category,
@@ -553,6 +555,7 @@ def execute_measurement_run(
             "P6_A": "hr_calibration_scope_required",
             "P6_B": "hr_readout_scope_required",
             "P9_A": "tone_selection_scope_required",
+            "P9_B": "projection_ablation_scope_required",
         },
         "failure": None,
     }

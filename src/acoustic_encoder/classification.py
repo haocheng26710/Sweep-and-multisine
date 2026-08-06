@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score
 from sklearn.preprocessing import StandardScaler
 
 from .comparison_metrics import FrequencyBand, feature_frequencies_hz, frequency_band_mask
@@ -31,6 +31,47 @@ CLASSIFICATION_RESULT_SCHEMA_VERSION = "1.0.0"
 
 class ClassificationInputError(ValueError):
     """Raised when a P5-A input or leakage contract cannot be trusted."""
+
+
+@dataclass(frozen=True, slots=True)
+class DirectionPredictionSummary:
+    balanced_accuracy: float
+    macro_f1: float
+    prediction_coverage: float
+    prediction_count: int
+    total_prediction_count: int
+    confusion_matrix: tuple[tuple[int, ...], ...]
+
+
+def summarize_direction_predictions(
+    truth: Sequence[float],
+    predictions: Sequence[float],
+    direction_order: Sequence[float],
+    *,
+    total_prediction_count: int | None = None,
+) -> DirectionPredictionSummary:
+    """Summarize P5 predictions using one fixed label order and no fitted state."""
+    truth_values = np.asarray(truth, dtype=np.float64)
+    prediction_values = np.asarray(predictions, dtype=np.float64)
+    labels = np.asarray(direction_order, dtype=np.float64)
+    if truth_values.ndim != 1 or prediction_values.ndim != 1 or truth_values.size != prediction_values.size or not truth_values.size:
+        raise ClassificationInputError("prediction summary requires matching non-empty 1-D truth and predictions")
+    if labels.ndim != 1 or not labels.size or len(set(labels.tolist())) != labels.size:
+        raise ClassificationInputError("prediction summary direction order must be non-empty and unique")
+    if set(truth_values.tolist()) - set(labels.tolist()) or set(prediction_values.tolist()) - set(labels.tolist()):
+        raise ClassificationInputError("prediction summary values must belong to direction_order")
+    total = truth_values.size if total_prediction_count is None else total_prediction_count
+    if isinstance(total, bool) or not isinstance(total, int) or total < truth_values.size:
+        raise ClassificationInputError("total_prediction_count cannot be below available predictions")
+    matrix = confusion_matrix(truth_values, prediction_values, labels=labels)
+    return DirectionPredictionSummary(
+        float(balanced_accuracy_score(truth_values, prediction_values)),
+        float(f1_score(truth_values, prediction_values, labels=labels, average="macro", zero_division=0.0)),
+        float(truth_values.size / total) if total else 0.0,
+        int(truth_values.size),
+        int(total),
+        tuple(tuple(int(value) for value in row) for row in matrix),
+    )
 
 
 def _canonical_sha256(payload: Mapping[str, Any]) -> str:
@@ -531,7 +572,13 @@ def analyze_classification_feature_sets(
                 if metric_available:
                     truth = [row.true_direction_deg for row in available_rows]
                     pred = [row.predicted_direction_deg for row in available_rows]
-                    accuracy = float(accuracy_score(truth, pred)); balanced = float(balanced_accuracy_score(truth, pred))
+                    prediction_summary = summarize_direction_predictions(
+                        truth,
+                        pred,
+                        scope.direction_order_deg,
+                        total_prediction_count=len(split.test_sample_ids),
+                    )
+                    accuracy = float(accuracy_score(truth, pred)); balanced = prediction_summary.balanced_accuracy
                     reason = None
                 else:
                     accuracy = balanced = None

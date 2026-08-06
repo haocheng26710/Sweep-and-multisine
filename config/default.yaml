@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.18
+pipeline_version: 2.0.0-dev.19
 schema_versions:
-  config: 2.17.0
+  config: 2.18.0
   measurement: 2.4.0
   feature: 2.3.0
 
@@ -89,6 +89,39 @@ tone_selection:
     minimum_spacing_bins: 1
     allow_partial: false
     band_quotas: []
+
+tone_projection_ablation:
+  schema_version: 1.0.0
+  enabled: false
+  provisional: true
+  input_feature_kind: tone_projection_from_sweep
+  measurement_mode: rew_sweep
+  subset_sizes: [3, 4, 5, 6, 8]
+  prefix_order: p9a_selection_rank
+  outer_protocol: leave_one_session_out
+  inner_protocol: leave_one_session_out
+  minimum_inner_groups: 2
+  minimum_valid_inner_folds: 2
+  model: logistic_regression
+  minimum_training_features: 2
+  minimum_prediction_coverage: 1.0
+  p4_denominator_floor: 1.0e-12
+  p4_retention_modes:
+    effective_rank: higher_is_better
+    morphology_gain: higher_is_better
+    mean_off_diagonal_pearson: absolute_fidelity
+    median_direction_rms: higher_is_better
+    repos_repeatability_median_rms: lower_is_better
+    repos_reliability_median_db: lower_is_better
+    repos_reliability_available_fraction: higher_is_better
+  decision_policy:
+    minimum_p4_retention: 0.90
+    maximum_balanced_accuracy_drop: 0.05
+    maximum_macro_f1_drop: 0.05
+    minimum_prediction_coverage: 1.0
+    require_spacing_and_band_quotas: true
+  final_test_policy: sealed
+  cross_mode: disabled
 
 direction_metrics:
   schema_version: 1.0.0

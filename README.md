@@ -10,7 +10,7 @@ It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A/P6-B, and provisional P9-A are implemented. P9-B/P9-C/P9-D remain closed stage gates.
+- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A/P6-B, provisional P9-A, and simulated P9-B projection ablation are implemented. P9-C/P9-D remain closed stage gates.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -241,7 +241,29 @@ Run deterministic simulated validation:
 python scripts/run_tone_selection_validation.py --config config/validation_dev_c12_tone_selection.yaml --output-root outputs --run-id DEV-C12_P9A_FINAL
 ```
 
-The P9-A bundle contains candidate, scope, raw-component, normalization, eligibility, score, trace, selected-tone and summary CSV views plus typed result/selected-tone-set JSON and hash manifests. Current simulated outputs are forced to `software_validation_only`, `scientifically_eligible=false`, `deployment_allowed=false`, and `final_test_evaluation_allowed=false`. They are not P7 deployment tone sets. P9-B projection ablation, P9-C calibration and P9-D deployment remain unimplemented.
+The P9-A bundle contains candidate, scope, raw-component, normalization, eligibility, score, trace, selected-tone and summary CSV views plus typed result/selected-tone-set JSON and hash manifests. Current simulated outputs are forced to `software_validation_only`, `scientifically_eligible=false`, `deployment_allowed=false`, and `final_test_evaluation_allowed=false`. They are not P7 deployment tone sets. P9-C calibration and P9-D deployment remain unimplemented.
+
+## P9-B leakage-safe sweep projection ablation
+
+P9-B accepts only persisted P3-C `tone_projection_from_sweep` FeatureSets and one hash-verified `fold_training_selection` P9-A bundle per outer fold. Each selection must match the exact ordered outer-training membership/hash, held physical states, CandidateToneUniverse, P2-B/P4-B references, selected-tone artifact and manifest. A global/development selection cannot replace a fold-specific selection, and final-test FeatureSets cannot enter the scope.
+
+Configured subset sizes are deterministic prefixes of P9-A `selection_rank`; P9-B never enumerates alternative combinations. Feature columns retain P3-C source-tone order. Each prefix is rechecked against frozen spacing and band quotas; a smaller prefix that cannot satisfy them is `policy_ineligible`, not silently relaxed. Derived FeatureSets are immutable column projections with complete source/derived content and contract hashes—no TXT/WAV/SpectrumData read, interpolation, smoothing or projection is repeated.
+
+P4 preservation calls the existing P4-A direction metrics and P4-B REPOS reliability functions on exactly matched broad/sparse cohorts. P5 stability calls the existing grouped fold predictor and reports fixed-label balanced accuracy, macro F1, coverage and confusion matrices. For each outer fold, minimum tone count is selected only from grouped inner-validation evidence using frozen P4 retention and P5 drop/coverage thresholds. The chosen prefix is then evaluated once on the outer held group; outer results cannot change ranking, weights, thresholds or the selected tone count.
+
+Run explicit persisted inputs:
+
+```powershell
+python scripts/run_projection_ablation.py --config <config.yaml> --scope <scope.json> --inputs <inputs.json> --candidate-universe <universe.json> --output-root outputs --run-id <run-id>
+```
+
+Run deterministic simulated validation:
+
+```powershell
+python scripts/run_projection_ablation_validation.py --config config/validation_dev_c13_p9b.yaml --output-root outputs --run-id <run-id>
+```
+
+The bundle writes scope/selection/subset/derived-feature audits, P4 preservation, inner P5 metrics, minimum-tone decisions, outer predictions/metrics, a nested summary and a self-hashed manifest. DEV-C13 is fixed to `simulated/software_validation`, `scientifically_eligible=false`, `deployment_eligible=false`, `canonical_analysis=false`, and `final_test_read=false`. A selected minimum is only a `software_validation_candidate`, never a real-experiment or deployment approval.
 
 ## P7 signal definition
 

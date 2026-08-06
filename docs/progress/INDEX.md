@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-C13 — P9-B Sweep projection ablation、P4 保真与 P5 稳定性 | 2026-08-06 | 完成 | [DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md](./DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md) | 本报告与实现同一提交（`feat(bridge): evaluate selected-tone projection fidelity`） |
 | DEV-B0 — 数据来源 schema 与 research hard gate | 2026-08-04 | 完成 | [DEV-B0_PROVENANCE_RESEARCH_GATE.md](./DEV-B0_PROVENANCE_RESEARCH_GATE.md) | `163ab40` |
 | DEV-B1 — P1 REW Frequency Response TXT 导入 | 2026-08-04 | 完成 | [DEV-B1_P1_REW_TXT_IMPORT.md](./DEV-B1_P1_REW_TXT_IMPORT.md) | `45719bf` |
 | DEV-B2 — P8-A 模拟同步与 tone 幅值恢复 | 2026-08-04 | 完成 | [DEV-B2_P8A_SYNC_AND_MAGNITUDE_RECOVERY.md](./DEV-B2_P8A_SYNC_AND_MAGNITUDE_RECOVERY.md) | `b2b8b05` |
@@ -23,4 +24,4 @@
 | DEV-C11 — P6-B 冻结校准约束下的 Multisine HR readout | 2026-08-06 | 完成 | [DEV-C11_P6B_MULTISINE_HR_READOUT.md](./DEV-C11_P6B_MULTISINE_HR_READOUT.md) | 本报告与实现同一提交（`feat(hr): add calibrated multisine HR readout`） |
 | DEV-C12 — P9-A 严格防数据泄漏的 tone 候选评分与选择冻结框架 | 2026-08-06 | 完成 | [DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md](./DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md) | 本报告与实现同一提交（`feat(bridge): add leakage-safe tone selection`） |
 
-当前科研资格边界：截至 DEV-C12，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2–P9-A 参数仍为 provisional；P5-B 封存 final_test，P6-A/P6-B 仍只允许模拟 software-validation，P9-A 模拟选择只能产生 `software_validation_only`、scientifically-ineligible、不可部署且不得解封 final-test 的 artifact。P9-B/P9-C/P9-D、真实 HR 数据/批准校准/阈值冻结尚未实现，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C13，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2–P9-B 参数仍为 provisional；P5-B 与 P9-B 均封存 final_test，P6-A/P6-B 仍只允许模拟 software-validation。P9-A 只能生成不可部署的 simulated selection，P9-B 的最小 tone 数只能是 `software_validation_candidate`。P9-C/P9-D、真实 HR 数据、批准校准和真实阈值冻结尚未实现，因此不能声明科研结论。
