@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.18 — leakage-safe tone selection (unreleased)
+
+- Incremented configuration schema to 2.17.0 and added a strict, disabled-by-default provisional P9-A eligibility, scoring, spacing and band-quota contract.
+- Added hash-identified candidate universe and selection scope, explicit persisted sweep tone-projection FeatureSet inputs, exact P2-B and optional P4-B links, fold-local training hashes, and sealed final-test policy.
+- Added auditable direction/CONT/REPOS/configuration/energy/repeatability/noise/excluded-band components, variance-ratio and weighted-rank scoring, and deterministic constrained greedy selection with a complete decision trace.
+- Added typed selected-tone-set lifecycle, stable CSV/JSON/hash bundles, explicit CLI, immutable output directories, CSV/JSON consistency checks, and deterministic simulated E2E validation.
+- Kept all DEV-C12 outputs `software_validation_only`, scientifically ineligible, non-deployable, and forbidden from final-test evaluation. P9-B/P9-C/P9-D and scientific conclusions remain closed.
+
 ## 2.0.0-dev.17 — calibrated multisine HR readout (unreleased)
 
 - Incremented configuration schema to 2.16.0 and FeatureSet schema to 2.3.0; added disabled-by-default provisional P6-B mapping, coverage, energy, fraction, phase, and uncertainty policy.

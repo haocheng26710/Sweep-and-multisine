@@ -166,8 +166,8 @@ def test_clock_drift_thresholds_must_be_finite_positive_and_ordered(
 
 def test_dev_c8_uses_incremented_pipeline_and_config_versions() -> None:
     assert SCHEMA_VERSION_QUARTET == {
-        "pipeline_version": "2.0.0-dev.17",
-        "config_schema_version": "2.16.0",
+        "pipeline_version": "2.0.0-dev.18",
+        "config_schema_version": "2.17.0",
         "measurement_schema_version": "2.4.0",
         "feature_schema_version": "2.3.0",
     }
@@ -204,8 +204,8 @@ def test_dev_c9_cross_mode_classification_contract_is_fixed() -> None:
         PROJECT_ROOT / "config" / "validation_dev_c9_cross_mode_classification.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
-    assert validation["pipeline_version"] == "2.0.0-dev.17"
-    assert validation["schema_versions"]["config"] == "2.16.0"
+    assert validation["pipeline_version"] == "2.0.0-dev.18"
+    assert validation["schema_versions"]["config"] == "2.17.0"
 
 
 def test_dev_c8_config_migrates_to_cross_mode_defaults_without_rewriting(tmp_path) -> None:
@@ -222,7 +222,7 @@ def test_dev_c8_config_migrates_to_cross_mode_defaults_without_rewriting(tmp_pat
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.16.0"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
     assert resolved["classification"]["cross_mode"]["p4b_bias_policy"] == "audit_only"
     assert any("2.13.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -685,7 +685,7 @@ def test_pre_dev_c1_config_versions_migrate_without_rewriting(
     )
 
     assert resolved["schema_versions"] == {
-        "config": "2.16.0",
+        "config": "2.17.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -711,7 +711,7 @@ def test_dev_c2_none_smoothing_migrates_explicitly_to_p3_b_schema(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.16.0"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
     assert resolved["preprocessing"]["schema_version"] == "1.1.0"
     assert resolved["preprocessing"]["smoothing_domain"] == "db"
     assert resolved["preprocessing"]["smoothing"] == {"method": "none"}
@@ -748,7 +748,7 @@ def test_dev_c3_explicit_smoothing_migrates_without_reinterpretation(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.16.0",
+        "config": "2.17.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -803,7 +803,7 @@ def test_dev_c4_config_migrates_to_direction_metrics_without_rewriting(
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
     assert resolved["schema_versions"] == {
-        "config": "2.16.0",
+        "config": "2.17.0",
         "measurement": "2.4.0",
         "feature": "2.3.0",
     }
@@ -925,7 +925,7 @@ def test_dev_c7_comparison_validation_config_resolves() -> None:
         PROJECT_ROOT / "config" / "validation_dev_c7_comparison_metrics.yaml",
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
-    assert resolved["schema_versions"]["config"] == "2.16.0"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
     assert resolved["comparison_metrics"]["provisional"] is True
     assert resolved["comparison_metrics"]["cross_mode"]["bias_sign"] == (
         "multisine_minus_sweep"
@@ -973,8 +973,8 @@ def test_dev_c6_config_migrates_to_p4b_defaults_without_rewriting(tmp_path) -> N
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.16.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.17"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.18"
     assert resolved["comparison_metrics"]["schema_version"] == "1.0.0"
     assert any("2.11.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -1009,8 +1009,8 @@ def test_dev_c5_config_migrates_to_p2b_defaults_without_rewriting(tmp_path) -> N
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
 
-    assert resolved["schema_versions"]["config"] == "2.16.0"
-    assert resolved["pipeline_version"] == "2.0.0-dev.17"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.18"
     assert resolved["dataset_quality_control"]["schema_version"] == "1.0.0"
     assert any("2.10.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
@@ -1050,8 +1050,8 @@ def test_dev_c10_hr_validation_config_is_explicit_and_provisional() -> None:
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
     hr = resolved["hr_calibration"]
-    assert resolved["pipeline_version"] == "2.0.0-dev.17"
-    assert resolved["schema_versions"]["config"] == "2.16.0"
+    assert resolved["pipeline_version"] == "2.0.0-dev.18"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
     assert hr["enabled"] is True
     assert hr["provisional"] is True
     assert [item["resonator_id"] for item in hr["resonators"]] == ["R1", "R2", "R3"]
@@ -1099,9 +1099,9 @@ def test_dev_c11_hr_readout_config_is_explicit_provisional_and_windowed() -> Non
         default_path=PROJECT_ROOT / "config" / "default.yaml",
     )
     readout = resolved["hr_readout"]
-    assert resolved["pipeline_version"] == "2.0.0-dev.17"
+    assert resolved["pipeline_version"] == "2.0.0-dev.18"
     assert resolved["schema_versions"] == {
-        "config": "2.16.0", "measurement": "2.4.0", "feature": "2.3.0"
+        "config": "2.17.0", "measurement": "2.4.0", "feature": "2.3.0"
     }
     assert readout["enabled"] is True
     assert readout["provisional"] is True
@@ -1125,8 +1125,60 @@ def test_dev_c10_config_migrates_to_disabled_p6b_without_rewriting(tmp_path) -> 
 
     resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
 
-    assert resolved["schema_versions"]["config"] == "2.16.0"
+    assert resolved["schema_versions"]["config"] == "2.17.0"
     assert resolved["schema_versions"]["feature"] == "2.3.0"
     assert resolved["hr_readout"]["enabled"] is False
     assert any("2.15.0" in item for item in resolved["_runtime"]["migration_warnings"])
     assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+def test_dev_c12_tone_selection_defaults_are_disabled_and_leakage_safe() -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+
+    selection = resolved["tone_selection"]
+    assert selection["enabled"] is False
+    assert selection["provisional"] is True
+    assert selection["scoring"]["optional_missing_policy"] == (
+        "renormalize_available_weights_with_warning"
+    )
+    assert selection["selection"]["allow_partial"] is False
+
+
+def test_dev_c11_config_migrates_to_disabled_p9a_without_rewriting(tmp_path) -> None:
+    path = tmp_path / "dev-c11.yaml"
+    payload = {
+        "pipeline_version": "2.0.0-dev.17",
+        "schema_versions": {
+            "config": "2.16.0", "measurement": "2.4.0", "feature": "2.3.0"
+        },
+        "measurement_mode": "rew_sweep",
+        "run_purpose": "software_validation",
+    }
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    resolved = load_config(path, default_path=PROJECT_ROOT / "config" / "default.yaml")
+
+    assert resolved["schema_versions"]["config"] == "2.17.0"
+    assert resolved["tone_selection"]["enabled"] is False
+    assert any("tone_selection.enabled=false" in item for item in resolved["_runtime"]["migration_warnings"])
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == payload
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda block: block["eligibility"].update(minimum_valid_sample_fraction=0.0),
+        lambda block: block["eligibility"].update(minimum_direction_count=1),
+        lambda block: block["eligibility"].update(excluded_bands_hz=[[1000, 2000], [1500, 2500]]),
+        lambda block: block["configuration_gain"].update(candidate_configuration="U4SYM"),
+        lambda block: block["scoring"]["components"]["between_direction_variance"].update(weight=-1.0),
+        lambda block: block["scoring"]["variance_ratio"].update(within_cont_weight=0.0, within_repos_weight=0.0),
+        lambda block: block["selection"].update(minimum_spacing_bins=0),
+        lambda block: block["selection"].update(band_quotas=[{"band_id": "a", "f_min_hz": 1000, "f_max_hz": 2000, "minimum_count": 1, "maximum_count": 2}, {"band_id": "b", "f_min_hz": 1500, "f_max_hz": 2500, "minimum_count": 1, "maximum_count": 2}]),
+    ],
+)
+def test_tone_selection_config_rejects_invalid_threshold_weight_and_quota_contracts(mutator) -> None:
+    resolved = load_config(PROJECT_ROOT / "config" / "default.yaml")
+    mutator(resolved["tone_selection"])
+    with pytest.raises(ConfigError, match="tone_selection"):
+        validate_config(resolved)

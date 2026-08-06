@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.17
+pipeline_version: 2.0.0-dev.18
 schema_versions:
-  config: 2.16.0
+  config: 2.17.0
   measurement: 2.4.0
   feature: 2.3.0
 
@@ -42,6 +42,53 @@ matched_tone_features:
     minimum_std_db: 1.0e-9
   matching:
     minimum_common_valid_tones: 5
+
+tone_selection:
+  schema_version: 1.0.0
+  enabled: false
+  provisional: true
+  eligibility:
+    analysis_band_hz: [1000, 8000]
+    edge_guard_hz: 0
+    minimum_valid_sample_fraction: 0.8
+    minimum_direction_count: 4
+    minimum_cont_pairs: 1
+    minimum_repos_pairs: 1
+    effective_energy_range_db: [-120, 160]
+    excluded_bands_hz: []
+    excluded_band_safety_distance_hz: 0
+  configuration_gain:
+    baseline_configuration: U4SYM
+    candidate_configuration: U4ENC
+    epsilon_db_squared: 1.0e-12
+  reliability:
+    minimum_pairs_per_tone: 1
+    snr_target_db: 30
+    stability_scale_db: 1
+    noise_scale_db: 10
+  scoring:
+    method: weighted_rank_sum
+    epsilon_db_squared: 1.0e-12
+    optional_missing_policy: renormalize_available_weights_with_warning
+    tie_method: average
+    components:
+      between_direction_variance: {required: true, direction: higher, weight: 2.0}
+      within_cont_variance: {required: true, direction: lower, weight: 1.0}
+      within_repos_variance: {required: true, direction: lower, weight: 1.0}
+      configuration_gain: {required: true, direction: higher, weight: 1.0}
+      sweep_repeatability: {required: false, direction: lower, weight: 0.5}
+      effective_energy_margin: {required: true, direction: higher, weight: 0.5}
+      instability_noise_penalty: {required: false, direction: lower, weight: 0.25}
+      excluded_band_proximity: {required: false, direction: lower, weight: 0.25}
+    variance_ratio:
+      within_cont_weight: 1.0
+      within_repos_weight: 1.0
+  selection:
+    target_count: 8
+    minimum_spacing_hz: 100
+    minimum_spacing_bins: 1
+    allow_partial: false
+    band_quotas: []
 
 direction_metrics:
   schema_version: 1.0.0

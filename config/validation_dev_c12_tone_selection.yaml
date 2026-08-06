@@ -1,0 +1,61 @@
+pipeline_version: 2.0.0-dev.18
+schema_versions:
+  config: 2.17.0
+  measurement: 2.4.0
+  feature: 2.3.0
+
+measurement_mode: rew_sweep
+run_purpose: software_validation
+random_state: 20260806
+
+dataset_quality_control:
+  same_condition_outliers:
+    minimum_reference_samples: 3
+  repeatability:
+    thresholds_by_feature_kind:
+      tone_projection_from_sweep:
+        units: dB
+        CONT: {warning_above: 100, exclude_candidate_above: 200}
+        REPOS: {warning_above: 100, exclude_candidate_above: 200}
+        REASM: {warning_above: 100, exclude_candidate_above: 200}
+  aggregation:
+    required_unavailable_policy: preserve
+    canonical_allowed_statuses: [valid, warning]
+    canonical_block_on_required_unavailable: false
+    canonical_block_on_manual_review: true
+
+tone_selection:
+  enabled: true
+  eligibility:
+    analysis_band_hz: [1000, 8000]
+    edge_guard_hz: 0
+    minimum_valid_sample_fraction: 1.0
+    minimum_direction_count: 4
+    minimum_cont_pairs: 4
+    minimum_repos_pairs: 4
+    effective_energy_range_db: [-120, 120]
+    excluded_bands_hz:
+      - [3400, 3600]
+    excluded_band_safety_distance_hz: 200
+  scoring:
+    method: variance_ratio
+    components:
+      between_direction_variance: {required: true, direction: higher, weight: 2.0}
+      within_cont_variance: {required: true, direction: lower, weight: 1.0}
+      within_repos_variance: {required: true, direction: lower, weight: 1.0}
+      configuration_gain: {required: true, direction: higher, weight: 1.0}
+      sweep_repeatability: {required: false, direction: lower, weight: 0.5}
+      effective_energy_margin: {required: true, direction: higher, weight: 0.5}
+      instability_noise_penalty: {required: false, direction: lower, weight: 0.25}
+      excluded_band_proximity: {required: false, direction: lower, weight: 0.25}
+    variance_ratio:
+      within_cont_weight: 1.0
+      within_repos_weight: 1.0
+  selection:
+    target_count: 5
+    minimum_spacing_hz: 800
+    minimum_spacing_bins: 50
+    allow_partial: false
+    band_quotas:
+      - {band_id: low, f_min_hz: 1000, f_max_hz: 3499, minimum_count: 2, maximum_count: 3}
+      - {band_id: high, f_min_hz: 3601, f_max_hz: 8000, minimum_count: 2, maximum_count: 3}

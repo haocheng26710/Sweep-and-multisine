@@ -52,6 +52,58 @@ _MATCHED_TONE_DEFAULTS: dict[str, Any] = {
     "matching": {"minimum_common_valid_tones": 5},
 }
 
+_TONE_SELECTION_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "eligibility": {
+        "analysis_band_hz": [1000.0, 8000.0],
+        "edge_guard_hz": 0.0,
+        "minimum_valid_sample_fraction": 0.8,
+        "minimum_direction_count": 4,
+        "minimum_cont_pairs": 1,
+        "minimum_repos_pairs": 1,
+        "effective_energy_range_db": [-120.0, 160.0],
+        "excluded_bands_hz": [],
+        "excluded_band_safety_distance_hz": 0.0,
+    },
+    "configuration_gain": {
+        "baseline_configuration": "U4SYM",
+        "candidate_configuration": "U4ENC",
+        "epsilon_db_squared": 1.0e-12,
+    },
+    "reliability": {
+        "minimum_pairs_per_tone": 1,
+        "snr_target_db": 30.0,
+        "stability_scale_db": 1.0,
+        "noise_scale_db": 10.0,
+    },
+    "scoring": {
+        "method": "weighted_rank_sum",
+        "epsilon_db_squared": 1.0e-12,
+        "optional_missing_policy": "renormalize_available_weights_with_warning",
+        "tie_method": "average",
+        "components": {
+            "between_direction_variance": {"required": True, "direction": "higher", "weight": 2.0},
+            "within_cont_variance": {"required": True, "direction": "lower", "weight": 1.0},
+            "within_repos_variance": {"required": True, "direction": "lower", "weight": 1.0},
+            "configuration_gain": {"required": True, "direction": "higher", "weight": 1.0},
+            "sweep_repeatability": {"required": False, "direction": "lower", "weight": 0.5},
+            "effective_energy_margin": {"required": True, "direction": "higher", "weight": 0.5},
+            "instability_noise_penalty": {"required": False, "direction": "lower", "weight": 0.25},
+            "excluded_band_proximity": {"required": False, "direction": "lower", "weight": 0.25},
+        },
+        "variance_ratio": {"within_cont_weight": 1.0, "within_repos_weight": 1.0},
+    },
+    "selection": {
+        "target_count": 8,
+        "minimum_spacing_hz": 100.0,
+        "minimum_spacing_bins": 1,
+        "allow_partial": False,
+        "band_quotas": [],
+    },
+}
+
 _DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
     "schema_version": "1.0.0",
     "provisional": True,
@@ -343,6 +395,13 @@ def load_config(
         _MATCHED_TONE_DEFAULTS,
         supplied_matched_tones,
     )
+    supplied_tone_selection = resolved.get("tone_selection", {})
+    if not isinstance(supplied_tone_selection, Mapping):
+        raise ConfigError("tone_selection must be a mapping")
+    resolved["tone_selection"] = deep_merge(
+        _TONE_SELECTION_DEFAULTS,
+        supplied_tone_selection,
+    )
     supplied_direction_metrics = resolved.get("direction_metrics", {})
     if not isinstance(supplied_direction_metrics, Mapping):
         raise ConfigError("direction_metrics must be a mapping")
@@ -406,6 +465,7 @@ def load_config(
         ("2.13.0", "2.4.0", "2.2.0"),
         ("2.14.0", "2.4.0", "2.2.0"),
         ("2.15.0", "2.4.0", "2.2.0"),
+        ("2.16.0", "2.4.0", "2.3.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -430,6 +490,11 @@ def load_config(
             f"to config schema {CONFIG_SCHEMA_VERSION} and measurement schema "
             f"{MEASUREMENT_SCHEMA_VERSION}; the source YAML was not modified."
         )
+        if old_config_version == "2.16.0":
+            migration_warnings.append(
+                "DEV-C11 config was migrated with tone_selection.enabled=false; "
+                "P9-A is never enabled silently and the source YAML was not modified."
+            )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
         resolved.get("measurement_mode", MeasurementMode.REW_SWEEP.value)
@@ -482,6 +547,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     preprocessing = config.get("preprocessing")
     validate_preprocessing_config(preprocessing)
     validate_matched_tone_config(config.get("matched_tone_features"))
+    validate_tone_selection_config(config.get("tone_selection"))
     validate_direction_metrics_config(config.get("direction_metrics"))
     validate_dataset_quality_control_config(config.get("dataset_quality_control"))
     validate_comparison_metrics_config(config.get("comparison_metrics"))
@@ -1752,3 +1818,103 @@ def validate_stimulus_config(stimulus: Mapping[str, Any]) -> None:
             raise ConfigError("preamble chirp frequencies must lie below Nyquist")
         if float(preamble.get("duration_s", 0)) <= 0:
             raise ConfigError("preamble chirp duration_s must be positive")
+
+
+def validate_tone_selection_config(value: Any) -> None:
+    """Validate the complete provisional P9-A contract."""
+    if not isinstance(value, Mapping):
+        raise ConfigError("tone_selection must be a mapping")
+    if set(value) != {
+        "schema_version", "enabled", "provisional", "eligibility",
+        "configuration_gain", "reliability", "scoring", "selection",
+    }:
+        raise ConfigError("tone_selection fields are incomplete or ambiguous")
+    if value["schema_version"] != "1.0.0" or not isinstance(value["enabled"], bool) or not isinstance(value["provisional"], bool):
+        raise ConfigError("tone_selection requires schema 1.0.0 and boolean enabled/provisional")
+
+    def finite(item: Any, *, positive: bool = False, nonnegative: bool = False) -> bool:
+        if isinstance(item, bool) or not isinstance(item, (int, float)) or not np.isfinite(item):
+            return False
+        return (not positive or item > 0) and (not nonnegative or item >= 0)
+
+    eligibility = value["eligibility"]
+    if not isinstance(eligibility, Mapping) or set(eligibility) != {
+        "analysis_band_hz", "edge_guard_hz", "minimum_valid_sample_fraction",
+        "minimum_direction_count", "minimum_cont_pairs", "minimum_repos_pairs",
+        "effective_energy_range_db", "excluded_bands_hz", "excluded_band_safety_distance_hz",
+    }:
+        raise ConfigError("tone_selection.eligibility fields are incomplete")
+    for name in ("analysis_band_hz", "effective_energy_range_db"):
+        limits = eligibility[name]
+        if not isinstance(limits, list) or len(limits) != 2 or not all(finite(item) for item in limits) or not limits[0] < limits[1]:
+            raise ConfigError(f"tone_selection {name} must be finite and increasing")
+    fraction = eligibility["minimum_valid_sample_fraction"]
+    if not finite(fraction, positive=True) or fraction > 1:
+        raise ConfigError("tone_selection minimum_valid_sample_fraction must be in (0, 1]")
+    for name, minimum in (("minimum_direction_count", 2), ("minimum_cont_pairs", 0), ("minimum_repos_pairs", 0)):
+        item = eligibility[name]
+        if isinstance(item, bool) or not isinstance(item, int) or item < minimum:
+            raise ConfigError(f"tone_selection {name} is invalid")
+    if not finite(eligibility["edge_guard_hz"], nonnegative=True) or not finite(eligibility["excluded_band_safety_distance_hz"], nonnegative=True):
+        raise ConfigError("tone_selection edge/excluded-band distance is invalid")
+    excluded = eligibility["excluded_bands_hz"]
+    if not isinstance(excluded, list):
+        raise ConfigError("tone_selection excluded_bands_hz must be a list")
+    ranges: list[tuple[float, float]] = []
+    for band in excluded:
+        if not isinstance(band, list) or len(band) != 2 or not all(finite(item) for item in band) or not band[0] < band[1]:
+            raise ConfigError("tone_selection excluded band is invalid")
+        ranges.append((float(band[0]), float(band[1])))
+    if any(max(a[0], b[0]) < min(a[1], b[1]) for index, a in enumerate(ranges) for b in ranges[index + 1:]):
+        raise ConfigError("tone_selection excluded bands must not overlap")
+
+    gain = value["configuration_gain"]
+    if not isinstance(gain, Mapping) or set(gain) != {"baseline_configuration", "candidate_configuration", "epsilon_db_squared"} or not str(gain.get("baseline_configuration", "")).strip() or not str(gain.get("candidate_configuration", "")).strip() or gain["baseline_configuration"] == gain["candidate_configuration"] or not finite(gain["epsilon_db_squared"], positive=True):
+        raise ConfigError("tone_selection configuration_gain is invalid")
+    reliability = value["reliability"]
+    if not isinstance(reliability, Mapping) or set(reliability) != {"minimum_pairs_per_tone", "snr_target_db", "stability_scale_db", "noise_scale_db"}:
+        raise ConfigError("tone_selection reliability fields are incomplete")
+    if isinstance(reliability["minimum_pairs_per_tone"], bool) or not isinstance(reliability["minimum_pairs_per_tone"], int) or reliability["minimum_pairs_per_tone"] < 1 or not finite(reliability["snr_target_db"]) or not finite(reliability["stability_scale_db"], positive=True) or not finite(reliability["noise_scale_db"], positive=True):
+        raise ConfigError("tone_selection reliability fields are invalid")
+
+    scoring = value["scoring"]
+    if not isinstance(scoring, Mapping) or set(scoring) != {"method", "epsilon_db_squared", "optional_missing_policy", "tie_method", "components", "variance_ratio"}:
+        raise ConfigError("tone_selection scoring fields are incomplete")
+    if scoring["method"] not in {"variance_ratio", "weighted_rank_sum"} or scoring["tie_method"] != "average" or scoring["optional_missing_policy"] != "renormalize_available_weights_with_warning" or not finite(scoring["epsilon_db_squared"], positive=True):
+        raise ConfigError("tone_selection scoring policy is invalid")
+    expected_components = {
+        "between_direction_variance", "within_cont_variance", "within_repos_variance",
+        "configuration_gain", "sweep_repeatability", "effective_energy_margin",
+        "instability_noise_penalty", "excluded_band_proximity",
+    }
+    components = scoring["components"]
+    if not isinstance(components, Mapping) or set(components) != expected_components:
+        raise ConfigError("tone_selection scoring components are incomplete")
+    total_weight = 0.0
+    for component_id, definition in components.items():
+        if not isinstance(definition, Mapping) or set(definition) != {"required", "direction", "weight"} or not isinstance(definition["required"], bool) or definition["direction"] not in {"higher", "lower"} or not finite(definition["weight"], nonnegative=True):
+            raise ConfigError(f"tone_selection component {component_id} is invalid")
+        total_weight += float(definition["weight"])
+    if total_weight <= 0:
+        raise ConfigError("tone_selection component weights must sum above zero")
+    ratio = scoring["variance_ratio"]
+    if not isinstance(ratio, Mapping) or set(ratio) != {"within_cont_weight", "within_repos_weight"} or not all(finite(item, nonnegative=True) for item in ratio.values()) or sum(float(item) for item in ratio.values()) <= 0:
+        raise ConfigError("tone_selection variance-ratio weights are invalid")
+
+    selection = value["selection"]
+    if not isinstance(selection, Mapping) or set(selection) != {"target_count", "minimum_spacing_hz", "minimum_spacing_bins", "allow_partial", "band_quotas"}:
+        raise ConfigError("tone_selection selection fields are incomplete")
+    if isinstance(selection["target_count"], bool) or not isinstance(selection["target_count"], int) or selection["target_count"] < 1 or isinstance(selection["minimum_spacing_bins"], bool) or not isinstance(selection["minimum_spacing_bins"], int) or selection["minimum_spacing_bins"] < 1 or not finite(selection["minimum_spacing_hz"], nonnegative=True) or not isinstance(selection["allow_partial"], bool):
+        raise ConfigError("tone_selection target/spacing/partial fields are invalid")
+    quotas = selection["band_quotas"]
+    if not isinstance(quotas, list):
+        raise ConfigError("tone_selection band_quotas must be a list")
+    ids: set[str] = set()
+    quota_ranges: list[tuple[float, float]] = []
+    for quota in quotas:
+        if not isinstance(quota, Mapping) or set(quota) != {"band_id", "f_min_hz", "f_max_hz", "minimum_count", "maximum_count"} or not str(quota.get("band_id", "")).strip() or str(quota["band_id"]) in ids or not finite(quota["f_min_hz"], positive=True) or not finite(quota["f_max_hz"], positive=True) or not quota["f_min_hz"] < quota["f_max_hz"] or any(isinstance(quota[name], bool) or not isinstance(quota[name], int) for name in ("minimum_count", "maximum_count")) or not 0 <= quota["minimum_count"] <= quota["maximum_count"]:
+            raise ConfigError("tone_selection band quota is invalid")
+        ids.add(str(quota["band_id"]))
+        quota_ranges.append((float(quota["f_min_hz"]), float(quota["f_max_hz"])))
+    if any(max(a[0], b[0]) < min(a[1], b[1]) for index, a in enumerate(quota_ranges) for b in quota_ranges[index + 1:]):
+        raise ConfigError("tone_selection band quotas must not overlap")
