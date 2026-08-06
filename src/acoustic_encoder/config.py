@@ -231,6 +231,20 @@ _CLASSIFICATION_DEFAULTS: dict[str, Any] = {
     },
 }
 
+_HR_CALIBRATION_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "input_feature_kind": "dense_raw_spl",
+    "normalization": "none",
+    "peak_algorithm": "scipy_topographic_prominence",
+    "peak_selection_rule": "prominence_then_magnitude_then_lowest_frequency",
+    "search_band_overlap_policy": "reject",
+    "drift": {"minimum_valid_peaks": 2, "reference": "median_peak_frequency"},
+    "energy_fraction": {"missing_resonator_policy": "require_all", "sum_tolerance": 1.0e-12},
+    "resonators": [],
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -325,6 +339,10 @@ def load_config(
         _CLASSIFICATION_DEFAULTS,
         supplied_classification,
     )
+    supplied_hr = resolved.get("hr_calibration", {})
+    if not isinstance(supplied_hr, Mapping):
+        raise ConfigError("hr_calibration must be a mapping")
+    resolved["hr_calibration"] = deep_merge(_HR_CALIBRATION_DEFAULTS, supplied_hr)
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -350,6 +368,7 @@ def load_config(
         ("2.11.0", "2.4.0", "2.2.0"),
         ("2.12.0", "2.4.0", "2.2.0"),
         ("2.13.0", "2.4.0", "2.2.0"),
+        ("2.14.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -430,6 +449,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_dataset_quality_control_config(config.get("dataset_quality_control"))
     validate_comparison_metrics_config(config.get("comparison_metrics"))
     validate_classification_config(config.get("classification"))
+    validate_hr_calibration_config(config.get("hr_calibration"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -849,6 +869,105 @@ def validate_classification_config(value: Any) -> None:
         raise ConfigError("classification P4-B bias must remain audit_only")
     if cross_mode.get("calibration_policy") != "disabled":
         raise ConfigError("classification cross-mode calibration must remain disabled")
+
+
+def validate_hr_calibration_config(value: Any) -> None:
+    """Validate the complete provisional P6-A sweep calibration contract."""
+    if not isinstance(value, Mapping):
+        raise ConfigError("hr_calibration must be a mapping")
+    required = {
+        "schema_version", "enabled", "provisional", "input_feature_kind",
+        "normalization", "peak_algorithm", "peak_selection_rule",
+        "search_band_overlap_policy", "drift", "energy_fraction", "resonators",
+    }
+    if set(value) != required:
+        raise ConfigError("hr_calibration fields are incomplete or ambiguous")
+    if value.get("schema_version") != "1.0.0" or not isinstance(value.get("enabled"), bool) or not isinstance(value.get("provisional"), bool):
+        raise ConfigError("hr_calibration requires schema 1.0.0 and boolean enabled/provisional")
+    if value.get("input_feature_kind") != "dense_raw_spl" or value.get("normalization") != "none":
+        raise ConfigError("hr_calibration accepts only unnormalized dense_raw_spl")
+    if value.get("peak_algorithm") != "scipy_topographic_prominence":
+        raise ConfigError("unsupported HR peak algorithm")
+    if value.get("peak_selection_rule") != "prominence_then_magnitude_then_lowest_frequency":
+        raise ConfigError("unsupported HR peak selection rule")
+    if value.get("search_band_overlap_policy") != "reject":
+        raise ConfigError("HR search band overlap policy must be reject")
+    drift = value.get("drift")
+    if not isinstance(drift, Mapping) or set(drift) != {"minimum_valid_peaks", "reference"}:
+        raise ConfigError("hr_calibration.drift fields are incomplete")
+    minimum_peaks = drift.get("minimum_valid_peaks")
+    if isinstance(minimum_peaks, bool) or not isinstance(minimum_peaks, int) or minimum_peaks < 2:
+        raise ConfigError("HR drift minimum_valid_peaks must be an integer >= 2")
+    if drift.get("reference") != "median_peak_frequency":
+        raise ConfigError("HR drift reference must be median_peak_frequency")
+    fraction = value.get("energy_fraction")
+    if not isinstance(fraction, Mapping) or set(fraction) != {"missing_resonator_policy", "sum_tolerance"}:
+        raise ConfigError("hr_calibration.energy_fraction fields are incomplete")
+    if fraction.get("missing_resonator_policy") not in {"require_all", "allow_partial"}:
+        raise ConfigError("unsupported HR missing resonator policy")
+    if _finite_number(fraction, "sum_tolerance", "HR energy fraction tolerance") <= 0.0:
+        raise ConfigError("HR energy fraction tolerance must be positive")
+    resonators = value.get("resonators")
+    if not isinstance(resonators, list):
+        raise ConfigError("hr_calibration.resonators must be a list")
+    if value["enabled"] and not resonators:
+        raise ConfigError("enabled hr_calibration requires resonators")
+    ids: list[str] = []
+    bands: list[tuple[float, float, str]] = []
+    required_resonator = {
+        "module_id", "resonator_id", "design_target_hz", "search_min_hz",
+        "search_max_hz", "boundary", "minimum_prominence_db",
+        "minimum_peak_distance_hz", "minimum_valid_points", "peak_selection_rule",
+        "bandwidth_drop_db", "integration",
+    }
+    for item in resonators:
+        if not isinstance(item, Mapping) or set(item) != required_resonator:
+            raise ConfigError("HR resonator fields are incomplete or ambiguous")
+        resonator_id = str(item.get("resonator_id", ""))
+        if not resonator_id or not str(item.get("module_id", "")):
+            raise ConfigError("HR module/resonator IDs are required")
+        ids.append(resonator_id)
+        low = _finite_number(item, "search_min_hz", "HR search minimum")
+        high = _finite_number(item, "search_max_hz", "HR search maximum")
+        if low < 0.0 or low >= high:
+            raise ConfigError("HR search bounds must be increasing")
+        boundary = str(item.get("boundary"))
+        if boundary not in {"closed", "open", "left_closed_right_open", "left_open_right_closed"}:
+            raise ConfigError("unsupported HR search boundary")
+        bands.append((low, high, resonator_id))
+        target = item.get("design_target_hz")
+        if target is not None and (isinstance(target, bool) or not np.isfinite(float(target)) or float(target) <= 0.0):
+            raise ConfigError("HR design target must be null or positive finite")
+        if _finite_number(item, "minimum_prominence_db", "HR minimum prominence") < 0.0:
+            raise ConfigError("HR minimum prominence cannot be negative")
+        for key in ("minimum_peak_distance_hz", "bandwidth_drop_db"):
+            if _finite_number(item, key, f"HR {key}") <= 0.0:
+                raise ConfigError(f"HR {key} must be positive")
+        minimum_points = item.get("minimum_valid_points")
+        if isinstance(minimum_points, bool) or not isinstance(minimum_points, int) or minimum_points < 3:
+            raise ConfigError("HR minimum_valid_points must be an integer >= 3")
+        if item.get("peak_selection_rule") != value.get("peak_selection_rule"):
+            raise ConfigError("HR resonator selection rule must match global rule")
+        integration = item.get("integration")
+        if not isinstance(integration, Mapping):
+            raise ConfigError("HR integration configuration is required")
+        method = integration.get("method")
+        expected_fields = {"method", "minimum_coverage_fraction"}
+        if method == "fixed_half_width_around_measured_peak":
+            expected_fields.add("half_width_hz")
+        if set(integration) != expected_fields or method not in {"measured_3db_band", "fixed_half_width_around_measured_peak"}:
+            raise ConfigError("HR integration fields are ambiguous")
+        coverage = _finite_number(integration, "minimum_coverage_fraction", "HR integration coverage")
+        if not 0.0 < coverage <= 1.0:
+            raise ConfigError("HR integration coverage must lie in (0, 1]")
+        if method == "fixed_half_width_around_measured_peak" and _finite_number(integration, "half_width_hz", "HR integration half width") <= 0.0:
+            raise ConfigError("HR integration half width must be positive")
+    if len(ids) != len(set(ids)):
+        raise ConfigError("HR resonator IDs must be unique")
+    ordered = sorted(bands)
+    for left, right in zip(ordered, ordered[1:]):
+        if right[0] < left[1]:
+            raise ConfigError(f"HR search bands overlap: {left[2]}, {right[2]}")
 
 
 def validate_dataset_quality_control_config(value: Any) -> None:

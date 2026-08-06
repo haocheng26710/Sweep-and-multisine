@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.16 — P6-A auditable sweep resonance calibration (unreleased)
+
+- Incremented configuration schema to 2.15.0 and added a strict, disabled-by-default provisional HR calibration contract with explicit per-resonator search, bandwidth, integration, drift, and energy-fraction rules.
+- Added hash-identified `HRCalibrationScope`, explicit persisted dense-FeatureSet inputs, exact canonical-ready P2-B linkage, pooling/final-test/provenance gates, and no directory or raw-data discovery.
+- Added deterministic prominence-based peak selection, interpolated half-power bandwidth/Q, CONT/REPOS/REASM drift, measured-band overlap, linear-power integration, and complete/partial `q_i` handling without crossing invalid gaps.
+- Added typed calibration lifecycle state, stable CSV/JSON/PNG outputs, exact file and manifest hashes, round-trip verification, explicit/failure CLI paths, and deterministic simulated E2E validation.
+- Kept DEV-C10 outputs `software_validation_only`, unfrozen, and scientifically ineligible. P6-B, `hr_band_energy`, P9, real threshold freezing, final-test evaluation, and scientific conclusions remain closed.
+
 ## 2.0.0-dev.15 — P5-B leakage-safe four-protocol cross-mode validation (unreleased)
 
 - Incremented configuration schema to 2.14.0 and added fixed cross-mode protocols, allowed shape normalizations, sample-pooled mixed training, audit-only P4-B bias, disabled calibration, and sealed final-test policy.

@@ -1,0 +1,71 @@
+pipeline_version: 2.0.0-dev.16
+schema_versions:
+  config: 2.15.0
+  measurement: 2.4.0
+  feature: 2.2.0
+
+measurement_mode: rew_sweep
+run_purpose: software_validation
+random_state: 20260806
+
+hr_calibration:
+  schema_version: 1.0.0
+  enabled: true
+  provisional: true
+  input_feature_kind: dense_raw_spl
+  normalization: none
+  peak_algorithm: scipy_topographic_prominence
+  peak_selection_rule: prominence_then_magnitude_then_lowest_frequency
+  search_band_overlap_policy: reject
+  drift:
+    minimum_valid_peaks: 2
+    reference: median_peak_frequency
+  energy_fraction:
+    missing_resonator_policy: require_all
+    sum_tolerance: 1.0e-12
+  resonators:
+    - module_id: simulated_hr_module
+      resonator_id: R1
+      design_target_hz: 1480.0
+      search_min_hz: 1350.0
+      search_max_hz: 1600.0
+      boundary: left_closed_right_open
+      minimum_prominence_db: 1.5
+      minimum_peak_distance_hz: 20.0
+      minimum_valid_points: 5
+      peak_selection_rule: prominence_then_magnitude_then_lowest_frequency
+      bandwidth_drop_db: 3.010299956639812
+      integration:
+        method: fixed_half_width_around_measured_peak
+        half_width_hz: 30.0
+        minimum_coverage_fraction: 1.0
+    - module_id: simulated_hr_module
+      resonator_id: R2
+      design_target_hz: 1680.0
+      search_min_hz: 1600.0
+      search_max_hz: 1950.0
+      boundary: left_closed_right_open
+      minimum_prominence_db: 0.4
+      minimum_peak_distance_hz: 20.0
+      minimum_valid_points: 5
+      peak_selection_rule: prominence_then_magnitude_then_lowest_frequency
+      bandwidth_drop_db: 3.010299956639812
+      integration:
+        method: fixed_half_width_around_measured_peak
+        half_width_hz: 30.0
+        minimum_coverage_fraction: 1.0
+    - module_id: simulated_hr_module
+      resonator_id: R3
+      design_target_hz: 2250.0
+      search_min_hz: 1950.0
+      search_max_hz: 2400.0
+      boundary: closed
+      minimum_prominence_db: 0.4
+      minimum_peak_distance_hz: 20.0
+      minimum_valid_points: 5
+      peak_selection_rule: prominence_then_magnitude_then_lowest_frequency
+      bandwidth_drop_db: 3.010299956639812
+      integration:
+        method: fixed_half_width_around_measured_peak
+        half_width_hz: 30.0
+        minimum_coverage_fraction: 1.0

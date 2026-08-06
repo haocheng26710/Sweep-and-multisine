@@ -6,7 +6,6 @@ from dataclasses import dataclass, replace
 import hashlib
 import itertools
 import json
-import re
 from typing import Any, Literal, Mapping, Sequence
 
 import numpy as np
@@ -37,6 +36,7 @@ from .schemas import FeatureKind, FeatureSet, MeasurementMode
 from .schemas import QCStatus
 from .research_gate import RunPurpose
 from .tone_features import ToneFeatureConstructionError, assert_matched_tone_schema
+from .feature_axis import FeatureAxisError, feature_frequencies_hz as _shared_feature_frequencies_hz
 
 
 BandBoundary = Literal[
@@ -61,31 +61,12 @@ def _canonical_sha256(payload: Mapping[str, Any]) -> str:
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
-_DENSE_FREQUENCY_NAME = re.compile(r"^f_([0-9]+(?:\.[0-9]+)?)_hz$")
-_TONE_FREQUENCY_NAME = re.compile(
-    r"^tone_[0-9]{6}_([0-9]+(?:\.[0-9]+)?)_hz$"
-)
-
-
 def feature_frequencies_hz(feature_names: tuple[str, ...]) -> NDArray[np.float64]:
     """Parse only the two authoritative P3 dense/tone feature-name formats."""
-    frequencies: list[float] = []
-    for name in feature_names:
-        match = _DENSE_FREQUENCY_NAME.fullmatch(name) or _TONE_FREQUENCY_NAME.fullmatch(
-            name
-        )
-        if match is None:
-            raise ComparisonMetricsInputError(
-                f"FeatureSet frequency name is not authoritative: {name!r}"
-            )
-        frequencies.append(float(match.group(1)))
-    array = np.asarray(frequencies, dtype=np.float64)
-    if array.size == 0 or np.any(~np.isfinite(array)) or np.any(np.diff(array) <= 0.0):
-        raise ComparisonMetricsInputError(
-            "FeatureSet frequencies must be non-empty and strictly increasing"
-        )
-    array.setflags(write=False)
-    return array
+    try:
+        return _shared_feature_frequencies_hz(feature_names)
+    except FeatureAxisError as exc:
+        raise ComparisonMetricsInputError(str(exc)) from exc
 
 
 @dataclass(frozen=True, slots=True)

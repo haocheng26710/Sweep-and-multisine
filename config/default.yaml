@@ -1,6 +1,6 @@
-pipeline_version: 2.0.0-dev.15
+pipeline_version: 2.0.0-dev.16
 schema_versions:
-  config: 2.14.0
+  config: 2.15.0
   measurement: 2.4.0
   feature: 2.2.0
 
@@ -167,6 +167,23 @@ classification:
     class_weighting: balanced
     p4b_bias_policy: audit_only
     calibration_policy: disabled
+
+hr_calibration:
+  schema_version: 1.0.0
+  enabled: false
+  provisional: true
+  input_feature_kind: dense_raw_spl
+  normalization: none
+  peak_algorithm: scipy_topographic_prominence
+  peak_selection_rule: prominence_then_magnitude_then_lowest_frequency
+  search_band_overlap_policy: reject
+  drift:
+    minimum_valid_peaks: 2
+    reference: median_peak_frequency
+  energy_fraction:
+    missing_resonator_policy: require_all
+    sum_tolerance: 1.0e-12
+  resonators: []
 
 quality_control:
   schema_version: 1.0.0

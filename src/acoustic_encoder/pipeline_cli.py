@@ -48,8 +48,9 @@ def pipeline_main(
                 "P3-A/P3-B. P2-B requires an explicit dataset scope and input "
                 "manifest; canonical P4-A additionally requires the matching "
                 "P2-B result/hash. P4-B requires its explicit comparison scope; "
-                "P5-A/P5-B require explicit classification scopes; P6/P9 "
-                "remain not implemented.",
+                "P5-A/P5-B require explicit classification scopes; P6-A "
+                "requires an explicit HR calibration scope; P6-B/P9 remain "
+                "not implemented.",
                 file=sys.stderr,
             )
         return 0
@@ -90,7 +91,8 @@ def pipeline_main(
         "P2-B requires an explicit dataset scope and canonical P4-A requires "
         "the matching P2-B result/hash. P4-B requires its explicit comparison "
         "scope; P5-A/P5-B require explicit classification scopes, while "
-        "P6/P9 remain not implemented.",
+        "P6-A requires an explicit HR calibration scope and P6-B/P9 remain "
+        "not implemented.",
         file=sys.stderr,
     )
     if result.processing_status == "completed" and result.success:
