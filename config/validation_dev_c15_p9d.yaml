@@ -1,0 +1,42 @@
+pipeline_version: 2.0.0-dev.21
+schema_versions:
+  config: 2.20.0
+  measurement: 2.4.0
+  feature: 2.3.0
+
+measurement_mode: schroeder_multisine
+run_purpose: software_validation
+random_state: 20260806
+
+matched_tone_features:
+  schema_version: 1.0.0
+  provisional: true
+  tone_ordering: manifest_tone_index
+  sweep_extraction:
+    method: single_point_linear
+  normalization:
+    method: subtract_mean_db
+    minimum_valid_tones: 3
+    minimum_std_db: 1.0e-9
+  matching:
+    minimum_common_valid_tones: 3
+
+offline_fast_readout:
+  schema_version: 1.0.0
+  enabled: true
+  provisional: true
+  model:
+    model_id: nearest_centroid
+    model_domain: multisine
+    valid_mask_policy: require_all_frozen_features
+    tie_break: configured_direction_order
+  calibration:
+    mode: disabled
+    required_on_domain_mismatch: true
+  qc:
+    required_tone_coverage: 1.0
+    phase_policy: magnitude_only_warning
+    p8_warning_action: warning
+    p8_exclude_candidate_action: invalid
+  final_test_policy: sealed
+  output_overwrite: reject

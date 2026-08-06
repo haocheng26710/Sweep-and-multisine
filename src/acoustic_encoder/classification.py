@@ -8,7 +8,6 @@ import json
 from typing import Any, Mapping, Sequence
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
@@ -16,7 +15,6 @@ from sklearn.metrics import (
     f1_score,
     precision_recall_fscore_support,
 )
-from sklearn.preprocessing import StandardScaler
 
 from .comparison_metrics import FrequencyBand, feature_frequencies_hz, frequency_band_mask
 from .dataset_quality_control import (
@@ -27,6 +25,7 @@ from .dataset_quality_control import (
     feature_set_content_sha256,
     validate_dataset_qc_reference,
 )
+from .direction_models import DirectionModelError, predict_direction_arrays
 from .research_gate import RunPurpose, enforce_research_gate, normalize_run_purpose
 from .schemas import DatasetRole, FeatureKind, FeatureSet, MeasurementMode
 
@@ -474,26 +473,12 @@ def _rank(scores: np.ndarray, labels: np.ndarray, direction_order: tuple[float, 
 
 
 def _predict(model_id: str, x_train: np.ndarray, y_train: np.ndarray, x_test: np.ndarray, direction_order: tuple[float, ...], random_state: int) -> list[tuple[float, float | None, float, float | None]]:
-    labels = np.asarray([angle for angle in direction_order if angle in set(y_train)], dtype=float)
-    if model_id == "nearest_template_correlation":
-        templates = np.vstack([np.mean(x_train[y_train == label], axis=0) for label in labels])
-        if np.any(np.std(templates, axis=1) <= 0):
-            raise ClassificationInputError("constant_training_template")
-        output = []
-        for row in x_test:
-            if np.std(row) <= 0: raise ClassificationInputError("constant_test_vector")
-            scores = np.asarray([np.corrcoef(row, template)[0, 1] for template in templates])
-            output.append(_rank(scores, labels, direction_order, higher_better=True))
-        return output
-    scaler = StandardScaler().fit(x_train)
-    transformed_train = scaler.transform(x_train)
-    transformed_test = scaler.transform(x_test)
-    if model_id == "nearest_centroid":
-        centroids = np.vstack([np.mean(transformed_train[y_train == label], axis=0) for label in labels])
-        return [_rank(np.linalg.norm(centroids - row, axis=1), labels, direction_order, higher_better=False) for row in transformed_test]
-    classifier = LogisticRegression(solver="lbfgs", C=1.0, max_iter=1000, class_weight="balanced", random_state=random_state).fit(transformed_train, y_train)
-    probabilities = classifier.predict_proba(transformed_test)
-    return [_rank(row, classifier.classes_.astype(float), direction_order, higher_better=True) for row in probabilities]
+    try:
+        return predict_direction_arrays(
+            model_id, x_train, y_train, x_test, direction_order, random_state
+        )
+    except DirectionModelError as exc:
+        raise ClassificationInputError(str(exc)) from exc
 
 
 def predict_direction_fold(

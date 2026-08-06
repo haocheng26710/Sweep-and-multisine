@@ -177,6 +177,27 @@ _CROSS_MODE_BRIDGE_DEFAULTS: dict[str, Any] = {
     "final_test_policy": "sealed",
 }
 
+_OFFLINE_FAST_READOUT_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "model": {
+        "model_id": "nearest_centroid",
+        "model_domain": "multisine",
+        "valid_mask_policy": "require_all_frozen_features",
+        "tie_break": "configured_direction_order",
+    },
+    "calibration": {"mode": "disabled", "required_on_domain_mismatch": True},
+    "qc": {
+        "required_tone_coverage": 1.0,
+        "phase_policy": "magnitude_only_warning",
+        "p8_warning_action": "warning",
+        "p8_exclude_candidate_action": "invalid",
+    },
+    "final_test_policy": "sealed",
+    "output_overwrite": "reject",
+}
+
 _DIRECTION_METRICS_DEFAULTS: dict[str, Any] = {
     "schema_version": "1.0.0",
     "provisional": True,
@@ -489,6 +510,12 @@ def load_config(
         _CROSS_MODE_BRIDGE_DEFAULTS,
         supplied_bridge,
     )
+    supplied_offline_readout = resolved.get("offline_fast_readout", {})
+    if not isinstance(supplied_offline_readout, Mapping):
+        raise ConfigError("offline_fast_readout must be a mapping")
+    resolved["offline_fast_readout"] = deep_merge(
+        _OFFLINE_FAST_READOUT_DEFAULTS, supplied_offline_readout,
+    )
     supplied_direction_metrics = resolved.get("direction_metrics", {})
     if not isinstance(supplied_direction_metrics, Mapping):
         raise ConfigError("direction_metrics must be a mapping")
@@ -555,6 +582,7 @@ def load_config(
         ("2.16.0", "2.4.0", "2.3.0"),
         ("2.17.0", "2.4.0", "2.3.0"),
         ("2.18.0", "2.4.0", "2.3.0"),
+        ("2.19.0", "2.4.0", "2.3.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -593,6 +621,11 @@ def load_config(
             migration_warnings.append(
                 "The legacy config was migrated with cross_mode_bridge.enabled=false; "
                 "P9-C is never enabled silently and the source YAML was not modified."
+            )
+        if old_config_version == "2.19.0":
+            migration_warnings.append(
+                "The legacy config was migrated with offline_fast_readout.enabled=false; "
+                "P9-D is never enabled silently and the source YAML was not modified."
             )
     resolved.setdefault("run_purpose", RunPurpose.SOFTWARE_VALIDATION.value)
     resolved["measurement_mode"] = normalize_measurement_mode(
@@ -649,6 +682,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_tone_selection_config(config.get("tone_selection"))
     validate_tone_projection_ablation_config(config.get("tone_projection_ablation"))
     validate_cross_mode_bridge_config(config.get("cross_mode_bridge"))
+    validate_offline_fast_readout_config(config.get("offline_fast_readout"))
     tone_selection = config.get("tone_selection")
     projection_ablation = config.get("tone_projection_ablation")
     assert isinstance(tone_selection, Mapping) and isinstance(projection_ablation, Mapping)
@@ -2056,6 +2090,44 @@ def validate_cross_mode_bridge_config(value: Any) -> None:
     prediction_coverage = classification["minimum_prediction_coverage"]
     if isinstance(minimum_features, bool) or not isinstance(minimum_features, int) or minimum_features < 2 or not finite(prediction_coverage, positive=True) or prediction_coverage > 1.0:
         raise ConfigError("cross_mode_bridge classification thresholds are invalid")
+
+
+def validate_offline_fast_readout_config(value: Any) -> None:
+    """Validate the fail-closed frozen P9-D inference contract."""
+    if not isinstance(value, Mapping):
+        raise ConfigError("offline_fast_readout must be a mapping")
+    required = {
+        "schema_version", "enabled", "provisional", "model", "calibration", "qc",
+        "final_test_policy", "output_overwrite",
+    }
+    if set(value) != required:
+        raise ConfigError("offline_fast_readout fields are incomplete or ambiguous")
+    if value["schema_version"] != "1.0.0" or not isinstance(value["enabled"], bool) or not isinstance(value["provisional"], bool):
+        raise ConfigError("offline_fast_readout requires schema 1.0.0 and boolean flags")
+    model = value["model"]
+    if not isinstance(model, Mapping) or set(model) != {"model_id", "model_domain", "valid_mask_policy", "tie_break"}:
+        raise ConfigError("offline_fast_readout model fields are incomplete")
+    if model["model_id"] != "nearest_centroid" or model["model_domain"] not in {"multisine", "sweep_projection"}:
+        raise ConfigError("offline_fast_readout model is not preregistered")
+    if model["valid_mask_policy"] != "require_all_frozen_features" or model["tie_break"] != "configured_direction_order":
+        raise ConfigError("offline_fast_readout model mask/tie policy is fixed")
+    calibration = value["calibration"]
+    if not isinstance(calibration, Mapping) or set(calibration) != {"mode", "required_on_domain_mismatch"}:
+        raise ConfigError("offline_fast_readout calibration fields are incomplete")
+    if calibration["mode"] not in {"disabled", "optional_frozen"} or calibration["required_on_domain_mismatch"] is not True:
+        raise ConfigError("offline_fast_readout calibration must fail closed on domain mismatch")
+    qc = value["qc"]
+    if not isinstance(qc, Mapping) or set(qc) != {
+        "required_tone_coverage", "phase_policy", "p8_warning_action", "p8_exclude_candidate_action"
+    }:
+        raise ConfigError("offline_fast_readout QC fields are incomplete")
+    coverage = _finite_number(qc, "required_tone_coverage", "offline_fast_readout required_tone_coverage")
+    if not 0 < coverage <= 1:
+        raise ConfigError("offline_fast_readout required_tone_coverage must be in (0, 1]")
+    if qc["phase_policy"] != "magnitude_only_warning" or qc["p8_warning_action"] != "warning" or qc["p8_exclude_candidate_action"] != "invalid":
+        raise ConfigError("offline_fast_readout QC status policy is fixed")
+    if value["final_test_policy"] != "sealed" or value["output_overwrite"] != "reject":
+        raise ConfigError("offline_fast_readout final-test/output policy is fixed")
 
 
 def validate_tone_selection_config(value: Any) -> None:

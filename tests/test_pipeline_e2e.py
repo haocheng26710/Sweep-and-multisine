@@ -145,11 +145,11 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.14.0"
+    assert manifest["run_manifest_schema_version"] == "1.15.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.20",
-        "config_schema": "2.19.0",
+        "pipeline": "2.0.0-dev.21",
+        "config_schema": "2.20.0",
         "measurement_schema": "2.4.0",
         "feature_schema": "2.3.0",
     }
@@ -186,6 +186,7 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["stage_gate"]["P9_A"] == "tone_selection_scope_required"
     assert manifest["stage_gate"]["P9_B"] == "projection_ablation_scope_required"
     assert manifest["stage_gate"]["P9_C"] == "cross_mode_bridge_scope_required"
+    assert manifest["stage_gate"]["P9_D"] == "frozen_readout_package_required"
     assert "P4_P6" not in manifest["stage_gate"]
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
@@ -337,6 +338,7 @@ def test_missing_sidecar_writes_quarantine_failure_manifest(tmp_path) -> None:
     assert manifest["stage_gate"]["P9_A"] == "tone_selection_scope_required"
     assert manifest["stage_gate"]["P9_B"] == "projection_ablation_scope_required"
     assert manifest["stage_gate"]["P9_C"] == "cross_mode_bridge_scope_required"
+    assert manifest["stage_gate"]["P9_D"] == "frozen_readout_package_required"
     assert (expected / "config_snapshot.yaml").is_file()
     assert (expected / "measurements.csv").is_file()
     assert (expected / "measurement_qc.csv").is_file()

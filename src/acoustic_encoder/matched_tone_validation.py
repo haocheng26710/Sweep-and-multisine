@@ -140,7 +140,7 @@ def run_simulated_matched_tone_validation(
         json.dumps(
             {
                 **SCHEMA_VERSION_QUARTET,
-                "run_manifest_schema_version": "1.14.0",
+                "run_manifest_schema_version": "1.15.0",
                 "processing_status": "completed",
                 "measurement_mode": "schroeder_multisine",
                 "sample_id": multisine_spectrum.meta.sample_id,

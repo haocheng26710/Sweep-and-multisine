@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-C15 — P9-D 冻结模型包驱动的离线单次快速读取 | 2026-08-06 | 完成（simulated software validation only） | [DEV-C15_P9D_OFFLINE_FAST_READOUT.md](./DEV-C15_P9D_OFFLINE_FAST_READOUT.md) | 本报告与实现同一提交：`feat(readout): add frozen offline direction inference` |
 | DEV-C14 — P9-C Sweep–Multisine cross-mode bridge calibration | 2026-08-06 | 完成（simulated software validation only） | [DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md](./DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md) | 本报告与实现同一提交：`feat(bridge): add leakage-safe cross-mode calibration` |
 | DEV-C13 — P9-B Sweep projection ablation、P4 保真与 P5 稳定性 | 2026-08-06 | 完成 | [DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md](./DEV-C13_P9B_SWEEP_PROJECTION_ABLATION.md) | 本报告与实现同一提交（`feat(bridge): evaluate selected-tone projection fidelity`） |
 | DEV-B0 — 数据来源 schema 与 research hard gate | 2026-08-04 | 完成 | [DEV-B0_PROVENANCE_RESEARCH_GATE.md](./DEV-B0_PROVENANCE_RESEARCH_GATE.md) | `163ab40` |
@@ -25,4 +26,4 @@
 | DEV-C11 — P6-B 冻结校准约束下的 Multisine HR readout | 2026-08-06 | 完成 | [DEV-C11_P6B_MULTISINE_HR_READOUT.md](./DEV-C11_P6B_MULTISINE_HR_READOUT.md) | 本报告与实现同一提交（`feat(hr): add calibrated multisine HR readout`） |
 | DEV-C12 — P9-A 严格防数据泄漏的 tone 候选评分与选择冻结框架 | 2026-08-06 | 完成 | [DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md](./DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md) | 本报告与实现同一提交（`feat(bridge): add leakage-safe tone selection`） |
 
-当前科研资格边界：截至 DEV-C13，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate 和显式 P2-B canonical dataset gate 的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2–P9-B 参数仍为 provisional；P5-B 与 P9-B 均封存 final_test，P6-A/P6-B 仍只允许模拟 software-validation。P9-A 只能生成不可部署的 simulated selection，P9-B 的最小 tone 数只能是 `software_validation_candidate`。P9-C/P9-D、真实 HR 数据、批准校准和真实阈值冻结尚未实现，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-C15，使用的数据只有 `simulated` 和 `external_reference`。两者均不得用于科研结论；只有通过 provenance schema、research hard gate、显式 P2-B canonical dataset gate 及后续独立批准的合格 `real_experiment` 才能进入 canonical `research_analysis`。P2–P9-D 参数与模型仍为 provisional；P5-B/P9-B/P9-C/P9-D 均保持 final-test 封存，P6-A/P6-B/P9-D 只完成模拟 software-validation。P9-A selection、P9-B minimum-tone candidate、P9-C calibration 和 P9-D readout package 均不可部署。真实 HR 数据、批准校准、真实阈值冻结、科学资格和部署批准尚未完成，因此不能声明科研结论。

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0-dev.21 — frozen persisted-P8 offline direction readout (unreleased)
+
+- Added schema-1.0 frozen nearest-centroid direction models and readout packages binding exact training membership, P2/P4/P5/P9 authorities, P7 stimulus/tone identity, preprocessing/QC policy and final-test seal.
+- Added persisted-only P8 → P3-C → QC → optional frozen P9-C calibration → shared direction prediction without raw WAV/TXT access, P7/P8 reruns, training, directory discovery, sparse interpolation or zero filling.
+- Added immutable package and readout CSV/JSON/hash bundles, loader revalidation, blocked failure audits, deterministic top-1/top-2 distance/margin semantics, package-build CLI, inference-only CLI and actual simulated E2E validation.
+- Incremented config schema to 2.20.0, pipeline to 2.0.0-dev.21 and run-manifest schema to 1.15.0; Measurement and FeatureSet remain 2.4.0/2.3.0. Config 2.19 migrates only in memory with P9-D disabled and an explicit warning.
+- Kept all DEV-C15 artifacts simulated/software-validation, scientifically and deployment ineligible, non-canonical and final-test sealed. No score or margin is represented as confidence.
+
 ## 2.0.0-dev.20 — leakage-safe cross-mode bridge calibration (unreleased)
 
 - Added explicit persisted-FeatureSet P9-C scope, matched-pair and outer-fold authority models with strict one-to-one metadata, lineage, P2-B/P4-B/P9-A/P9-B hash and final-test gates.
