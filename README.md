@@ -4,13 +4,13 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout.
 
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
 - P8 remains software-validation-only. P8-B2 thresholds are provisional simulation thresholds and are not frozen for real experiments.
-- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, and simulated P6-A are implemented. P6-B and P9 remain closed stage gates.
+- P2-A, P2-B, dense P3-A/P3-B, paired P3-C, provisional P4-A/P4-B, provisional P5-A/P5-B, simulated P6-A, and simulated P6-B are implemented. P9 remains a closed stage gate.
 - Mock data are prohibited as research evidence.
 
 No `v1.0.0-sweep` tag exists yet because there is not yet a stable, real-sample-verified sweep implementation.
@@ -121,7 +121,7 @@ The mode-locked command uses the same dispatcher and executor:
 python scripts/analyze_multisine.py --config config/experiment_v2_u4_multisine.yaml --input <recording.wav> --metadata <recording.json> --output-root outputs --run-id <run_id>
 ```
 
-Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness or a comparison/classification/calibration scope, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, `P4_A=p2_b_dataset_qc_required`, `P4_B=comparison_scope_required`, `P5_A=classification_scope_required`, `P5_B=cross_mode_classification_scope_required`, `P6_A=hr_calibration_scope_required`, and `P6_B=not_implemented`.
+Both commands execute P2-A. Dense sweep inputs then execute P3-A and configured P3-B smoothing; sparse multisine inputs record both stages as `not_applicable_sparse` and are never interpolated into a dense response. A single-measurement run cannot establish dataset completeness or a comparison/classification/calibration/readout scope, so it records `P2_B=dataset_scope_required`, `P3_C=paired_run_required`, `P4_A=p2_b_dataset_qc_required`, `P4_B=comparison_scope_required`, `P5_A=classification_scope_required`, `P5_B=cross_mode_classification_scope_required`, `P6_A=hr_calibration_scope_required`, and `P6_B=hr_readout_scope_required`.
 
 Run the deterministic paired DEV-C4 validation:
 
@@ -201,7 +201,27 @@ Run the deterministic simulated validation:
 python scripts/run_hr_calibration_validation.py --output-root outputs --run-id DEV-C10_P6A_FINAL
 ```
 
-The bundle contains stable candidate/peak/bandwidth/drift/overlap/energy/fraction CSV views, typed `hr_calibration.json`, external exact-file hashes, a manifest self-hash, and a deterministic candidate diagnostic. Current validation may produce only `software_validation_only`, `frozen_for_research=false`, and `scientifically_eligible=false`. `approved_real_calibration` additionally requires eligible real experiments, the research hard gate, canonical-ready P2-B, a calibration/training scope, a sealed final-test partition, frozen thresholds, complete hashes, and an approval record. P6-B multisine readout, `hr_band_energy`, P9, real threshold freezing, and scientific conclusions remain unavailable.
+The bundle contains stable candidate/peak/bandwidth/drift/overlap/energy/fraction CSV views, typed `hr_calibration.json`, external exact-file hashes, a manifest self-hash, and a deterministic candidate diagnostic. Current validation may produce only `software_validation_only`, `frozen_for_research=false`, and `scientifically_eligible=false`. `approved_real_calibration` additionally requires eligible real experiments, the research hard gate, canonical-ready P2-B, a calibration/training scope, a sealed final-test partition, frozen thresholds, complete hashes, and an approval record.
+
+## P6-B calibrated multisine HR readout
+
+P6-B consumes only persisted P3-C `tone_measurement_from_multisine` FeatureSets, an explicit `HRReadoutScope` and input manifest, one exact hash-verified P6-A bundle, the exact P2-B result, and validated `hr_readout` configuration. It never reads WAV/TXT, reruns P8, scans directories, interpolates sparse tones, estimates sweep peaks, or learns cross-mode amplitude calibration.
+
+`nearest_tone` maps each measured P6-A peak to the closest valid excited tone within the configured detuning limit and reports `10**(magnitude_db/10)`. `calibrated_window` selects authoritative tones inside the P6-A measured-peak-centred window and integrates the linear power ratio with gap-safe trapezoids. Missing and invalid tone identities, endpoint coverage, maximum gaps, tone counts, covered span, collision/sharing decisions, and signed detuning remain auditable. Energy fractions obey an explicit `require_all` or `allow_partial` policy and never replace missing energy with zero.
+
+Run one explicit persisted-FeatureSet readout:
+
+```powershell
+python scripts/run_hr_readout.py --config <config.yaml> --scope <hr_readout_scope.json> --inputs <hr_readout_inputs.json> --dataset-qc-dir <dataset_qc_dir> --output-root outputs --run-id <run-id>
+```
+
+Run the deterministic simulated P6-A-to-P6-B validation:
+
+```powershell
+python scripts/run_hr_readout_validation.py --output-root outputs --run-id DEV-C11_P6B_FINAL --project-root .
+```
+
+The readout bundle writes mapping, coverage, energy, fraction, QC, calibration-reference, and uncertainty audits; typed result JSON; `hr_band_energy` and `hr_energy_fraction` FeatureSets; hashes; and a diagnostic. FeatureSet schema 2.3 carries per-feature authoritative P8/P6-B quality evidence and typed derivation links. Schema-2.2 FeatureSets remain loadable, but formal P6-B rejects multisine tone artifacts lacking per-tone quality evidence. Phase is magnitude-only, uncertainty is unavailable without an authority, deployment is always false, and absolute cross-mode energy comparability is false until a separate approved calibration exists.
 
 ## P7 signal definition
 

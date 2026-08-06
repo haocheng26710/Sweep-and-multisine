@@ -956,6 +956,10 @@ def feature_set_content_sha256(feature: FeatureSet) -> str:
         "source_qc_exclude_candidate_reasons": feature.source_qc_exclude_candidate_reasons,
         "source_qc_unavailable_checks": feature.source_qc_unavailable_checks,
         "source_qc_eligible_for_downstream": feature.source_qc_eligible_for_downstream,
+        "feature_quality": [item.to_dict() for item in feature.feature_quality],
+        "derivation": (
+            None if feature.derivation is None else feature.derivation.to_dict()
+        ),
     }
     digest = hashlib.sha256(
         json.dumps(

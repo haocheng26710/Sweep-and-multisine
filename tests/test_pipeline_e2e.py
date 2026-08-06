@@ -145,13 +145,13 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
         (expected_directory / "run_manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["success"] is True
-    assert manifest["run_manifest_schema_version"] == "1.10.0"
+    assert manifest["run_manifest_schema_version"] == "1.11.0"
     assert manifest["qc_schema_version"] == "1.0.0"
     assert manifest["versions"] == {
-        "pipeline": "2.0.0-dev.16",
-        "config_schema": "2.15.0",
+        "pipeline": "2.0.0-dev.17",
+        "config_schema": "2.16.0",
         "measurement_schema": "2.4.0",
-        "feature_schema": "2.2.0",
+        "feature_schema": "2.3.0",
     }
     assert len(manifest["git"]["commit"]) == 40
     assert isinstance(manifest["git"]["dirty"], bool)
@@ -182,7 +182,7 @@ def test_clean_multisine_run_writes_reproducible_isolated_output_bundle(
     assert manifest["stage_gate"]["P5_A"] == "classification_scope_required"
     assert manifest["stage_gate"]["P5_B"] == "cross_mode_classification_scope_required"
     assert manifest["stage_gate"]["P6_A"] == "hr_calibration_scope_required"
-    assert manifest["stage_gate"]["P6_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P6_B"] == "hr_readout_scope_required"
     assert "P4_P6" not in manifest["stage_gate"]
     for item in manifest["inputs"]:
         assert artifact_sha256(item["path"]) == item["sha256"]
@@ -330,7 +330,7 @@ def test_missing_sidecar_writes_quarantine_failure_manifest(tmp_path) -> None:
     assert manifest["stage_gate"]["P5_A"] == "classification_scope_required"
     assert manifest["stage_gate"]["P5_B"] == "cross_mode_classification_scope_required"
     assert manifest["stage_gate"]["P6_A"] == "hr_calibration_scope_required"
-    assert manifest["stage_gate"]["P6_B"] == "not_implemented"
+    assert manifest["stage_gate"]["P6_B"] == "hr_readout_scope_required"
     assert (expected / "config_snapshot.yaml").is_file()
     assert (expected / "measurements.csv").is_file()
     assert (expected / "measurement_qc.csv").is_file()

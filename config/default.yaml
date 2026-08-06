@@ -1,8 +1,8 @@
-pipeline_version: 2.0.0-dev.16
+pipeline_version: 2.0.0-dev.17
 schema_versions:
-  config: 2.15.0
+  config: 2.16.0
   measurement: 2.4.0
-  feature: 2.2.0
+  feature: 2.3.0
 
 measurement_mode: rew_sweep
 run_purpose: software_validation
@@ -184,6 +184,34 @@ hr_calibration:
     missing_resonator_policy: require_all
     sum_tolerance: 1.0e-12
   resonators: []
+
+hr_readout:
+  schema_version: 1.0.0
+  enabled: false
+  provisional: true
+  input_feature_kind: tone_measurement_from_multisine
+  input_representation: sparse_tones
+  normalization: none
+  phase_policy: magnitude_only
+  tone_mapping:
+    method: nearest_tone
+    allow_shared_tones: false
+    maximum_detuning_hz: 25.0
+  coverage:
+    minimum_valid_tones: 1
+    minimum_coverage_fraction: 1.0
+    maximum_tone_gap_hz: 100.0
+    endpoint_tolerance_hz: 25.0
+    missing_tone_policy: unavailable
+  energy:
+    method: nearest_tone_power
+    conversion: ten_power_db_over_10
+  energy_fraction:
+    emit_feature_set: true
+    missing_resonator_policy: require_all
+    sum_tolerance: 1.0e-12
+  uncertainty:
+    method: unavailable
 
 quality_control:
   schema_version: 1.0.0

@@ -11,6 +11,8 @@ from acoustic_encoder.schemas import (
     DataOrigin,
     DatasetRole,
     FeatureKind,
+    FeatureDerivation,
+    FeatureQualityRecord,
     FeatureSet,
     MeasurementMeta,
     MeasurementMode,
@@ -164,6 +166,90 @@ def test_tone_feature_round_trip_preserves_reference_and_schema_audit(tmp_path) 
     assert restored.source_phase_status is PhaseStatus.UNAVAILABLE
     assert restored.reliability_weights is None
     assert restored.reliability_weight_source is None
+
+
+def test_feature_round_trip_preserves_per_feature_quality_and_derivation(tmp_path) -> None:
+    meta = sweep_meta()
+    feature = FeatureSet(
+        sample_id=meta.sample_id,
+        feature_schema_version=meta.feature_schema_version,
+        feature_kind=FeatureKind.HR_BAND_ENERGY,
+        feature_names=("hr_R1_band_energy", "hr_R2_band_energy"),
+        values=np.array([4.0, np.nan]),
+        valid_mask=np.array([True, False]),
+        units=("relative_tone_power", "relative_tone_power"),
+        source_measurement_mode=MeasurementMode.SCHROEDER_MULTISINE,
+        source_representation=Representation.SPARSE_TONES,
+        preprocessing_id="sha256:" + "1" * 64,
+        meta=meta,
+        calibration_id="sha256:" + "2" * 64,
+        feature_quality=(
+            FeatureQualityRecord(
+                feature_name="hr_R1_band_energy",
+                availability="available",
+                valid=True,
+                reason_codes=(),
+                source_module="P6_B",
+                details={"coverage_fraction": 1.0},
+            ),
+            FeatureQualityRecord(
+                feature_name="hr_R2_band_energy",
+                availability="unavailable",
+                valid=False,
+                reason_codes=("detuning_exceeded",),
+                source_module="P6_B",
+                details={"coverage_fraction": 0.0},
+            ),
+        ),
+        derivation=FeatureDerivation(
+            schema_version="1.0.0",
+            stage_id="P6_B",
+            scope_id="scope-1",
+            result_id="sha256:" + "3" * 64,
+            source_feature_content_sha256="sha256:" + "4" * 64,
+            calibration_id="sha256:" + "2" * 64,
+            calibration_json_sha256="5" * 64,
+            calibration_manifest_sha256="6" * 64,
+            p2b_result_sha256="sha256:" + "7" * 64,
+            scientifically_eligible=False,
+            deployment_allowed=False,
+            absolute_energy_comparable=False,
+        ),
+    )
+
+    save_feature_set(feature, tmp_path / "hr-feature")
+    restored = load_feature_set(tmp_path / "hr-feature")
+
+    assert restored.feature_quality == feature.feature_quality
+    assert restored.derivation == feature.derivation
+
+
+def test_feature_schema_2_2_artifact_loads_with_empty_optional_2_3_evidence(tmp_path) -> None:
+    meta = sweep_meta()
+    feature = FeatureSet(
+        sample_id=meta.sample_id,
+        feature_schema_version="2.2.0",
+        feature_kind=FeatureKind.DENSE_RAW_SPL,
+        feature_names=("f_1000_hz", "f_1010_hz"),
+        values=np.asarray([80.0, 81.0]),
+        valid_mask=np.asarray([True, True]),
+        units=("dB", "dB"),
+        source_measurement_mode=MeasurementMode.REW_SWEEP,
+        source_representation=Representation.DENSE_SPECTRUM,
+        preprocessing_id="sha256:" + "8" * 64,
+        meta=meta,
+    )
+    _, metadata_path = save_feature_set(feature, tmp_path / "legacy-feature")
+    payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    payload.pop("feature_quality")
+    payload.pop("derivation")
+    metadata_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    restored = load_feature_set(tmp_path / "legacy-feature")
+
+    assert restored.feature_schema_version == "2.2.0"
+    assert restored.feature_quality == ()
+    assert restored.derivation is None
 
 
 def test_multisine_meta_requires_manifest_linkage() -> None:

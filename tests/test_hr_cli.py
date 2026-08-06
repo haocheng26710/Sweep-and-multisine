@@ -129,8 +129,8 @@ def test_hr_calibration_cli_e2e_writes_simulated_ineligible_bundle(tmp_path) -> 
     )
     config_path = tmp_path / "hr-config.yaml"
     config_path.write_text(yaml.safe_dump({
-        "pipeline_version": "2.0.0-dev.16",
-        "schema_versions": {"config": "2.15.0", "measurement": "2.4.0", "feature": "2.2.0"},
+        "pipeline_version": "2.0.0-dev.17",
+        "schema_versions": {"config": "2.16.0", "measurement": "2.4.0", "feature": "2.3.0"},
         "measurement_mode": "rew_sweep",
         "run_purpose": "software_validation",
         "random_state": 20260806,

@@ -5,7 +5,11 @@ import json
 import pytest
 
 from acoustic_encoder.hr_analysis import HRCalibrationResult, analyze_sweep_hr_calibration
-from acoustic_encoder.hr_outputs import load_hr_calibration_bundle, write_hr_calibration_outputs
+from acoustic_encoder.hr_outputs import (
+    load_hr_calibration_authority,
+    load_hr_calibration_bundle,
+    write_hr_calibration_outputs,
+)
 from acoustic_encoder.schemas import artifact_sha256
 
 from test_hr_analysis import _config, _feature, _p2b, _scope
@@ -67,6 +71,13 @@ def test_hr_output_bundle_hashes_csv_json_and_refuses_overwrite(tmp_path) -> Non
     assert expected <= set(paths)
     loaded = load_hr_calibration_bundle(output)
     assert loaded == result
+    authority = load_hr_calibration_authority(output)
+    assert authority.result == result
+    assert authority.scope == scope
+    assert authority.calibration_json_sha256 == artifact_sha256(output / "hr_calibration.json")
+    assert authority.calibration_manifest_sha256 == artifact_sha256(
+        output / "hr_calibration_manifest.json"
+    )
     manifest = json.loads((output / "hr_calibration_manifest.json").read_text(encoding="utf-8"))
     assert manifest["provenance"]["scientifically_eligible"] is False
     assert manifest["calibration_status"] == "software_validation_only"

@@ -469,6 +469,10 @@ def test_multisine_direct_alignment_builds_matching_tone_schema() -> None:
     assert feature.source_phase_status == "relative_unreliable"
     assert feature.source_magnitude_quantity == "transfer_ratio"
     assert feature.tone_set_sha256 == tone_set.tone_set_sha256
+    assert tuple(item.availability for item in feature.feature_quality) == (
+        "available", "available", "available"
+    )
+    assert feature.feature_quality[0].details["missing_tone"] is False
     assert sweep_result.feature_set is not None
     assert_matched_tone_schema(sweep_result.feature_set, feature)
 
@@ -491,6 +495,7 @@ def test_multisine_missing_tone_keeps_authoritative_position_without_fill() -> N
     np.testing.assert_array_equal(result.feature_set.valid_mask, [True, False, True])
     assert np.isnan(result.feature_set.values[1])
     assert result.extraction_records[1].reason == "tone_missing_from_sparse_spectrum"
+    assert result.feature_set.feature_quality[1].availability == "missing"
 
 
 def test_multisine_multiple_missing_tones_remain_nan() -> None:

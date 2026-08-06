@@ -60,6 +60,7 @@ class FeatureKind(str, Enum):
     TONE_PROJECTION_FROM_SWEEP = "tone_projection_from_sweep"
     TONE_MEASUREMENT_FROM_MULTISINE = "tone_measurement_from_multisine"
     HR_BAND_ENERGY = "hr_band_energy"
+    HR_ENERGY_FRACTION = "hr_energy_fraction"
 
 
 class SourceFormat(str, Enum):
@@ -330,6 +331,96 @@ class SpectrumData:
 
 
 @dataclass(frozen=True, slots=True)
+class FeatureQualityRecord:
+    feature_name: str
+    availability: str
+    valid: bool
+    reason_codes: tuple[str, ...]
+    source_module: str
+    details: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.feature_name.strip() or not self.source_module.strip():
+            raise ValueError("feature quality name and source_module are required")
+        if self.availability not in {"available", "missing", "invalid", "unavailable"}:
+            raise ValueError("unsupported feature quality availability")
+        if self.valid != (self.availability == "available"):
+            raise ValueError("feature quality valid must match availability")
+        try:
+            json.dumps(_jsonable(self.details), sort_keys=True)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("feature quality details must be JSON serializable") from exc
+
+    def to_dict(self) -> dict[str, Any]:
+        return _jsonable(asdict(self))
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "FeatureQualityRecord":
+        return cls(
+            feature_name=str(payload["feature_name"]),
+            availability=str(payload["availability"]),
+            valid=bool(payload["valid"]),
+            reason_codes=tuple(str(item) for item in payload.get("reason_codes", ())),
+            source_module=str(payload["source_module"]),
+            details=dict(payload.get("details", {})),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class FeatureDerivation:
+    schema_version: str
+    stage_id: str
+    scope_id: str
+    result_id: str
+    source_feature_content_sha256: str
+    calibration_id: str
+    calibration_json_sha256: str
+    calibration_manifest_sha256: str
+    p2b_result_sha256: str
+    scientifically_eligible: bool
+    deployment_allowed: bool
+    absolute_energy_comparable: bool
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "1.0.0" or not self.stage_id or not self.scope_id:
+            raise ValueError("feature derivation requires schema 1.0.0, stage, and scope")
+        prefixed = {
+            "result_id": self.result_id,
+            "source_feature_content_sha256": self.source_feature_content_sha256,
+            "calibration_id": self.calibration_id,
+            "p2b_result_sha256": self.p2b_result_sha256,
+        }
+        bare = {
+            "calibration_json_sha256": self.calibration_json_sha256,
+            "calibration_manifest_sha256": self.calibration_manifest_sha256,
+        }
+        for name, value in prefixed.items():
+            if not value.startswith("sha256:"):
+                raise ValueError(f"{name} must start with sha256:")
+            _validate_lower_digest(value.removeprefix("sha256:"), name)
+        for name, value in bare.items():
+            _validate_lower_digest(value, name)
+        if self.deployment_allowed and not self.scientifically_eligible:
+            raise ValueError("deployment cannot exceed scientific eligibility")
+
+    def to_dict(self) -> dict[str, Any]:
+        return _jsonable(asdict(self))
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "FeatureDerivation":
+        return cls(**{name: payload[name] for name in cls.__dataclass_fields__})
+
+
+def _validate_lower_digest(value: str, name: str) -> None:
+    if (
+        len(value) != 64
+        or value != value.lower()
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{name} must contain a lowercase SHA-256 digest")
+
+
+@dataclass(frozen=True, slots=True)
 class FeatureSet:
     sample_id: str
     feature_schema_version: str
@@ -361,6 +452,8 @@ class FeatureSet:
     )
     source_qc_unavailable_checks: tuple[str, ...] = field(default_factory=tuple)
     source_qc_eligible_for_downstream: bool | None = None
+    feature_quality: tuple[FeatureQualityRecord, ...] = field(default_factory=tuple)
+    derivation: FeatureDerivation | None = None
 
     def __post_init__(self) -> None:
         values = _readonly_1d(self.values, np.float64, "values")
@@ -374,6 +467,11 @@ class FeatureSet:
             raise ValueError("valid feature values must be finite")
         object.__setattr__(self, "values", values)
         object.__setattr__(self, "valid_mask", mask)
+        if self.feature_quality:
+            if len(self.feature_quality) != size:
+                raise ValueError("feature_quality length must match FeatureSet")
+            if tuple(item.feature_name for item in self.feature_quality) != self.feature_names:
+                raise ValueError("feature_quality order must match feature_names")
         if self.reliability_weights is not None:
             weights = _readonly_1d(self.reliability_weights, np.float64, "reliability_weights")
             if (
@@ -541,6 +639,8 @@ def save_feature_set(data: FeatureSet, base_path: str | Path) -> tuple[Path, Pat
         "source_qc_eligible_for_downstream": (
             data.source_qc_eligible_for_downstream
         ),
+        "feature_quality": [item.to_dict() for item in data.feature_quality],
+        "derivation": None if data.derivation is None else data.derivation.to_dict(),
         "has_reliability_weights": data.reliability_weights is not None,
         "meta": data.meta.to_dict(),
         "array_sha256": artifact_sha256(array_path),
@@ -597,6 +697,15 @@ def load_feature_set(base_path: str | Path) -> FeatureSet:
             ),
             source_qc_eligible_for_downstream=payload.get(
                 "source_qc_eligible_for_downstream"
+            ),
+            feature_quality=tuple(
+                FeatureQualityRecord.from_dict(item)
+                for item in payload.get("feature_quality", ())
+            ),
+            derivation=(
+                FeatureDerivation.from_dict(payload["derivation"])
+                if payload.get("derivation") is not None
+                else None
             ),
             reliability_weights=(
                 arrays["reliability_weights"] if payload["has_reliability_weights"] else None

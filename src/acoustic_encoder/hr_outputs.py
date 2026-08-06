@@ -227,3 +227,31 @@ def load_hr_calibration_bundle(output_directory: str | Path) -> HRCalibrationRes
         if (output / name).read_text(encoding="utf-8") != expected:
             raise ValueError(f"HR calibration CSV/JSON consistency mismatch: {name}")
     return result
+
+
+def load_hr_calibration_authority(output_directory: str | Path):
+    """Return P6-A result plus its verified scope/config/exact-file hashes for P6-B."""
+    output = Path(output_directory)
+    result = load_hr_calibration_bundle(output)
+    manifest_path = output / "hr_calibration_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    scope = HRCalibrationScope.from_dict(manifest["scope"])
+    provenance = manifest.get("provenance", {})
+    expected = {
+        "calibration_status": result.calibration_status.value,
+        "calibration_usability": result.calibration_usability,
+        "calibration_id": result.calibration_id,
+    }
+    mismatched = [name for name, value in expected.items() if manifest.get(name) != value]
+    if provenance.get("data_origin") != result.data_origin or provenance.get("run_purpose") != result.run_purpose:
+        mismatched.append("provenance")
+    if mismatched:
+        raise ValueError("HR calibration authority manifest mismatch: " + ", ".join(mismatched))
+    from .hr_readout import CalibrationAuthority
+    return CalibrationAuthority(
+        result=result,
+        scope=scope,
+        config=manifest["config"],
+        calibration_json_sha256=artifact_sha256(output / "hr_calibration.json"),
+        calibration_manifest_sha256=artifact_sha256(manifest_path),
+    )

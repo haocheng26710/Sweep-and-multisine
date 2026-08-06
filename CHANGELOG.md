@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. The project follows the versions fixed in DEV-0.
 
+## 2.0.0-dev.17 — calibrated multisine HR readout (unreleased)
+
+- Incremented configuration schema to 2.16.0 and FeatureSet schema to 2.3.0; added disabled-by-default provisional P6-B mapping, coverage, energy, fraction, phase, and uncertainty policy.
+- Added exact-scope persisted P3-C multisine inputs, authoritative P6-A lifecycle/file-hash linkage, exact P2-B linkage, final-test/provenance gates, and no raw-data or directory discovery.
+- Added nearest-tone power and gap-safe calibrated-window trapezoidal readout with detuning, collision, missing/invalid-tone, coverage, and partial/complete energy-fraction audits.
+- Added per-feature quality evidence and derivation links, `hr_band_energy` and `hr_energy_fraction` FeatureSets, stable CSV/JSON/PNG bundles, manifest hashes, failure-only outputs, CLI, and deterministic E2E validation.
+- Kept phase magnitude-only, uncertainty unavailable, deployment disabled, absolute cross-mode energy comparability false, and all DEV-C11 outputs simulated/software-validation/scientifically ineligible.
+
 ## 2.0.0-dev.16 — P6-A auditable sweep resonance calibration (unreleased)
 
 - Incremented configuration schema to 2.15.0 and added a strict, disabled-by-default provisional HR calibration contract with explicit per-resonator search, bandwidth, integration, drift, and energy-fraction rules.

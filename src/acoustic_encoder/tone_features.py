@@ -14,6 +14,7 @@ from .features import build_dense_feature_sets
 from .quality_control import MeasurementQCResult, measurement_qc_sha256
 from .schemas import (
     FeatureKind,
+    FeatureQualityRecord,
     FeatureSet,
     MeasurementMode,
     Representation,
@@ -572,6 +573,7 @@ def build_multisine_tone_feature_set(
     values = np.full(len(tone_set.tones), np.nan, dtype=np.float64)
     mask = np.zeros(len(tone_set.tones), dtype=bool)
     records: list[ToneExtractionRecord] = []
+    feature_quality: list[FeatureQualityRecord] = []
     source_index = 0
     for tone, feature_name in zip(
         tone_set.tones,
@@ -600,6 +602,20 @@ def build_multisine_tone_feature_set(
                     reason="tone_missing_from_sparse_spectrum",
                 )
             )
+            feature_quality.append(
+                FeatureQualityRecord(
+                    feature_name=feature_name,
+                    availability="missing",
+                    valid=False,
+                    reason_codes=("tone_missing_from_sparse_spectrum",),
+                    source_module="P3_C",
+                    details={
+                        "tone_index": tone.tone_index,
+                        "frequency_hz": tone.frequency_hz,
+                        "p8_evidence_status": "unavailable_tone_absent",
+                    },
+                )
+            )
             continue
         source_quality = quality[source_index]
         is_valid = bool(spectrum.valid_mask[source_index])
@@ -607,7 +623,9 @@ def build_multisine_tone_feature_set(
         if is_valid:
             values[tone.tone_index] = float(spectrum.magnitude_db[source_index])
             mask[tone.tone_index] = True
-        reasons = source_quality.get("reasons", [])
+        reasons = source_quality.get(
+            "qc_reasons", source_quality.get("reasons", [])
+        )
         reason = None if is_valid else (
             "p8_tone_invalid"
             if not reasons
@@ -625,6 +643,31 @@ def build_multisine_tone_feature_set(
                 source_indices=(source_index,),
                 source_frequency_hz=(tone.frequency_hz,),
                 source_weights=(1.0,),
+            )
+        )
+        missing_tone = source_quality.get("missing_tone")
+        availability = (
+            "available"
+            if is_valid
+            else ("missing" if missing_tone is True else "invalid")
+        )
+        reason_codes = tuple(str(item) for item in reasons)
+        if not is_valid and not reason_codes:
+            reason_codes = (
+                "missing_tone" if missing_tone is True else "p8_tone_invalid",
+            )
+        feature_quality.append(
+            FeatureQualityRecord(
+                feature_name=feature_name,
+                availability=availability,
+                valid=is_valid,
+                reason_codes=reason_codes,
+                source_module="P8_P3_C",
+                details={
+                    "tone_index": tone.tone_index,
+                    "frequency_hz": tone.frequency_hz,
+                    **dict(source_quality),
+                },
             )
         )
         source_index += 1
@@ -689,6 +732,7 @@ def build_multisine_tone_feature_set(
         ),
         source_qc_unavailable_checks=measurement_qc.unavailable_checks,
         source_qc_eligible_for_downstream=measurement_qc.eligible_for_downstream,
+        feature_quality=tuple(feature_quality),
     )
     return ToneFeatureProcessingResult(
         sample_id=spectrum.meta.sample_id,

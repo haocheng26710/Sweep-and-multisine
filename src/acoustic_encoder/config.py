@@ -245,6 +245,38 @@ _HR_CALIBRATION_DEFAULTS: dict[str, Any] = {
     "resonators": [],
 }
 
+_HR_READOUT_DEFAULTS: dict[str, Any] = {
+    "schema_version": "1.0.0",
+    "enabled": False,
+    "provisional": True,
+    "input_feature_kind": "tone_measurement_from_multisine",
+    "input_representation": "sparse_tones",
+    "normalization": "none",
+    "phase_policy": "magnitude_only",
+    "tone_mapping": {
+        "method": "nearest_tone",
+        "allow_shared_tones": False,
+        "maximum_detuning_hz": 25.0,
+    },
+    "coverage": {
+        "minimum_valid_tones": 1,
+        "minimum_coverage_fraction": 1.0,
+        "maximum_tone_gap_hz": 100.0,
+        "endpoint_tolerance_hz": 25.0,
+        "missing_tone_policy": "unavailable",
+    },
+    "energy": {
+        "method": "nearest_tone_power",
+        "conversion": "ten_power_db_over_10",
+    },
+    "energy_fraction": {
+        "emit_feature_set": True,
+        "missing_resonator_policy": "require_all",
+        "sum_tolerance": 1.0e-12,
+    },
+    "uncertainty": {"method": "unavailable"},
+}
+
 
 def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
@@ -343,6 +375,10 @@ def load_config(
     if not isinstance(supplied_hr, Mapping):
         raise ConfigError("hr_calibration must be a mapping")
     resolved["hr_calibration"] = deep_merge(_HR_CALIBRATION_DEFAULTS, supplied_hr)
+    supplied_readout = resolved.get("hr_readout", {})
+    if not isinstance(supplied_readout, Mapping):
+        raise ConfigError("hr_readout must be a mapping")
+    resolved["hr_readout"] = deep_merge(_HR_READOUT_DEFAULTS, supplied_readout)
     if "normalization" in resolved["preprocessing"]:
         legacy_normalization = resolved["preprocessing"].pop("normalization")
         migration_warnings.append(
@@ -369,6 +405,7 @@ def load_config(
         ("2.12.0", "2.4.0", "2.2.0"),
         ("2.13.0", "2.4.0", "2.2.0"),
         ("2.14.0", "2.4.0", "2.2.0"),
+        ("2.15.0", "2.4.0", "2.2.0"),
     }:
         old_config_version = str(versions["config"])
         smoothing = resolved["preprocessing"].get("smoothing", {"method": "none"})
@@ -450,6 +487,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
     validate_comparison_metrics_config(config.get("comparison_metrics"))
     validate_classification_config(config.get("classification"))
     validate_hr_calibration_config(config.get("hr_calibration"))
+    validate_hr_readout_config(config.get("hr_readout"))
     assert isinstance(preprocessing, Mapping)
     if "stimulus" in config:
         validate_stimulus_config(config["stimulus"])
@@ -968,6 +1006,69 @@ def validate_hr_calibration_config(value: Any) -> None:
     for left, right in zip(ordered, ordered[1:]):
         if right[0] < left[1]:
             raise ConfigError(f"HR search bands overlap: {left[2]}, {right[2]}")
+
+
+def validate_hr_readout_config(value: Any) -> None:
+    """Validate the complete offline P6-B readout contract."""
+    required = {
+        "schema_version", "enabled", "provisional", "input_feature_kind",
+        "input_representation", "normalization", "phase_policy", "tone_mapping",
+        "coverage", "energy", "energy_fraction", "uncertainty",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ConfigError("hr_readout fields are incomplete or ambiguous")
+    if value.get("schema_version") != "1.0.0" or not isinstance(value.get("enabled"), bool) or not isinstance(value.get("provisional"), bool):
+        raise ConfigError("hr_readout requires schema 1.0.0 and boolean enabled/provisional")
+    if value.get("input_feature_kind") != "tone_measurement_from_multisine" or value.get("input_representation") != "sparse_tones" or value.get("normalization") != "none":
+        raise ConfigError("hr_readout accepts only unnormalized sparse multisine tone FeatureSet")
+    if value.get("phase_policy") != "magnitude_only":
+        raise ConfigError("hr_readout phase policy must be magnitude_only")
+    mapping = value.get("tone_mapping")
+    if not isinstance(mapping, Mapping) or set(mapping) != {"method", "allow_shared_tones", "maximum_detuning_hz"}:
+        raise ConfigError("hr_readout tone mapping fields are incomplete")
+    if mapping.get("method") not in {"nearest_tone", "calibrated_window"} or not isinstance(mapping.get("allow_shared_tones"), bool):
+        raise ConfigError("unsupported HR readout tone mapping")
+    if _finite_number(mapping, "maximum_detuning_hz", "HR readout detuning") <= 0.0:
+        raise ConfigError("HR readout detuning must be positive")
+    energy = value.get("energy")
+    if not isinstance(energy, Mapping) or set(energy) != {"method", "conversion"} or energy.get("conversion") != "ten_power_db_over_10":
+        raise ConfigError("hr_readout energy fields are incomplete")
+    expected_energy = {
+        "nearest_tone": "nearest_tone_power",
+        "calibrated_window": "narrowband_trapezoid",
+    }[str(mapping["method"])]
+    if energy.get("method") != expected_energy:
+        raise ConfigError("HR readout mapping and energy methods are incompatible")
+    coverage = value.get("coverage")
+    coverage_fields = {
+        "minimum_valid_tones", "minimum_coverage_fraction", "maximum_tone_gap_hz",
+        "endpoint_tolerance_hz", "missing_tone_policy",
+    }
+    if not isinstance(coverage, Mapping) or set(coverage) != coverage_fields:
+        raise ConfigError("hr_readout coverage fields are incomplete")
+    minimum_tones = coverage.get("minimum_valid_tones")
+    minimum_required = 1 if mapping["method"] == "nearest_tone" else 2
+    if isinstance(minimum_tones, bool) or not isinstance(minimum_tones, int) or minimum_tones < minimum_required:
+        raise ConfigError(f"HR readout minimum_valid_tones must be >= {minimum_required}")
+    coverage_fraction = _finite_number(coverage, "minimum_coverage_fraction", "HR readout coverage")
+    if not 0.0 < coverage_fraction <= 1.0:
+        raise ConfigError("HR readout coverage fraction must lie in (0, 1]")
+    if _finite_number(coverage, "maximum_tone_gap_hz", "HR readout tone gap") <= 0.0:
+        raise ConfigError("HR readout maximum tone gap must be positive")
+    if _finite_number(coverage, "endpoint_tolerance_hz", "HR readout endpoint tolerance") < 0.0:
+        raise ConfigError("HR readout endpoint tolerance cannot be negative")
+    if coverage.get("missing_tone_policy") not in {"warning", "unavailable"}:
+        raise ConfigError("unsupported HR readout missing-tone policy")
+    fraction = value.get("energy_fraction")
+    if not isinstance(fraction, Mapping) or set(fraction) != {"emit_feature_set", "missing_resonator_policy", "sum_tolerance"} or not isinstance(fraction.get("emit_feature_set"), bool):
+        raise ConfigError("hr_readout energy_fraction fields are incomplete")
+    if fraction.get("missing_resonator_policy") not in {"require_all", "allow_partial"}:
+        raise ConfigError("unsupported HR readout missing resonator policy")
+    if _finite_number(fraction, "sum_tolerance", "HR readout q_i tolerance") <= 0.0:
+        raise ConfigError("HR readout q_i tolerance must be positive")
+    uncertainty = value.get("uncertainty")
+    if not isinstance(uncertainty, Mapping) or set(uncertainty) != {"method"} or uncertainty.get("method") != "unavailable":
+        raise ConfigError("P6-B uncertainty must remain unavailable")
 
 
 def validate_dataset_quality_control_config(value: Any) -> None:
