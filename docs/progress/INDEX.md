@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-UI0 — PySide6 非专业用户桌面向导设计 | 2026-08-10 | 设计完成（无 UI 代码；真实 Multisine/P8 保持 blocked） | [DEV-UI0_UI_DESIGN.md](./DEV-UI0_UI_DESIGN.md) | 本报告与索引同一 docs-only 提交：`docs(ui): design desktop experiment wizard` |
 | DEV-C16 — T0–T3 实验前 dry-run、V2 总验收与 DEV-D 接入清单 | 2026-08-06 | 完成（提交后 clean-tree bundle 为最终权威；非科研/非部署） | [DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md](./DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md) | 本报告与实现同一提交：`chore(validation): complete pre-experiment acceptance` |
 | DEV-C15 — P9-D 冻结模型包驱动的离线单次快速读取 | 2026-08-06 | 完成（simulated software validation only） | [DEV-C15_P9D_OFFLINE_FAST_READOUT.md](./DEV-C15_P9D_OFFLINE_FAST_READOUT.md) | 本报告与实现同一提交：`feat(readout): add frozen offline direction inference` |
 | DEV-C14 — P9-C Sweep–Multisine cross-mode bridge calibration | 2026-08-06 | 完成（simulated software validation only） | [DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md](./DEV-C14_P9C_CROSS_MODE_BRIDGE_CALIBRATION.md) | 本报告与实现同一提交：`feat(bridge): add leakage-safe cross-mode calibration` |
