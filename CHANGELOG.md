@@ -1,5 +1,12 @@
 # Changelog
 
+## DEV-UI3 — experiment planning and batch analysis workflow (unreleased)
+
+- Added immutable experiment-plan revisions, stable expected-sample matrices, explicit CONT/REPOS/REASM identities, a saved DEV-D safety checklist, artifact hashes and large-plan confirmation.
+- Added explicit UI2 session/output registration, metadata/hash matching, append-only manual-review evidence, sealed-final-test read-before-open protection and real Multisine blocking.
+- Added formal P2-B scope/input generation and asynchronous execution plus capability-gated launchers for existing P4/P5/P6 production CLIs; P3-C remains visibly unavailable because no generic formal entry exists.
+- Added UI scope/input snapshots, step reports, technical logs, output/report controls, batch state linkage and simulated plan-to-P2-B E2E coverage without changing scientific algorithms or core schemas.
+
 ## DEV-UI2 — guided import and single-run workflow (unreleased)
 
 - Added route-locked official-reference REW, real diagnostic REW, simulated Multisine, and registration-only real Multisine workflows with persistent provenance/scientific-eligibility banners.

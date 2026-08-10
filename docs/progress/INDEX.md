@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-UI3 — 实验计划、样本管理与 P2-B～P6 批量分析向导 | 2026-08-10 | 完成（P3-C 无通用正式入口；final-test sealed；真实 Multisine/P8 blocked；全部验证非科研资格） | [DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md](./DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md)；[后端能力矩阵](./DEV-UI3_BACKEND_CAPABILITY_MATRIX.md) | 本报告与实现同一提交：`feat(ui): add experiment planning and batch analysis workflow` |
 | DEV-UI2 — 文件导入、metadata 助手与单次测量处理 | 2026-08-10 | 完成（real Multisine 仅登记并在 P8 前 blocked；全部输出非科研资格） | [DEV-UI2_IMPORT_METADATA_AND_SINGLE_RUN.md](./DEV-UI2_IMPORT_METADATA_AND_SINGLE_RUN.md) | 本报告与实现同一提交：`feat(ui): add guided import and single-run workflow` |
 | DEV-UI1 — PySide6 UI 基础框架与软件验证入口 | 2026-08-10 | 完成（仅软件验证入口；真实 Multisine/P8 保持 blocked） | [DEV-UI1_FOUNDATION_AND_VALIDATION.md](./DEV-UI1_FOUNDATION_AND_VALIDATION.md) | 本报告与实现同一提交：`feat(ui): add guided desktop validation foundation` |
 | DEV-UI0 — PySide6 非专业用户桌面向导设计 | 2026-08-10 | 设计完成（无 UI 代码；真实 Multisine/P8 保持 blocked） | [DEV-UI0_UI_DESIGN.md](./DEV-UI0_UI_DESIGN.md) | 本报告与索引同一 docs-only 提交：`docs(ui): design desktop experiment wizard` |
@@ -30,4 +31,4 @@
 | DEV-C11 — P6-B 冻结校准约束下的 Multisine HR readout | 2026-08-06 | 完成 | [DEV-C11_P6B_MULTISINE_HR_READOUT.md](./DEV-C11_P6B_MULTISINE_HR_READOUT.md) | 本报告与实现同一提交（`feat(hr): add calibrated multisine HR readout`） |
 | DEV-C12 — P9-A 严格防数据泄漏的 tone 候选评分与选择冻结框架 | 2026-08-06 | 完成 | [DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md](./DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md) | 本报告与实现同一提交（`feat(bridge): add leakage-safe tone selection`） |
 
-当前科研资格边界：截至 DEV-UI2，验证数据仍只有 `simulated` 和 `external_reference`；真实 REW 仅开放 `software_validation` 诊断登记/运行路径，真实 Multisine 仅允许登记且在 P8 前双层 blocked。UI 不会把任何输入提升为科研资格。只有通过 provenance schema、research hard gate、显式 P2-B canonical dataset gate 及后续独立批准的合格 `real_experiment` 才能进入 canonical `research_analysis`。DEV-C16 ready 只允许进入少量、受控、诊断性 DEV-D 设备实验准备。P2–P9-D 参数与模型仍为 provisional；final-test 保持封存；真实 Multisine/P8、真实 HR 数据、批准校准、真实阈值/tone/model 冻结、科学资格和部署批准尚未完成，因此不能声明科研结论。
+当前科研资格边界：截至 DEV-UI3，验证数据仍只有 `simulated` 和 `external_reference`；真实 REW 仅开放 `software_validation` 诊断登记/运行路径，真实 Multisine 仅允许登记且在 P8 前双层 blocked。UI3 新增的计划、安全声明、样本匹配和 batch orchestration 不会把任何输入提升为科研资格。只有通过 provenance schema、research hard gate、显式 P2-B canonical dataset gate 及后续独立批准的合格 `real_experiment` 才能进入 canonical `research_analysis`。DEV-C16 ready 只允许进入少量、受控、诊断性 DEV-D 设备实验准备。P2–P9-D 参数与模型仍为 provisional；final-test 保持封存；真实 Multisine/P8、真实 HR 数据、批准校准、真实阈值/tone/model 冻结、科学资格和部署批准尚未完成，因此不能声明科研结论。

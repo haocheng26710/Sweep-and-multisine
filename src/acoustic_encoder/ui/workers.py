@@ -11,6 +11,7 @@ import uuid
 from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
 from acoustic_encoder.schemas import MeasurementMode
+from acoustic_encoder.ui.batch_workflow import PreparedBatchInvocation
 from acoustic_encoder.ui.measurement_workflow import (
     REAL_MULTISINE_BLOCK_MESSAGE,
     SavedMeasurementDraft,
@@ -390,3 +391,49 @@ class SingleMeasurementWorker(QObject):
         self._active = None
         status = map_single_measurement_status(result.outcome, result.exit_code)
         self.finished.emit(invocation.run_id, status, result, invocation)
+
+
+class BatchStageWorker(QObject):
+    """Execute one already-prepared formal batch-stage invocation."""
+
+    started = Signal(str, object)
+    stdout_received = Signal(str)
+    stderr_received = Signal(str)
+    finished = Signal(str, object, object)
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.task = ProcessTask(self)
+        self.task.stdout_received.connect(self.stdout_received)
+        self.task.stderr_received.connect(self.stderr_received)
+        self.task.finished.connect(self._on_finished)
+        self._active: PreparedBatchInvocation | None = None
+
+    @property
+    def is_running(self) -> bool:
+        return self.task.is_running
+
+    def start(self, invocation: PreparedBatchInvocation) -> None:
+        if self.is_running:
+            raise RuntimeError("a batch stage is already running")
+        if invocation.output_directory.exists():
+            raise FileExistsError(
+                f"batch output directory already exists: {invocation.output_directory}"
+            )
+        self._active = invocation
+        self.task.start(
+            invocation.program,
+            invocation.arguments,
+            working_directory=invocation.preview_directory.parent,
+        )
+        self.started.emit(invocation.run_id, invocation)
+
+    def cancel(self) -> None:
+        self.task.cancel()
+
+    def _on_finished(self, result: ProcessResult) -> None:
+        invocation = self._active
+        if invocation is None:
+            return
+        self._active = None
+        self.finished.emit(invocation.run_id, result, invocation)

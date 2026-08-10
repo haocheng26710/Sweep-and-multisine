@@ -89,6 +89,15 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
             "当前 P8-A 真实 Multisine 分析门禁仍关闭；录音只能登记，不能运行 P8。",
             technical,
         )
+    if "final_test" in message or "final-test" in message:
+        return (
+            "检测到 final-test 封存边界；当前操作已停止、内容未读，并需要人工审核 incident。",
+            technical,
+        )
+    if "canonical-ready p2-b" in message or "canonical-ready" in message:
+        return "P2-B 尚未通过 canonical-ready 门禁；后续正式分析保持锁定。", technical
+    if "large plan" in message or "异常大的计划" in str(exc):
+        return "预计样本数量较大；请复核矩阵并进行第二次确认。", technical
     if isinstance(exc, FileNotFoundError):
         return "找不到所需文件。请确认路径后重试。", technical
     if isinstance(exc, ConfigError):

@@ -36,6 +36,9 @@ from acoustic_encoder.ui.services import (
 )
 from acoustic_encoder.schemas import MeasurementMode
 from acoustic_encoder.ui.dialogs import format_unimplemented_message
+from acoustic_encoder.ui.plan_page import ExperimentPlanPage
+from acoustic_encoder.ui.dataset_page import DatasetQCPage
+from acoustic_encoder.ui.analysis_page import BatchAnalysisPage
 from acoustic_encoder.ui.state import StepStatus, UiMode, WizardState
 from acoustic_encoder.ui.measurement_workflow import (
     MetadataFormValues,
@@ -60,7 +63,7 @@ from acoustic_encoder.ui.workers import (
 
 
 class MainWindow(QMainWindow):
-    """Twelve-step shell; DEV-UI1 enables only three validation operations."""
+    """Twelve-step DEV-UI1--UI3 shell over authoritative backend services."""
 
     def __init__(
         self,
@@ -84,6 +87,9 @@ class MainWindow(QMainWindow):
         self.single_worker = single_worker or SingleMeasurementWorker(
             self.project_root, parent=self
         )
+        self.plan_page = ExperimentPlanPage(self.project_root, self)
+        self.dataset_page = DatasetQCPage(self.project_root, self)
+        self.analysis_page = BatchAnalysisPage(self.project_root, self)
         self._current_step_id = "environment"
         self._active_invocation: AcceptanceInvocation | None = None
         self._last_acceptance_summary: AcceptanceSummary | None = None
@@ -162,6 +168,9 @@ class MainWindow(QMainWindow):
         self.action_stack.addWidget(self.environment_page)
         self.action_stack.addWidget(self.usage_page)
         self.action_stack.addWidget(self.single_measurement_page)
+        self.action_stack.addWidget(self.plan_page)
+        self.action_stack.addWidget(self.dataset_page)
+        self.action_stack.addWidget(self.analysis_page)
         self.action_stack.addWidget(self.placeholder_page)
         content_layout.addWidget(self.action_stack)
 
@@ -434,6 +443,19 @@ class MainWindow(QMainWindow):
         self.single_worker.finished.connect(self._single_measurement_finished)
         self.open_single_output_button.clicked.connect(self._open_single_output)
         self.view_single_report_button.clicked.connect(self._view_single_report)
+        self.plan_page.plan_saved.connect(self._plan_saved)
+        self.plan_page.message.connect(self._append_result)
+        self.dataset_page.message.connect(self._append_result)
+        self.dataset_page.p2b_ready_changed.connect(
+            self.analysis_page.set_p2b_ready
+        )
+        self.dataset_page.workflow_status_changed.connect(
+            self._dataset_workflow_status_changed
+        )
+        self.analysis_page.message.connect(self._append_result)
+        self.analysis_page.stage_status_changed.connect(
+            self._analysis_stage_status_changed
+        )
         for field in self.metadata_fields.values():
             field.textChanged.connect(self._metadata_edited)
         self.audio_channel_spin.valueChanged.connect(self._metadata_edited)
@@ -461,8 +483,65 @@ class MainWindow(QMainWindow):
             self.action_stack.setCurrentWidget(self.usage_page)
         elif step_id == "single_measurement":
             self.action_stack.setCurrentWidget(self.single_measurement_page)
+        elif step_id == "plan":
+            self.action_stack.setCurrentWidget(self.plan_page)
+        elif step_id == "dataset":
+            self.action_stack.setCurrentWidget(self.dataset_page)
+        elif step_id in {"comparison", "modeling"}:
+            self.action_stack.setCurrentWidget(self.analysis_page)
         else:
             self.action_stack.setCurrentWidget(self.placeholder_page)
+
+    def _plan_saved(self, saved: object) -> None:
+        self._begin_step("plan")
+        ready = bool(saved.checklist.ready_for_acquisition)
+        self._finish_step("plan", StepStatus.PASSED if ready else StepStatus.WARNING)
+        self.dataset_page.load_plan_revision(saved.directory)
+        self.analysis_page.set_plan_modes(
+            tuple(
+                mode.value
+                for block in saved.plan.condition_blocks
+                for mode in block.measurement_modes
+            )
+        )
+        self._append_result(
+            f"计划 revision 已保存：{saved.directory}；"
+            f"ready_for_acquisition={str(ready).lower()}；科研资格=false。"
+        )
+        self.next_step_label.setText(
+            "下一步建议：按计划完成外部采集，然后显式登记 UI2 sessions。"
+        )
+
+    def _dataset_workflow_status_changed(self, status: str) -> None:
+        mapping = {
+            "plan_draft": StepStatus.WARNING,
+            "plan_ready": StepStatus.READY,
+            "acquisition_waiting": StepStatus.WAITING_EXTERNAL,
+            "samples_partial": StepStatus.WARNING,
+            "samples_complete": StepStatus.READY,
+            "dataset_qc_running": StepStatus.RUNNING,
+            "dataset_qc_warning": StepStatus.WARNING,
+            "dataset_qc_passed": StepStatus.PASSED,
+            "analysis_ready": StepStatus.PASSED,
+            "blocked": StepStatus.BLOCKED,
+        }
+        target = mapping.get(status)
+        if target is not None:
+            self.state.step("dataset").status = target
+            self._refresh_step_buttons()
+
+    def _analysis_stage_status_changed(self, stage: str, status: str) -> None:
+        step_id = "comparison" if stage == "P4" else "modeling"
+        mapping = {
+            "running": StepStatus.RUNNING,
+            "succeeded": StepStatus.PASSED,
+            "cancelled": StepStatus.WARNING,
+            "failed": StepStatus.FAILED,
+        }
+        target = mapping.get(status)
+        if target is not None:
+            self.state.step(step_id).status = target
+            self._refresh_step_buttons()
 
     def set_usage_route(
         self, route: UsageRoute | str, *, force: bool = False
@@ -1107,7 +1186,12 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        running = self.acceptance_worker.is_running or self.single_worker.is_running
+        running = (
+            self.acceptance_worker.is_running
+            or self.single_worker.is_running
+            or self.dataset_page.worker.is_running
+            or self.analysis_page.worker.is_running
+        )
         if running:
             choice = QMessageBox.question(
                 self,
@@ -1121,4 +1205,6 @@ class MainWindow(QMainWindow):
                 return
             self.acceptance_worker.cancel()
             self.single_worker.cancel()
+            self.dataset_page.worker.cancel()
+            self.analysis_page.worker.cancel()
         event.accept()

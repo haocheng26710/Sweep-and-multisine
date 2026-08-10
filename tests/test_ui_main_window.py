@@ -206,11 +206,11 @@ def test_acceptance_failure_and_cancel_are_distinct(qtbot, tmp_path: Path) -> No
 def test_unimplemented_step_explains_round_preparation_and_reason(qtbot, tmp_path: Path) -> None:
     window, _, _ = _window(qtbot, tmp_path)
 
-    window.select_step("plan")
+    window.select_step("freeze")
     qtbot.mouseClick(window.placeholder_button, Qt.LeftButton)
 
     text = window.result_label.text()
-    assert "DEV-UI2" in text
+    assert "DEV-UI4" in text
     assert "准备" in text
     assert "暂时不能执行" in text
 
