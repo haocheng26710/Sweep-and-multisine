@@ -4,7 +4,7 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 ## Current stage
 
-DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework. DEV-C15 adds frozen-package, persisted-P8-only offline single-measurement direction readout. DEV-C16 closes DEV-C with a hash-audited T0–T3 pre-experiment acceptance runner and a controlled DEV-D entry checklist; it adds no research algorithm.
+DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework. DEV-C15 adds frozen-package, persisted-P8-only offline single-measurement direction readout. DEV-C16 closes DEV-C with a hash-audited T0–T3 pre-experiment acceptance runner and a controlled DEV-D entry checklist; it adds no research algorithm. DEV-UI1 adds a PySide6 guided desktop shell for read-only environment checks, existing-config validation, and asynchronous simulated DEV-C16 acceptance. All later experiment actions remain explanatory placeholders.
 
 It does **not** yet claim to analyze real measurements:
 
@@ -63,6 +63,18 @@ An editable package install is optional because the provided scripts add `src/` 
 ```powershell
 python -m pip install -e .
 ```
+
+## Desktop validation UI
+
+Install `requirements.txt` (PySide6 6.7–6.8 and pytest-qt 4.x are included), then launch:
+
+```powershell
+python scripts/run_gui.py
+```
+
+DEV-UI1 provides twelve ordered experiment-step cards, defaults to simple mode, and offers a read-only professional detail view. Only three operations are active: software environment inspection, validation of the existing Sweep/Multisine YAML through `config.load_config`, and a cancellable `QProcess` invocation of the existing DEV-C16 simulated acceptance runner. The UI creates a short unique run ID, passes the executable and arguments separately, refuses an existing output directory, streams stdout/stderr, and verifies the acceptance bundle before displaying T0–T3/V2/test status.
+
+DEV-UI2–DEV-UI4 actions are not implemented in this slice and display their preparation and blocking reason. In particular, real-experiment Multisine/P8 has no run button and remains hard-blocked. UI selection never edits authoritative provenance, scientific eligibility, QC, final-test, or immutable artifact state.
 
 ## DEV-C commands
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## DEV-UI1 — guided desktop validation foundation (unreleased)
+
+- Added a PySide6 twelve-step desktop shell with explicit text statuses, default simple mode, read-only professional details, and human-readable explanations for DEV-UI2–DEV-UI4 placeholders.
+- Added read-only environment inspection and Sweep/Multisine config validation by delegating to the existing config loader; no P1–P9 algorithm or schema was copied or changed.
+- Added cancellable, non-blocking DEV-C16 execution through `QProcess` with separate executable/arguments, short unique Windows-safe run IDs, live logs, verified T0–T3/V2/test summaries, and immutable output/report links.
+- Preserved the real-experiment Multisine/P8 hard block, provenance separation, final-test seal, no-overwrite policy, and `scientifically_eligible=false` for simulated validation.
+- Added PySide6 6.7–6.8 and pytest-qt 4.x dependencies plus headless state/service/worker/widget/startup tests. Packaging remains outside DEV-UI1.
+
 ## DEV-C16 — pre-experiment T0–T3 acceptance (unreleased)
 
 - Added an explicit, immutable, schema-1.0 acceptance runner and config that reuse existing P1–P9 validation runners and artifact loaders rather than duplicate research algorithms.
