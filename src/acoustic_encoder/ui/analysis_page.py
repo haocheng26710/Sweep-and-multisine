@@ -25,16 +25,27 @@ from PySide6.QtWidgets import (
 from acoustic_encoder.ui.batch_workflow import BatchStage, BatchWorkflowService, PreparedBatchInvocation
 from acoustic_encoder.ui.services import humanize_exception
 from acoustic_encoder.ui.workers import BatchStageWorker, ProcessOutcome, ProcessResult
+from acoustic_encoder.ui.runtime import RuntimeContext
 
 
 class BatchAnalysisPage(QWidget):
     message = Signal(str)
     stage_status_changed = Signal(str, str)
 
-    def __init__(self, project_root: str | Path, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        project_root: str | Path,
+        parent: QWidget | None = None,
+        *,
+        workspace_root: str | Path | None = None,
+        runtime_context: RuntimeContext | None = None,
+    ) -> None:
         super().__init__(parent)
         self.project_root = Path(project_root).resolve()
-        self.service = BatchWorkflowService(self.project_root)
+        self.workspace_root = Path(workspace_root or self.project_root).resolve()
+        self.service = BatchWorkflowService(
+            self.project_root, runtime_context=runtime_context
+        )
         self.worker = BatchStageWorker(self)
         self.p2b_ready = False
         self.p2b_directory: Path | None = None
@@ -190,9 +201,9 @@ class BatchAnalysisPage(QWidget):
             stage=stage,
             scope_path=self.path_fields["scope"].text(),
             input_manifest_path=self.path_fields["inputs"].text(),
-            preview_directory=self.project_root / "outputs/ui3_runs" / selected_run_id / f"{stage.value.lower()}_preview",
+            preview_directory=self.workspace_root / "outputs/ui3_runs" / selected_run_id / f"{stage.value.lower()}_preview",
             config_path=self.path_fields["config"].text(),
-            output_root=self.project_root / "outputs",
+            output_root=self.workspace_root / "outputs",
             run_id=selected_run_id,
             dataset_qc_directory=self.p2b_directory,
             comparison_directory=self.path_fields["comparison"].text() or None,

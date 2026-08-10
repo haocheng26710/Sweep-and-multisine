@@ -18,6 +18,7 @@ from acoustic_encoder.ui.measurement_workflow import (
     UsageRoute,
     verify_saved_input_hashes,
 )
+from acoustic_encoder.ui.runtime import RuntimeContext
 
 
 class ProcessOutcome(str, Enum):
@@ -196,6 +197,7 @@ class AcceptanceWorker(QObject):
         project_root: str | Path,
         *,
         output_root: str | Path | None = None,
+        runtime_context: RuntimeContext | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -205,6 +207,7 @@ class AcceptanceWorker(QObject):
             if output_root is None
             else Path(output_root).resolve()
         )
+        self.runtime_context = runtime_context
         self.task = ProcessTask(self)
         self.task.stdout_received.connect(self.stdout_received)
         self.task.stderr_received.connect(self.stderr_received)
@@ -239,7 +242,6 @@ class AcceptanceWorker(QObject):
         script = self.project_root / "scripts/run_pre_experiment_acceptance.py"
         config = self.project_root / "config/validation_dev_c16_acceptance.yaml"
         arguments = [
-            str(script),
             "--project-root",
             str(self.project_root),
             "--config",
@@ -249,6 +251,15 @@ class AcceptanceWorker(QObject):
             "--run-id",
             selected,
         ]
+        if self.runtime_context is not None and self.runtime_context.is_frozen:
+            program, frozen_args = self.runtime_context.worker_process("acceptance", arguments)
+            return AcceptanceInvocation(
+                run_id=selected,
+                program=program,
+                arguments=list(frozen_args),
+                output_directory=run_root / "acceptance",
+            )
+        arguments.insert(0, str(script))
         return AcceptanceInvocation(
             run_id=selected,
             program=sys.executable,
@@ -302,6 +313,7 @@ class SingleMeasurementWorker(QObject):
         project_root: str | Path,
         *,
         output_root: str | Path | None = None,
+        runtime_context: RuntimeContext | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -311,6 +323,7 @@ class SingleMeasurementWorker(QObject):
             if output_root is None
             else Path(output_root).resolve()
         )
+        self.runtime_context = runtime_context
         self.task = ProcessTask(self)
         self.task.stdout_received.connect(self.stdout_received)
         self.task.stderr_received.connect(self.stderr_received)
@@ -344,7 +357,6 @@ class SingleMeasurementWorker(QObject):
             else "analyze_multisine.py"
         )
         arguments = [
-            str(self.project_root / "scripts" / script_name),
             "--config",
             str(saved.config_snapshot_path),
             "--input",
@@ -360,6 +372,17 @@ class SingleMeasurementWorker(QObject):
             arguments.extend(
                 ["--stimulus-manifest", str(draft.stimulus_manifest_path)]
             )
+        if self.runtime_context is not None and self.runtime_context.is_frozen:
+            task = "pipeline_sweep" if mode is MeasurementMode.REW_SWEEP else "pipeline_multisine"
+            program, frozen_args = self.runtime_context.worker_process(task, arguments)
+            return SingleMeasurementInvocation(
+                run_id=draft.run_id,
+                program=program,
+                arguments=frozen_args,
+                output_directory=output,
+                session_directory=saved.session_directory,
+            )
+        arguments.insert(0, str(self.project_root / "scripts" / script_name))
         return SingleMeasurementInvocation(
             run_id=draft.run_id,
             program=sys.executable,

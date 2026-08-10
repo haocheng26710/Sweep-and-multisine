@@ -6,6 +6,8 @@ An auditable Python pipeline for testing whether an internal acoustic morphology
 
 DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the shared P2-A single-measurement QC core. DEV-C2/C3 add deterministic common-grid preprocessing and auditable dense smoothing. DEV-C4 adds hash-verified matched-tone `FeatureSet` construction. DEV-C5 adds the provisional FeatureSet-only P4-A descriptive metrics core. DEV-C6 adds the explicit-scope P2-B cross-measurement dataset quality gate required before any canonical cohort analysis. DEV-C7 adds predefined-band, configuration, and explicit cross-mode P4-B metrics over persisted FeatureSets. DEV-C8 adds the provisional, leakage-safe P5-A grouped direction-classification core. DEV-C9 adds the four frozen P5-B same-mode and cross-mode transfer protocols over matched-tone FeatureSets. DEV-C10 adds P6-A auditable sweep resonance calibration over persisted dense FeatureSets. DEV-C11 adds the offline, calibration-authority-bound P6-B multisine HR readout. DEV-C12/C13 add fold-specific P9-A tone selection and P9-B minimum-tone projection ablation. DEV-C14 adds a leakage-safe, fold-local P9-C sweep–multisine comparison and optional calibration framework. DEV-C15 adds frozen-package, persisted-P8-only offline single-measurement direction readout. DEV-C16 closes DEV-C with a hash-audited T0–T3 pre-experiment acceptance runner and a controlled DEV-D entry checklist; it adds no research algorithm. DEV-UI1 adds the PySide6 validation shell. DEV-UI2 adds guided, hash-audited REW/WAV import, schema-backed metadata registration and asynchronous single-measurement software-validation runs. DEV-UI3 adds immutable experiment plans, explicit UI2 sample registration/matching, formal P2-B orchestration and capability-gated P4–P6 launchers; P3-C has no generic production entry, final-test remains sealed, and real-experiment Multisine remains registration-only and blocked before P8.
 
+DEV-UI4 completes the planned desktop delivery: formal P9-A through P9-D launchers, immutable package freeze evidence, frozen-package offline readout, a sealed-by-default one-time final-test gate, source/frozen worker dispatch, separate read-only resources and writable workspace, and a reproducible Windows one-folder build. This is still software validation: real Multisine/P8, real package approval, real final-test access, scientific conclusions, and deployment remain blocked.
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
@@ -78,7 +80,17 @@ P3-C is shown as unavailable because the repository currently has no generic for
 
 The real Multisine message is a hard gate, not a warning: the recording, manifest, sidecar and hashes may be registered, but the UI will not launch P8 or real-Multisine-dependent P5-B/P6-B until the DEV-D real-data gate is implemented and approved. DEV-UI4 freeze/final-test and complete reporting actions remain unavailable placeholders.
 
-DEV-UI4 actions are not implemented in this slice and display their preparation and blocking reason. In particular, final-test has no read/unseal/run action and real-experiment Multisine/P8 remains hard-blocked. UI selection never edits authoritative provenance, scientific eligibility, QC, final-test, or immutable artifact state.
+DEV-UI4 adds the formal P9 and offline-readout controls. P9 inputs remain explicit and hash-verified; the UI never scans a workspace to infer scope. Package freezing performs the authoritative loader self-check and writes UI-owned approval/report/hash evidence without changing package scientific meaning. The final-test page is implemented but remains sealed and disabled because the repository has no complete real authority. UI selection never edits authoritative provenance, scientific eligibility, QC, final-test, or immutable artifact state.
+
+Windows one-folder build:
+
+```powershell
+python -m pip install -r requirements-ui-build.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_windows_gui.ps1
+dist\SweepMultisineUI\SweepMultisineUI.exe
+```
+
+See the [Chinese quickstart](docs/QUICKSTART_UI_ZH.md), [full user guide](docs/USER_GUIDE_ZH.md), [troubleshooting guide](docs/TROUBLESHOOTING_UI_ZH.md), and [DEV-UI4 delivery report](docs/progress/DEV-UI4_FINAL_DELIVERY.md).
 
 ## DEV-C commands
 

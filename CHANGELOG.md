@@ -1,5 +1,13 @@
 # Changelog
 
+## DEV-UI4 — frozen workflow and Windows delivery (unreleased)
+
+- Added formal P9-A/P9-B/P9-C/P9-D and frozen-package offline-readout UI orchestration using explicit authorities, no-overwrite outputs, hash previews and the existing scientific application services.
+- Added immutable package approval/self-check/report evidence and a sealed-by-default, one-time final-test state machine that records blocked access before content, labels or hashes are read.
+- Added a shared source/frozen worker dispatcher, read-only resource versus writable workspace policy, background/cancellable UI4 tasks, navigation/progress/about UX and preserved the real Multisine/P8 hard block.
+- Added a reproducible PyInstaller one-folder Windows recipe, build manifest and SHA-256 inventory plus isolated-PATH EXE/config/P9-D/offline smoke validation.
+- Added Chinese quickstart, user and troubleshooting guides. All DEV-UI4 evidence remains simulated/external-reference software validation; scientific/deployment eligibility and final-test evaluation remain false.
+
 ## DEV-UI3 — experiment planning and batch analysis workflow (unreleased)
 
 - Added immutable experiment-plan revisions, stable expected-sample matrices, explicit CONT/REPOS/REASM identities, a saved DEV-D safety checklist, artifact hashes and large-plan confirmation.

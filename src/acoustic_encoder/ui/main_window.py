@@ -60,6 +60,8 @@ from acoustic_encoder.ui.workers import (
     SingleMeasurementStatus,
     SingleMeasurementWorker,
 )
+from acoustic_encoder.ui.runtime import RuntimeContext
+from acoustic_encoder.ui.final_delivery_page import FinalDeliveryPage
 
 
 class MainWindow(QMainWindow):
@@ -69,6 +71,8 @@ class MainWindow(QMainWindow):
         self,
         project_root: str | Path,
         *,
+        workspace_root: str | Path | None = None,
+        runtime_context: RuntimeContext | None = None,
         services: ApplicationServices | None = None,
         acceptance_worker: AcceptanceWorker | None = None,
         measurement_service: MeasurementDraftService | None = None,
@@ -76,20 +80,53 @@ class MainWindow(QMainWindow):
     ) -> None:
         super().__init__()
         self.project_root = Path(project_root).resolve()
-        self.state = WizardState()
-        self.services = services or ApplicationServices(self.project_root)
-        self.acceptance_worker = acceptance_worker or AcceptanceWorker(
-            self.project_root, parent=self
+        self.runtime = runtime_context or RuntimeContext.for_source(
+            self.project_root, workspace_root=workspace_root
         )
+        self.workspace_root = self.runtime.workspace_root
+        self.state = WizardState()
+        self.services = services or ApplicationServices(
+            self.project_root, workspace_root=self.workspace_root
+        )
+        self.acceptance_worker = acceptance_worker or AcceptanceWorker(
+            self.project_root, output_root=self.runtime.output_root,
+            runtime_context=self.runtime, parent=self
+        )
+        build_commit = None
+        build_manifest = self.project_root / "build_manifest.json"
+        if build_manifest.is_file():
+            import json
+
+            build_commit = str(json.loads(build_manifest.read_text(encoding="utf-8-sig"))["git_commit"])
         self.measurement_service = measurement_service or MeasurementDraftService(
-            self.project_root
+            self.project_root,
+            workspace_root=self.workspace_root,
+            source_commit=build_commit,
         )
         self.single_worker = single_worker or SingleMeasurementWorker(
-            self.project_root, parent=self
+            self.project_root, output_root=self.runtime.output_root,
+            runtime_context=self.runtime, parent=self
         )
-        self.plan_page = ExperimentPlanPage(self.project_root, self)
-        self.dataset_page = DatasetQCPage(self.project_root, self)
-        self.analysis_page = BatchAnalysisPage(self.project_root, self)
+        self.plan_page = ExperimentPlanPage(
+            self.project_root, self, workspace_root=self.workspace_root
+        )
+        self.dataset_page = DatasetQCPage(
+            self.project_root,
+            self,
+            workspace_root=self.workspace_root,
+            runtime_context=self.runtime,
+        )
+        self.analysis_page = BatchAnalysisPage(
+            self.project_root,
+            self,
+            workspace_root=self.workspace_root,
+            runtime_context=self.runtime,
+        )
+        self.final_delivery_page = FinalDeliveryPage(self.runtime, self)
+        self.open_p9_button = QPushButton("打开正式 P9-A～P9-C 向导")
+        self.open_p9_button.setObjectName("openP9WorkflowButton")
+        self.analysis_page.layout().addWidget(self.open_p9_button)
+        self.open_p9_button.clicked.connect(self._show_p9_workflow)
         self._current_step_id = "environment"
         self._active_invocation: AcceptanceInvocation | None = None
         self._last_acceptance_summary: AcceptanceSummary | None = None
@@ -101,6 +138,7 @@ class MainWindow(QMainWindow):
         self._last_single_evidence: MeasurementRunEvidence | None = None
         self.setWindowTitle("双入口声学分析向导 — 软件验证")
         self.resize(1260, 820)
+        self.setMinimumSize(1000, 680)
         self._build_ui()
         self._connect_signals()
         self.set_usage_route(UsageRoute.SIMULATED_PRACTICE, force=True)
@@ -115,12 +153,19 @@ class MainWindow(QMainWindow):
         title = QLabel("双入口声学分析向导")
         title.setStyleSheet("font-size: 20px; font-weight: 600;")
         header.addWidget(title)
+        self.workspace_label = QLabel(f"工作区：{self.workspace_root}")
+        self.workspace_label.setToolTip(str(self.workspace_root))
+        self.workspace_label.setMaximumWidth(420)
+        header.addWidget(self.workspace_label)
         header.addStretch(1)
         header.addWidget(QLabel("界面模式："))
         self.mode_combo = QComboBox()
         self.mode_combo.addItem("简易模式", UiMode.SIMPLE.value)
         self.mode_combo.addItem("专业模式", UiMode.PROFESSIONAL.value)
         header.addWidget(self.mode_combo)
+        self.about_button = QPushButton("关于")
+        self.about_button.setObjectName("aboutButton")
+        header.addWidget(self.about_button)
         root.addLayout(header)
 
         self.origin_banner = QLabel()
@@ -171,6 +216,7 @@ class MainWindow(QMainWindow):
         self.action_stack.addWidget(self.plan_page)
         self.action_stack.addWidget(self.dataset_page)
         self.action_stack.addWidget(self.analysis_page)
+        self.action_stack.addWidget(self.final_delivery_page)
         self.action_stack.addWidget(self.placeholder_page)
         content_layout.addWidget(self.action_stack)
 
@@ -191,6 +237,14 @@ class MainWindow(QMainWindow):
         self.professional_panel = self._build_professional_panel()
         self.professional_panel.hide()
         content_layout.addWidget(self.professional_panel)
+        navigation = QHBoxLayout()
+        self.previous_button = QPushButton("上一步")
+        self.next_button = QPushButton("下一步")
+        self.previous_button.setObjectName("previousStepButton")
+        self.next_button.setObjectName("nextStepButton")
+        navigation.addWidget(self.previous_button)
+        navigation.addWidget(self.next_button)
+        content_layout.addLayout(navigation)
         content_layout.addStretch(1)
         body.addWidget(content, 1)
         root.addLayout(body, 1)
@@ -406,6 +460,9 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.mode_combo.currentIndexChanged.connect(self._mode_changed)
+        self.previous_button.clicked.connect(lambda: self._navigate_relative(-1))
+        self.next_button.clicked.connect(lambda: self._navigate_relative(1))
+        self.about_button.clicked.connect(self._show_about)
         self.environment_button.clicked.connect(self._check_environment)
         self.validate_sweep_button.clicked.connect(
             lambda: self._validate_config("rew_sweep")
@@ -456,6 +513,10 @@ class MainWindow(QMainWindow):
         self.analysis_page.stage_status_changed.connect(
             self._analysis_stage_status_changed
         )
+        self.final_delivery_page.message.connect(self._append_result)
+        self.final_delivery_page.stage_status_changed.connect(
+            self._final_delivery_stage_status_changed
+        )
         for field in self.metadata_fields.values():
             field.textChanged.connect(self._metadata_edited)
         self.audio_channel_spin.valueChanged.connect(self._metadata_edited)
@@ -489,8 +550,32 @@ class MainWindow(QMainWindow):
             self.action_stack.setCurrentWidget(self.dataset_page)
         elif step_id in {"comparison", "modeling"}:
             self.action_stack.setCurrentWidget(self.analysis_page)
+        elif step_id in {"freeze", "final_test", "reports"}:
+            self.final_delivery_page.set_view(step_id)
+            self.action_stack.setCurrentWidget(self.final_delivery_page)
         else:
             self.action_stack.setCurrentWidget(self.placeholder_page)
+
+        ids = [item.step_id for item in self.state.steps]
+        position = ids.index(step_id)
+        self.previous_button.setEnabled(position > 0)
+        self.next_button.setEnabled(position < len(ids) - 1)
+
+    def _navigate_relative(self, offset: int) -> None:
+        ids = [item.step_id for item in self.state.steps]
+        target = max(0, min(len(ids) - 1, ids.index(self._current_step_id) + offset))
+        self.select_step(ids[target])
+
+    def _show_about(self) -> None:
+        QMessageBox.information(
+            self,
+            "关于 Sweep / Multisine UI",
+            "本地双入口声学分析向导。所有 provenance、QC、科研资格与 final-test 门禁由正式后端保持。",
+        )
+
+    def _show_p9_workflow(self) -> None:
+        self.final_delivery_page.set_view("modeling")
+        self.action_stack.setCurrentWidget(self.final_delivery_page)
 
     def _plan_saved(self, saved: object) -> None:
         self._begin_step("plan")
@@ -539,6 +624,21 @@ class MainWindow(QMainWindow):
             "failed": StepStatus.FAILED,
         }
         target = mapping.get(status)
+        if target is not None:
+            self.state.step(step_id).status = target
+            self._refresh_step_buttons()
+
+    def _final_delivery_stage_status_changed(self, stage: str, status: str) -> None:
+        step_id = {
+            "P9-A": "modeling", "P9-B": "modeling", "P9-C": "modeling",
+            "P9-D": "freeze", "offline-readout": "reports",
+        }.get(stage, "reports")
+        target = {
+            "running": StepStatus.RUNNING,
+            "succeeded": StepStatus.PASSED,
+            "cancelled": StepStatus.WARNING,
+            "failed": StepStatus.FAILED,
+        }.get(status)
         if target is not None:
             self.state.step(step_id).status = target
             self._refresh_step_buttons()
@@ -1191,6 +1291,7 @@ class MainWindow(QMainWindow):
             or self.single_worker.is_running
             or self.dataset_page.worker.is_running
             or self.analysis_page.worker.is_running
+            or self.final_delivery_page.is_running
         )
         if running:
             choice = QMessageBox.question(
@@ -1207,4 +1308,5 @@ class MainWindow(QMainWindow):
             self.single_worker.cancel()
             self.dataset_page.worker.cancel()
             self.analysis_page.worker.cancel()
+            self.final_delivery_page.worker.cancel()
         event.accept()

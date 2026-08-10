@@ -40,10 +40,17 @@ class ExperimentPlanPage(QWidget):
     plan_saved = Signal(object)
     message = Signal(str)
 
-    def __init__(self, project_root: str | Path, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        project_root: str | Path,
+        parent: QWidget | None = None,
+        *,
+        workspace_root: str | Path | None = None,
+    ) -> None:
         super().__init__(parent)
         self.project_root = Path(project_root).resolve()
-        self.service = ExperimentPlanService(self.project_root / "outputs/ui_plans")
+        self.workspace_root = Path(workspace_root or self.project_root).resolve()
+        self.service = ExperimentPlanService(self.workspace_root / "outputs/ui_plans")
         self.last_preview: PlanPreview | None = None
         self.last_saved: SavedPlanRevision | None = None
         self.setObjectName("experimentPlanPage")
@@ -65,7 +72,7 @@ class ExperimentPlanPage(QWidget):
             "device_chain": "",
             "calibration_uri": "unavailable",
             "provenance_uri": "",
-            "output_root": "outputs",
+            "output_root": str(self.workspace_root / "outputs"),
         }
         labels = {
             "plan_id": "Plan ID",

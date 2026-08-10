@@ -162,12 +162,14 @@ class ApplicationServices:
         self,
         project_root: str | Path,
         *,
+        workspace_root: str | Path | None = None,
         required_modules: Iterable[str] | None = None,
         module_importer: Callable[[str], Any] = importlib.import_module,
         git_runner: Callable[[list[str], Path], Any] = _run_git,
         acceptance_loader: Callable[[str | Path], Any] = load_acceptance_bundle,
     ) -> None:
         self.project_root = Path(project_root).resolve()
+        self.workspace_root = Path(workspace_root or self.project_root).resolve()
         self.required_modules = tuple(
             self.DEFAULT_REQUIRED_MODULES if required_modules is None else required_modules
         )
@@ -270,7 +272,7 @@ class ApplicationServices:
             add(check_id, labels[check_id], exists, path,
                 "配置文件存在。" if exists else "配置文件缺失。")
 
-        outputs = self.project_root / "outputs"
+        outputs = self.workspace_root / "outputs"
         target = outputs if outputs.exists() else outputs.parent
         writable = target.is_dir() and os.access(target, os.W_OK)
         add(

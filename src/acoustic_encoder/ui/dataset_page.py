@@ -37,6 +37,7 @@ from acoustic_encoder.ui.sample_registry import (
 )
 from acoustic_encoder.ui.services import humanize_exception
 from acoustic_encoder.ui.workers import BatchStageWorker, ProcessOutcome, ProcessResult
+from acoustic_encoder.ui.runtime import RuntimeContext
 
 
 class DatasetQCPage(QWidget):
@@ -44,12 +45,22 @@ class DatasetQCPage(QWidget):
     p2b_ready_changed = Signal(bool, object)
     workflow_status_changed = Signal(str)
 
-    def __init__(self, project_root: str | Path, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        project_root: str | Path,
+        parent: QWidget | None = None,
+        *,
+        workspace_root: str | Path | None = None,
+        runtime_context: RuntimeContext | None = None,
+    ) -> None:
         super().__init__(parent)
         self.project_root = Path(project_root).resolve()
-        self.plan_service = ExperimentPlanService(self.project_root / "outputs/ui_plans")
-        self.batch_service = BatchWorkflowService(self.project_root)
-        self.registry = SampleRegistry(self.project_root / "outputs/ui3_registry")
+        self.workspace_root = Path(workspace_root or self.project_root).resolve()
+        self.plan_service = ExperimentPlanService(self.workspace_root / "outputs/ui_plans")
+        self.batch_service = BatchWorkflowService(
+            self.project_root, runtime_context=runtime_context
+        )
+        self.registry = SampleRegistry(self.workspace_root / "outputs/ui3_registry")
         self.worker = BatchStageWorker(self)
         self.workflow_state = BatchWorkflowState()
         self.saved_plan: SavedPlanRevision | None = None
@@ -292,9 +303,9 @@ class DatasetQCPage(QWidget):
         invocation = self.batch_service.prepare_p2b(
             expected_samples=selected_expected,
             registrations=selected_registrations,
-            preview_directory=self.project_root / "outputs/ui3_runs" / self.saved_plan.plan.plan_id / selected_run_id / "p2b_preview",
+            preview_directory=self.workspace_root / "outputs/ui3_runs" / self.saved_plan.plan.plan_id / selected_run_id / "p2b_preview",
             config_path=self.project_root / "config/default.yaml",
-            output_root=self.project_root / "outputs",
+            output_root=self.workspace_root / "outputs",
             run_id=selected_run_id,
             feature_kind=FeatureKind.DENSE_RAW_SPL,
             selection_reason="User-confirmed DEV-UI3 plan and explicit UI2 registrations",

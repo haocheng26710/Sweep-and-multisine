@@ -185,8 +185,16 @@ _POLICIES = {
 
 
 class MeasurementDraftService:
-    def __init__(self, project_root: str | Path) -> None:
+    def __init__(
+        self,
+        project_root: str | Path,
+        *,
+        workspace_root: str | Path | None = None,
+        source_commit: str | None = None,
+    ) -> None:
         self.project_root = Path(project_root).resolve()
+        self.workspace_root = Path(workspace_root or self.project_root).resolve()
+        self.source_commit = source_commit
 
     def route_policy(self, route: UsageRoute | str) -> RoutePolicy:
         return _POLICIES[UsageRoute(route)]
@@ -777,7 +785,7 @@ class MeasurementDraftService:
         sample_id = f"{route_code}-{mode_code}-{digest[:12]}"
         run_id = f"u2-{digest[12:24]}"
         session_directory = (
-            self.project_root
+            self.workspace_root
             / "outputs/ui_sessions"
             / sample_id
             / "rev-001"
@@ -788,13 +796,16 @@ class MeasurementDraftService:
             else f"{sample_id}.sidecar.json"
         )
         metadata_path = session_directory / metadata_filename
-        git_commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=self.project_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        if self.source_commit is not None:
+            git_commit = self.source_commit
+        else:
+            git_commit = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=self.project_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
         values = {
             name: self._none_if_blank(getattr(form, name))
             for name in (

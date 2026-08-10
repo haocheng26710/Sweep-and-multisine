@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-UI4 — 冻结流程、final-test 安全入口、离线读取与 Windows 交付 | 2026-08-10 | 完成（软件验证；真实 Multisine/P8 与 final-test blocked；科研/部署资格 false） | [DEV-UI4_FINAL_DELIVERY.md](./DEV-UI4_FINAL_DELIVERY.md)；[DEV-UI4_FINAL_UAT.md](./DEV-UI4_FINAL_UAT.md) | 本报告与实现同一提交：`feat(ui): complete frozen workflow and Windows delivery` |
 | DEV-UI3 — 实验计划、样本管理与 P2-B～P6 批量分析向导 | 2026-08-10 | 完成（P3-C 无通用正式入口；final-test sealed；真实 Multisine/P8 blocked；全部验证非科研资格） | [DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md](./DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md)；[后端能力矩阵](./DEV-UI3_BACKEND_CAPABILITY_MATRIX.md) | 本报告与实现同一提交：`feat(ui): add experiment planning and batch analysis workflow` |
 | DEV-UI2 — 文件导入、metadata 助手与单次测量处理 | 2026-08-10 | 完成（real Multisine 仅登记并在 P8 前 blocked；全部输出非科研资格） | [DEV-UI2_IMPORT_METADATA_AND_SINGLE_RUN.md](./DEV-UI2_IMPORT_METADATA_AND_SINGLE_RUN.md) | 本报告与实现同一提交：`feat(ui): add guided import and single-run workflow` |
 | DEV-UI1 — PySide6 UI 基础框架与软件验证入口 | 2026-08-10 | 完成（仅软件验证入口；真实 Multisine/P8 保持 blocked） | [DEV-UI1_FOUNDATION_AND_VALIDATION.md](./DEV-UI1_FOUNDATION_AND_VALIDATION.md) | 本报告与实现同一提交：`feat(ui): add guided desktop validation foundation` |

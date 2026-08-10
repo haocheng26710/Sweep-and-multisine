@@ -44,6 +44,7 @@ from acoustic_encoder.schemas import (
 )
 from acoustic_encoder.ui.experiment_plan import ExpectedSample, ExperimentRole
 from acoustic_encoder.ui.sample_registry import FinalTestSealedError, RegisteredSample
+from acoustic_encoder.ui.runtime import RuntimeContext
 
 
 class BatchStage(str, Enum):
@@ -213,8 +214,21 @@ def _canonical_id(value: Mapping[str, Any], prefix: str) -> str:
 
 
 class BatchWorkflowService:
-    def __init__(self, project_root: str | Path) -> None:
+    def __init__(
+        self,
+        project_root: str | Path,
+        *,
+        runtime_context: RuntimeContext | None = None,
+    ) -> None:
         self.project_root = Path(project_root).resolve()
+        self.runtime_context = runtime_context
+
+    def _worker_or_source(
+        self, task: str, source_arguments: tuple[str, ...]
+    ) -> tuple[str, tuple[str, ...]]:
+        if self.runtime_context is not None and self.runtime_context.is_frozen:
+            return self.runtime_context.worker_process(task, list(source_arguments[1:]))
+        return sys.executable, source_arguments
 
     @staticmethod
     def capabilities() -> tuple[BatchStageCapability, ...]:
@@ -580,11 +594,12 @@ class BatchWorkflowService:
             "--run-id",
             run_id,
         )
+        program, worker_arguments = self._worker_or_source("p2b", arguments)
         return PreparedBatchInvocation(
             BatchStage.P2_B,
             run_id,
-            sys.executable,
-            arguments,
+            program,
+            worker_arguments,
             output_preview,
             output_directory,
             scope_path,
@@ -731,11 +746,21 @@ class BatchWorkflowService:
         arguments.extend(("--output-root", str(output_root_path), "--run-id", run_id))
         if selected in {BatchStage.P6_A, BatchStage.P6_B}:
             arguments.extend(("--project-root", str(self.project_root)))
+        worker_tasks = {
+            BatchStage.P4: "p4",
+            BatchStage.P5_A: "p5a",
+            BatchStage.P5_B: "p5b",
+            BatchStage.P6_A: "p6a",
+            BatchStage.P6_B: "p6b",
+        }
+        program, worker_arguments = self._worker_or_source(
+            worker_tasks[selected], tuple(arguments)
+        )
         return PreparedBatchInvocation(
             selected,
             run_id,
-            sys.executable,
-            tuple(arguments),
+            program,
+            worker_arguments,
             preview,
             output,
             scope_file,
