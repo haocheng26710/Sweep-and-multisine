@@ -83,6 +83,12 @@ class AcceptanceSummary:
 
 def humanize_exception(exc: BaseException) -> tuple[str, str]:
     technical = "".join(traceback.format_exception_only(type(exc), exc)).strip()
+    message = str(exc).casefold()
+    if "p8-a" in message and "simulated/software_validation" in message:
+        return (
+            "当前 P8-A 真实 Multisine 分析门禁仍关闭；录音只能登记，不能运行 P8。",
+            technical,
+        )
     if isinstance(exc, FileNotFoundError):
         return "找不到所需文件。请确认路径后重试。", technical
     if isinstance(exc, ConfigError):
@@ -91,6 +97,31 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         return "没有读取输入或写入新输出目录的权限。", technical
     if isinstance(exc, FileExistsError):
         return "输出 run-id 已存在。请生成新的 run-id；界面不会覆盖旧结果。", technical
+    if "hash" in message or "sha-256" in message:
+        return "输入 SHA-256 与登记值不一致；请恢复原文件或重新登记。", technical
+    exception_name = type(exc).__name__.casefold()
+    if (
+        "manual review" in message
+        or "manual_review" in message
+        or "manualreview" in exception_name
+    ):
+        return "该输入需要人工确认；请查看原因并保留审核记录。", technical
+    readable_patterns = (
+        (("impedance", "ohm"), "所选 REW 文件是阻抗数据，不能进入声学 SPL 路径。"),
+        (("empty",), "所选文件为空；请选择包含测量数据的文件。"),
+        (("extension", ".txt", ".wav"), "文件扩展名不受当前入口支持；请重新选择正确类型。"),
+        (("strictly increasing", "at least 5"), "频率点不足或未严格递增；请检查导出格式。"),
+        (("channel",), "所选 WAV 通道不存在；请检查通道编号。"),
+        (("sample rate",), "WAV 与 stimulus manifest 的采样率不一致。"),
+        (("stimulus_id", "stimulus hash", "tone_set"), "刺激 ID、tone set 或刺激 hash 不一致。"),
+        (("timezone",), "date_time 必须包含明确时区。"),
+        (("angle_deg",), "角度字段无效；请输入 schema 允许的角度。"),
+    )
+    for needles, user_message in readable_patterns:
+        if any(needle in message for needle in needles):
+            return user_message, technical
+    if isinstance(exc, (ValueError, TypeError, KeyError)):
+        return "输入字段或 schema 验证失败；请按技术详情修正后重试。", technical
     return "发生未知错误，操作已安全停止，未写入成功标记。", technical
 
 

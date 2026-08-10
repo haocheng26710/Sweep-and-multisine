@@ -1,5 +1,12 @@
 # Changelog
 
+## DEV-UI2 — guided import and single-run workflow (unreleased)
+
+- Added route-locked official-reference REW, real diagnostic REW, simulated Multisine, and registration-only real Multisine workflows with persistent provenance/scientific-eligibility banners.
+- Added read-only REW/WAV/manifest preflight, SHA-256 linkage checks, schema-backed metadata forms, stable sample/run IDs, immutable revision directories, Markdown/HTML step reports, and input/output hash inventories.
+- Added cancellable `QProcess` single-measurement execution through the existing `run_pipeline.py` and `analyze_multisine.py` CLIs, with backend `run_manifest.json` retained as the success/QC/phase authority.
+- Kept real-experiment Multisine blocked before P8; no provenance editor, scientific-eligibility editor, overwrite path, research algorithm, schema version, or configuration threshold was added.
+
 ## DEV-UI1 — guided desktop validation foundation (unreleased)
 
 - Added a PySide6 twelve-step desktop shell with explicit text statuses, default simple mode, read-only professional details, and human-readable explanations for DEV-UI2–DEV-UI4 placeholders.

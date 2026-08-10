@@ -7,11 +7,15 @@ from pathlib import Path
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -20,6 +24,7 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QVBoxLayout,
     QWidget,
+    QSpinBox,
 )
 
 from acoustic_encoder.ui.services import (
@@ -29,13 +34,28 @@ from acoustic_encoder.ui.services import (
     EnvironmentReport,
     humanize_exception,
 )
+from acoustic_encoder.schemas import MeasurementMode
 from acoustic_encoder.ui.dialogs import format_unimplemented_message
 from acoustic_encoder.ui.state import StepStatus, UiMode, WizardState
+from acoustic_encoder.ui.measurement_workflow import (
+    MetadataFormValues,
+    MeasurementDraft,
+    MeasurementDraftService,
+    MeasurementRunEvidence,
+    MultisinePreflightResult,
+    REAL_MULTISINE_BLOCK_MESSAGE,
+    REWPreflightResult,
+    SavedMeasurementDraft,
+    UsageRoute,
+)
 from acoustic_encoder.ui.workers import (
     AcceptanceInvocation,
     AcceptanceWorker,
     ProcessOutcome,
     ProcessResult,
+    SingleMeasurementInvocation,
+    SingleMeasurementStatus,
+    SingleMeasurementWorker,
 )
 
 
@@ -48,6 +68,8 @@ class MainWindow(QMainWindow):
         *,
         services: ApplicationServices | None = None,
         acceptance_worker: AcceptanceWorker | None = None,
+        measurement_service: MeasurementDraftService | None = None,
+        single_worker: SingleMeasurementWorker | None = None,
     ) -> None:
         super().__init__()
         self.project_root = Path(project_root).resolve()
@@ -56,13 +78,26 @@ class MainWindow(QMainWindow):
         self.acceptance_worker = acceptance_worker or AcceptanceWorker(
             self.project_root, parent=self
         )
+        self.measurement_service = measurement_service or MeasurementDraftService(
+            self.project_root
+        )
+        self.single_worker = single_worker or SingleMeasurementWorker(
+            self.project_root, parent=self
+        )
         self._current_step_id = "environment"
         self._active_invocation: AcceptanceInvocation | None = None
         self._last_acceptance_summary: AcceptanceSummary | None = None
+        self._current_route = UsageRoute.SIMULATED_PRACTICE
+        self._current_preflight: REWPreflightResult | MultisinePreflightResult | None = None
+        self._current_draft: MeasurementDraft | None = None
+        self._current_saved: SavedMeasurementDraft | None = None
+        self._active_single_invocation: SingleMeasurementInvocation | None = None
+        self._last_single_evidence: MeasurementRunEvidence | None = None
         self.setWindowTitle("双入口声学分析向导 — 软件验证")
         self.resize(1260, 820)
         self._build_ui()
         self._connect_signals()
+        self.set_usage_route(UsageRoute.SIMULATED_PRACTICE, force=True)
         self.select_step("environment")
         self._refresh_step_buttons()
 
@@ -82,12 +117,11 @@ class MainWindow(QMainWindow):
         header.addWidget(self.mode_combo)
         root.addLayout(header)
 
-        provenance = QLabel(
-            "数据来源明确区分：simulated（模拟） / external_reference（外部参考） / "
-            "real_experiment（真实实验）。当前界面不会授予科研资格。"
-        )
-        provenance.setWordWrap(True)
-        root.addWidget(provenance)
+        self.origin_banner = QLabel()
+        self.origin_banner.setObjectName("originBanner")
+        self.origin_banner.setWordWrap(True)
+        self.origin_banner.setStyleSheet("font-weight: 600; padding: 6px;")
+        root.addWidget(self.origin_banner)
 
         body = QHBoxLayout()
         step_container = QWidget()
@@ -123,9 +157,11 @@ class MainWindow(QMainWindow):
         self.action_stack = QStackedWidget()
         self.environment_page = self._build_environment_page()
         self.usage_page = self._build_usage_page()
+        self.single_measurement_page = self._build_single_measurement_page()
         self.placeholder_page = self._build_placeholder_page()
         self.action_stack.addWidget(self.environment_page)
         self.action_stack.addWidget(self.usage_page)
+        self.action_stack.addWidget(self.single_measurement_page)
         self.action_stack.addWidget(self.placeholder_page)
         content_layout.addWidget(self.action_stack)
 
@@ -181,6 +217,16 @@ class MainWindow(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         form = QFormLayout()
+        self.usage_route_combo = QComboBox()
+        self.usage_route_combo.addItem(
+            "模拟练习", UsageRoute.SIMULATED_PRACTICE.value
+        )
+        self.usage_route_combo.addItem(
+            "官方 REW 参考", UsageRoute.OFFICIAL_REFERENCE.value
+        )
+        self.usage_route_combo.addItem(
+            "真实实验诊断", UsageRoute.REAL_DIAGNOSTIC.value
+        )
         self.data_origin_combo = QComboBox()
         self.data_origin_combo.addItem("模拟数据", "simulated")
         self.data_origin_combo.addItem("外部参考", "external_reference")
@@ -193,6 +239,9 @@ class MainWindow(QMainWindow):
         self.run_purpose_combo = QComboBox()
         self.run_purpose_combo.addItem("软件验证", "software_validation")
         self.run_purpose_combo.addItem("科研分析", "research_analysis")
+        self.data_origin_combo.setEnabled(False)
+        self.run_purpose_combo.setEnabled(False)
+        form.addRow("使用路径", self.usage_route_combo)
         form.addRow("数据来源", self.data_origin_combo)
         form.addRow("测量入口", self.measurement_mode_combo)
         form.addRow("运行用途", self.run_purpose_combo)
@@ -214,6 +263,100 @@ class MainWindow(QMainWindow):
         self.real_multisine_run_button = QPushButton("真实 Multisine/P8（未开放）")
         self.real_multisine_run_button.setEnabled(False)
         layout.addWidget(self.real_multisine_run_button)
+        return page
+
+    def _build_single_measurement_page(self) -> QWidget:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+
+        files = QGroupBox("只读输入")
+        file_form = QFormLayout(files)
+        self.source_path_edit = QLineEdit()
+        self.source_path_edit.setReadOnly(True)
+        self.manifest_path_edit = QLineEdit()
+        self.manifest_path_edit.setReadOnly(True)
+        source_row = QHBoxLayout()
+        source_row.addWidget(self.source_path_edit)
+        self.choose_source_button = QPushButton("选择 REW TXT / WAV")
+        source_row.addWidget(self.choose_source_button)
+        manifest_row = QHBoxLayout()
+        manifest_row.addWidget(self.manifest_path_edit)
+        self.choose_manifest_button = QPushButton("选择 stimulus_manifest.json")
+        manifest_row.addWidget(self.choose_manifest_button)
+        file_form.addRow("测量文件", source_row)
+        file_form.addRow("刺激 manifest", manifest_row)
+        self.preflight_single_button = QPushButton("只读预检并生成 metadata 草稿")
+        file_form.addRow(self.preflight_single_button)
+        layout.addWidget(files)
+
+        metadata_box = QGroupBox("Metadata 助手（不直接编辑 JSON）")
+        metadata_form = QFormLayout(metadata_box)
+        labels = {
+            "device_version": "设备版本",
+            "configuration": "配置 ID",
+            "angle_deg": "角度（度）",
+            "session_id": "Session ID",
+            "repeat_type": "重复类型",
+            "repeat_id": "Repeat ID",
+            "reposition_round_id": "重定位轮次",
+            "assembly_id": "装配 ID",
+            "acquisition_block_id": "采集块 ID",
+            "experiment_step": "实验步骤",
+            "date_time": "时间（含时区）",
+            "provenance_uri": "Provenance 记录/引用",
+        }
+        self.metadata_fields: dict[str, QLineEdit] = {}
+        for name, label in labels.items():
+            editor = QLineEdit()
+            editor.setObjectName(f"metadata_{name}")
+            self.metadata_fields[name] = editor
+            metadata_form.addRow(label, editor)
+        self.audio_channel_spin = QSpinBox()
+        self.audio_channel_spin.setMinimum(0)
+        self.audio_channel_spin.setMaximum(255)
+        metadata_form.addRow("音频通道（从 0 开始）", self.audio_channel_spin)
+        self.sample_id_edit = QLineEdit()
+        self.sample_id_edit.setReadOnly(True)
+        self.run_id_edit = QLineEdit()
+        self.run_id_edit.setReadOnly(True)
+        sample_row = QHBoxLayout()
+        sample_row.addWidget(self.sample_id_edit)
+        self.copy_sample_id_button = QPushButton("复制")
+        sample_row.addWidget(self.copy_sample_id_button)
+        run_row = QHBoxLayout()
+        run_row.addWidget(self.run_id_edit)
+        self.copy_run_id_button = QPushButton("复制")
+        run_row.addWidget(self.copy_run_id_button)
+        metadata_form.addRow("自动 sample_id", sample_row)
+        metadata_form.addRow("自动 run_id", run_row)
+        layout.addWidget(metadata_box)
+
+        self.single_hard_block_label = QLabel()
+        self.single_hard_block_label.setWordWrap(True)
+        self.single_hard_block_label.setStyleSheet("font-weight: 600;")
+        layout.addWidget(self.single_hard_block_label)
+        actions = QHBoxLayout()
+        self.save_metadata_button = QPushButton("保存登记与 metadata")
+        self.save_metadata_button.setEnabled(False)
+        self.run_single_button = QPushButton("运行单次软件验证")
+        self.run_single_button.setEnabled(False)
+        self.cancel_single_button = QPushButton("取消运行")
+        self.cancel_single_button.setEnabled(False)
+        self.new_revision_button = QPushButton("建立 metadata 修订")
+        self.new_revision_button.setEnabled(False)
+        actions.addWidget(self.save_metadata_button)
+        actions.addWidget(self.run_single_button)
+        actions.addWidget(self.cancel_single_button)
+        actions.addWidget(self.new_revision_button)
+        layout.addLayout(actions)
+        links = QHBoxLayout()
+        self.open_single_output_button = QPushButton("打开单次输出")
+        self.view_single_report_button = QPushButton("查看单次报告")
+        self.open_single_output_button.setEnabled(False)
+        self.view_single_report_button.setEnabled(False)
+        links.addWidget(self.open_single_output_button)
+        links.addWidget(self.view_single_report_button)
+        layout.addLayout(links)
         return page
 
     def _build_placeholder_page(self) -> QWidget:
@@ -264,6 +407,7 @@ class MainWindow(QMainWindow):
         self.acceptance_button.clicked.connect(self._run_acceptance)
         self.cancel_button.clicked.connect(self.acceptance_worker.cancel)
         self.placeholder_button.clicked.connect(self._show_placeholder)
+        self.usage_route_combo.currentIndexChanged.connect(self._route_changed)
         self.data_origin_combo.currentIndexChanged.connect(self._usage_changed)
         self.measurement_mode_combo.currentIndexChanged.connect(self._usage_changed)
         self.run_purpose_combo.currentIndexChanged.connect(self._usage_changed)
@@ -272,6 +416,27 @@ class MainWindow(QMainWindow):
         self.acceptance_worker.finished.connect(self._acceptance_finished)
         self.open_output_button.clicked.connect(self._open_output)
         self.view_report_button.clicked.connect(self._view_report)
+        self.choose_source_button.clicked.connect(self._choose_source)
+        self.choose_manifest_button.clicked.connect(self._choose_manifest)
+        self.preflight_single_button.clicked.connect(self._preflight_single)
+        self.save_metadata_button.clicked.connect(self._save_single_metadata)
+        self.run_single_button.clicked.connect(self._run_single_measurement)
+        self.cancel_single_button.clicked.connect(self.single_worker.cancel)
+        self.new_revision_button.clicked.connect(self._save_single_metadata)
+        self.copy_sample_id_button.clicked.connect(
+            lambda: self._copy_text(self.sample_id_edit.text())
+        )
+        self.copy_run_id_button.clicked.connect(
+            lambda: self._copy_text(self.run_id_edit.text())
+        )
+        self.single_worker.stdout_received.connect(self._append_stdout)
+        self.single_worker.stderr_received.connect(self._append_stderr)
+        self.single_worker.finished.connect(self._single_measurement_finished)
+        self.open_single_output_button.clicked.connect(self._open_single_output)
+        self.view_single_report_button.clicked.connect(self._view_single_report)
+        for field in self.metadata_fields.values():
+            field.textChanged.connect(self._metadata_edited)
+        self.audio_channel_spin.valueChanged.connect(self._metadata_edited)
 
     def _mode_changed(self) -> None:
         value = str(self.mode_combo.currentData())
@@ -294,8 +459,119 @@ class MainWindow(QMainWindow):
             self.action_stack.setCurrentWidget(self.environment_page)
         elif step_id == "usage":
             self.action_stack.setCurrentWidget(self.usage_page)
+        elif step_id == "single_measurement":
+            self.action_stack.setCurrentWidget(self.single_measurement_page)
         else:
             self.action_stack.setCurrentWidget(self.placeholder_page)
+
+    def set_usage_route(
+        self, route: UsageRoute | str, *, force: bool = False
+    ) -> bool:
+        selected = UsageRoute(route)
+        if selected is not self._current_route and self._metadata_is_dirty() and not force:
+            answer = QMessageBox.question(
+                self,
+                "切换使用路径",
+                "切换路径会清空不兼容的 metadata 草稿。是否继续？",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if answer != QMessageBox.Yes:
+                index = self.usage_route_combo.findData(self._current_route.value)
+                self.usage_route_combo.blockSignals(True)
+                self.usage_route_combo.setCurrentIndex(index)
+                self.usage_route_combo.blockSignals(False)
+                return False
+        if selected is not self._current_route or force:
+            self._clear_measurement_draft()
+        self._current_route = selected
+        index = self.usage_route_combo.findData(selected.value)
+        self.usage_route_combo.blockSignals(True)
+        self.usage_route_combo.setCurrentIndex(index)
+        self.usage_route_combo.blockSignals(False)
+        policy = self.measurement_service.route_policy(selected)
+        self._set_combo_data(self.data_origin_combo, policy.data_origin.value)
+        self._set_combo_data(self.run_purpose_combo, policy.run_purpose)
+        if selected is UsageRoute.SIMULATED_PRACTICE:
+            self._set_combo_data(
+                self.measurement_mode_combo, "schroeder_multisine"
+            )
+            self.measurement_mode_combo.setEnabled(False)
+        elif selected is UsageRoute.OFFICIAL_REFERENCE:
+            self._set_combo_data(self.measurement_mode_combo, "rew_sweep")
+            self.measurement_mode_combo.setEnabled(False)
+        else:
+            self.measurement_mode_combo.setEnabled(True)
+        identity_names = {
+            "device_version",
+            "configuration",
+            "angle_deg",
+            "session_id",
+            "repeat_type",
+            "repeat_id",
+            "reposition_round_id",
+            "assembly_id",
+            "acquisition_block_id",
+            "experiment_step",
+            "date_time",
+        }
+        for name in identity_names:
+            self.metadata_fields[name].setEnabled(
+                selected is not UsageRoute.OFFICIAL_REFERENCE
+            )
+        self.origin_banner.setText(
+            f"{policy.label}｜data_origin={policy.data_origin.value}｜"
+            f"dataset_role={policy.dataset_role.value}｜"
+            f"run_purpose={policy.run_purpose}｜科研资格=false"
+        )
+        self._usage_changed()
+        return True
+
+    def _route_changed(self) -> None:
+        self.set_usage_route(str(self.usage_route_combo.currentData()))
+
+    @staticmethod
+    def _set_combo_data(combo: QComboBox, value: str) -> None:
+        index = combo.findData(value)
+        if index < 0:
+            raise ValueError(f"unsupported UI selection: {value}")
+        combo.blockSignals(True)
+        combo.setCurrentIndex(index)
+        combo.blockSignals(False)
+
+    def _metadata_is_dirty(self) -> bool:
+        return any(field.text().strip() for field in self.metadata_fields.values())
+
+    def _metadata_edited(self) -> None:
+        if self._current_draft is None and self._current_saved is None:
+            return
+        self._current_draft = None
+        self._current_saved = None
+        self.sample_id_edit.clear()
+        self.run_id_edit.clear()
+        self.save_metadata_button.setEnabled(False)
+        self.run_single_button.setEnabled(False)
+        self.new_revision_button.setEnabled(False)
+        self._append_result(
+            "metadata 已变更；请重新执行预检以生成稳定 ID 和 schema 草稿。"
+        )
+
+    def _clear_measurement_draft(self) -> None:
+        if hasattr(self, "metadata_fields"):
+            for field in self.metadata_fields.values():
+                field.clear()
+        if hasattr(self, "source_path_edit"):
+            self.source_path_edit.clear()
+            self.manifest_path_edit.clear()
+            self.sample_id_edit.clear()
+            self.run_id_edit.clear()
+            self.save_metadata_button.setEnabled(False)
+            self.run_single_button.setEnabled(False)
+            self.new_revision_button.setEnabled(False)
+            self.new_revision_button.setEnabled(False)
+        self._current_preflight = None
+        self._current_draft = None
+        self._current_saved = None
 
     def set_usage(
         self,
@@ -304,10 +580,17 @@ class MainWindow(QMainWindow):
         measurement_mode: str,
         run_purpose: str,
     ) -> None:
+        route = {
+            "simulated": UsageRoute.SIMULATED_PRACTICE,
+            "external_reference": UsageRoute.OFFICIAL_REFERENCE,
+            "real_experiment": UsageRoute.REAL_DIAGNOSTIC,
+        }.get(data_origin)
+        if route is None:
+            raise ValueError(f"unsupported UI selection: {data_origin}")
+        self.set_usage_route(route, force=True)
         for combo, value in (
             (self.data_origin_combo, data_origin),
             (self.measurement_mode_combo, measurement_mode),
-            (self.run_purpose_combo, run_purpose),
         ):
             index = combo.findData(value)
             if index < 0:
@@ -315,6 +598,7 @@ class MainWindow(QMainWindow):
             combo.blockSignals(True)
             combo.setCurrentIndex(index)
             combo.blockSignals(False)
+        del run_purpose  # UI route policy fixes software_validation in DEV-UI2.
         self._usage_changed()
 
     def _usage_changed(self) -> None:
@@ -324,7 +608,258 @@ class MainWindow(QMainWindow):
             run_purpose=str(self.run_purpose_combo.currentData()),
         )
         self.hard_block_label.setText("" if decision.allowed else decision.reason)
+        real_multisine = (
+            self._current_route is UsageRoute.REAL_DIAGNOSTIC
+            and self.measurement_mode_combo.currentData()
+            == "schroeder_multisine"
+        )
+        self.single_hard_block_label.setText(
+            REAL_MULTISINE_BLOCK_MESSAGE if real_multisine else ""
+        )
+        is_multisine = (
+            self.measurement_mode_combo.currentData() == "schroeder_multisine"
+        )
+        self.choose_manifest_button.setEnabled(is_multisine)
+        self.audio_channel_spin.setEnabled(is_multisine)
+        self.run_single_button.setEnabled(
+            self._current_saved is not None and not real_multisine
+        )
         self._refresh_step_buttons()
+
+    def _choose_source(self) -> None:
+        mode = str(self.measurement_mode_combo.currentData())
+        file_filter = (
+            "REW frequency response (*.txt)"
+            if mode == "rew_sweep"
+            else "WAV recording (*.wav)"
+        )
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择测量文件", str(self.project_root), file_filter
+        )
+        if path:
+            self.source_path_edit.setText(str(Path(path).resolve()))
+            self._current_preflight = None
+            self._current_draft = None
+            self._current_saved = None
+            self.save_metadata_button.setEnabled(False)
+            self.run_single_button.setEnabled(False)
+            self.new_revision_button.setEnabled(False)
+
+    def _choose_manifest(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择 stimulus_manifest.json",
+            str(self.project_root),
+            "Stimulus manifest (stimulus_manifest.json)",
+        )
+        if path:
+            self.manifest_path_edit.setText(str(Path(path).resolve()))
+            self._current_preflight = None
+            self._current_draft = None
+            self._current_saved = None
+            self.save_metadata_button.setEnabled(False)
+            self.run_single_button.setEnabled(False)
+
+    def _metadata_form_values(self) -> MetadataFormValues:
+        values = {name: field.text().strip() or None for name, field in self.metadata_fields.items()}
+        return MetadataFormValues(
+            **values,
+            audio_channel=self.audio_channel_spin.value(),
+        )
+
+    def _preflight_single(self) -> None:
+        source = Path(self.source_path_edit.text())
+        try:
+            mode = MeasurementMode(str(self.measurement_mode_combo.currentData()))
+            if mode is MeasurementMode.REW_SWEEP:
+                preflight = self.measurement_service.preflight_rew(source)
+            else:
+                manifest_text = self.manifest_path_edit.text().strip()
+                if not manifest_text:
+                    raise ValueError("Multisine 必须选择 stimulus_manifest.json")
+                preflight = self.measurement_service.preflight_multisine(
+                    source,
+                    Path(manifest_text),
+                    audio_channel=self.audio_channel_spin.value(),
+                )
+            draft = self.measurement_service.build_draft(
+                route=self._current_route,
+                measurement_mode=mode,
+                preflight=preflight,
+                form=self._metadata_form_values(),
+            )
+        except Exception as exc:
+            user_message, technical = humanize_exception(exc)
+            self._append_result(f"预检失败：{user_message}")
+            self.technical_error.setPlainText(technical)
+            self.save_metadata_button.setEnabled(False)
+            return
+        self._current_preflight = preflight
+        self._current_draft = draft
+        self.sample_id_edit.setText(draft.sample_id)
+        self.run_id_edit.setText(draft.run_id)
+        self.save_metadata_button.setEnabled(True)
+        self.run_single_button.setEnabled(False)
+        if isinstance(preflight, REWPreflightResult):
+            summary = (
+                f"REW 预检通过：{preflight.data_point_count} 点，"
+                f"phase={'有' if preflight.has_phase else '无'}，"
+                f"SHA-256={preflight.source_sha256}"
+            )
+        else:
+            summary = (
+                f"Multisine 预检通过：{preflight.sample_rate_hz} Hz，"
+                f"{preflight.channel_count} 通道，stimulus_id={preflight.stimulus_id}，"
+                f"recording SHA-256={preflight.recording_sha256}"
+            )
+        self._append_result(summary)
+        self.next_step_label.setText("下一步建议：核对自动字段，然后保存版本化登记。")
+
+    def _save_single_metadata(self) -> None:
+        draft = self._current_draft
+        if draft is None:
+            self._append_result("请先完成只读预检。")
+            return
+        try:
+            saved = self.measurement_service.save_draft(draft)
+        except FileExistsError:
+            reason, accepted = QInputDialog.getText(
+                self,
+                "保存 metadata 修订",
+                "该 sample 已登记。请输入本次修订原因：",
+            )
+            if not accepted or not reason.strip():
+                self._append_result("未保存：修订必须给出明确原因。")
+                return
+            saved = self.measurement_service.save_draft(
+                draft, revision_reason=reason
+            )
+        except Exception as exc:
+            user_message, technical = humanize_exception(exc)
+            self._append_result(f"登记失败：{user_message}")
+            self.technical_error.setPlainText(technical)
+            return
+        self._current_saved = saved
+        self.run_id_edit.setText(saved.draft.run_id)
+        blocked = not self.measurement_service.analysis_decision(draft).allowed
+        self.run_single_button.setEnabled(not blocked)
+        self.new_revision_button.setEnabled(True)
+        self.view_single_report_button.setEnabled(True)
+        self._append_result(
+            f"登记已保存：revision={saved.revision}；{saved.session_directory}"
+        )
+        if blocked:
+            self.single_hard_block_label.setText(REAL_MULTISINE_BLOCK_MESSAGE)
+            self._append_result(REAL_MULTISINE_BLOCK_MESSAGE)
+            self.next_step_label.setText("下一步建议：保留原始文件和 hash，等待 DEV-D。")
+        else:
+            self.next_step_label.setText("下一步建议：运行单次软件验证。")
+
+    def _run_single_measurement(self) -> None:
+        saved = self._current_saved
+        if saved is None:
+            self._append_result("请先保存 metadata 登记。")
+            return
+        summary = (
+            f"即将运行单次软件验证：\n"
+            f"sample_id={saved.draft.sample_id}\n"
+            f"run_id={saved.draft.run_id}\n"
+            f"data_origin={saved.metadata.data_origin.value}\n"
+            f"measurement_mode={saved.metadata.measurement_mode.value}\n"
+            f"scientifically_eligible=false\n"
+            f"input={saved.metadata.source_path}\n\n"
+            "是否继续？"
+        )
+        if (
+            QMessageBox.question(
+                self,
+                "确认单次软件验证",
+                summary,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            != QMessageBox.Yes
+        ):
+            self._append_result("用户取消了启动；未创建运行成功标记。")
+            return
+        try:
+            self._begin_step("single_measurement")
+            invocation = self.single_worker.start(saved)
+        except Exception as exc:
+            user_message, technical = humanize_exception(exc)
+            self._append_result(f"无法启动：{user_message}")
+            self.technical_error.setPlainText(technical)
+            target = (
+                StepStatus.BLOCKED
+                if REAL_MULTISINE_BLOCK_MESSAGE in str(exc)
+                else StepStatus.FAILED
+            )
+            self._finish_step("single_measurement", target)
+            return
+        self._active_single_invocation = invocation
+        self.stdout_log.clear()
+        self.stderr_log.clear()
+        self.arguments_label.setText(
+            f"实际执行参数：program={invocation.program}; arguments={invocation.arguments!r}"
+        )
+        self.output_path_label.setText(f"输出路径：{invocation.output_directory}")
+        self.run_single_button.setEnabled(False)
+        self.cancel_single_button.setEnabled(True)
+        self._append_result(f"单次软件验证正在运行：run-id={invocation.run_id}")
+
+    def _single_measurement_finished(
+        self,
+        run_id: str,
+        status: SingleMeasurementStatus,
+        result: ProcessResult,
+        invocation: SingleMeasurementInvocation,
+    ) -> None:
+        del run_id
+        self.cancel_single_button.setEnabled(False)
+        self.run_single_button.setEnabled(True)
+        saved = self._current_saved
+        if saved is None:
+            self._append_result("单次处理结束，但 UI 登记上下文已丢失。")
+            self._finish_step("single_measurement", StepStatus.FAILED)
+            return
+        try:
+            evidence = self.measurement_service.record_run_result(
+                saved,
+                output_directory=invocation.output_directory,
+                status=status.value,
+                program=result.program,
+                arguments=result.arguments,
+                exit_code=result.exit_code,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+        except Exception as exc:
+            user_message, technical = humanize_exception(exc)
+            self._append_result(f"结果证据记录失败：{user_message}")
+            self.technical_error.setPlainText(technical)
+            self._finish_step("single_measurement", StepStatus.FAILED)
+            return
+        self._last_single_evidence = evidence
+        self.open_single_output_button.setEnabled(evidence.output_directory.is_dir())
+        self.view_single_report_button.setEnabled(True)
+        mapped = {
+            SingleMeasurementStatus.COMPLETED: StepStatus.PASSED,
+            SingleMeasurementStatus.WARNING: StepStatus.WARNING,
+            SingleMeasurementStatus.MANUAL_REVIEW: StepStatus.MANUAL_REVIEW,
+            SingleMeasurementStatus.BLOCKED_RESEARCH_GATE: StepStatus.BLOCKED,
+            SingleMeasurementStatus.FAILED: StepStatus.FAILED,
+            SingleMeasurementStatus.CANCELLED: StepStatus.WARNING,
+        }[status]
+        self._append_result(
+            f"单次处理完成：status={status.value}，QC={evidence.qc_status}，"
+            f"scientifically_eligible=false"
+        )
+        self.next_step_label.setText("下一步建议：查看单次报告、QC 和输出 hash。")
+        self._finish_step("single_measurement", mapped)
+
+    @staticmethod
+    def _copy_text(value: str) -> None:
+        QApplication.clipboard().setText(value)
 
     def _begin_step(self, step_id: str) -> None:
         status = self.state.step(step_id).status
@@ -556,8 +1091,24 @@ class MainWindow(QMainWindow):
                 QUrl.fromLocalFile(str(self._last_acceptance_summary.report_path))
             )
 
+    def _open_single_output(self) -> None:
+        if self._last_single_evidence is not None:
+            QDesktopServices.openUrl(
+                QUrl.fromLocalFile(str(self._last_single_evidence.output_directory))
+            )
+
+    def _view_single_report(self) -> None:
+        path: Path | None = None
+        if self._last_single_evidence is not None:
+            path = self._last_single_evidence.run_report_html
+        elif self._current_saved is not None:
+            path = self._current_saved.step_report_html
+        if path is not None:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self.acceptance_worker.is_running:
+        running = self.acceptance_worker.is_running or self.single_worker.is_running
+        if running:
             choice = QMessageBox.question(
                 self,
                 "验收仍在运行",
@@ -569,4 +1120,5 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
             self.acceptance_worker.cancel()
+            self.single_worker.cancel()
         event.accept()

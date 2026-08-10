@@ -7,9 +7,9 @@ from enum import Enum
 
 
 HARD_BLOCK_REAL_MULTISINE_MESSAGE = (
-    "当前 P8-A 后端仅允许 simulated/software_validation。\n"
-    "DEV-C16 ready 表示可以进入 DEV-D 准备，不代表真实 "
-    "Multisine 已获准分析。"
+    "当前 P8-A 后端只接受 simulated/software_validation。\n"
+    "本录音已登记但尚未分析。请保留原始 WAV、manifest、sidecar\n"
+    "和 hash，等待 DEV-D 真实 Multisine 门禁实现与批准。"
 )
 
 

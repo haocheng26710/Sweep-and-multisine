@@ -10,11 +10,41 @@ import uuid
 
 from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
+from acoustic_encoder.schemas import MeasurementMode
+from acoustic_encoder.ui.measurement_workflow import (
+    REAL_MULTISINE_BLOCK_MESSAGE,
+    SavedMeasurementDraft,
+    UsageRoute,
+    verify_saved_input_hashes,
+)
+
 
 class ProcessOutcome(str, Enum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class SingleMeasurementStatus(str, Enum):
+    COMPLETED = "completed"
+    WARNING = "warning"
+    MANUAL_REVIEW = "manual_review"
+    BLOCKED_RESEARCH_GATE = "blocked_research_gate"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+def map_single_measurement_status(
+    outcome: ProcessOutcome, exit_code: int
+) -> SingleMeasurementStatus:
+    if outcome is ProcessOutcome.CANCELLED:
+        return SingleMeasurementStatus.CANCELLED
+    return {
+        0: SingleMeasurementStatus.COMPLETED,
+        2: SingleMeasurementStatus.MANUAL_REVIEW,
+        3: SingleMeasurementStatus.BLOCKED_RESEARCH_GATE,
+        4: SingleMeasurementStatus.WARNING,
+    }.get(exit_code, SingleMeasurementStatus.FAILED)
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,3 +277,116 @@ class AcceptanceWorker(QObject):
             return
         self._active = None
         self.finished.emit(invocation.run_id, result, invocation)
+
+
+@dataclass(frozen=True, slots=True)
+class SingleMeasurementInvocation:
+    run_id: str
+    program: str
+    arguments: tuple[str, ...]
+    output_directory: Path
+    session_directory: Path
+
+
+class SingleMeasurementWorker(QObject):
+    """Run the existing mode-specific pipeline CLI through QProcess."""
+
+    started = Signal(str, object)
+    stdout_received = Signal(str)
+    stderr_received = Signal(str)
+    finished = Signal(str, object, object, object)
+
+    def __init__(
+        self,
+        project_root: str | Path,
+        *,
+        output_root: str | Path | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.project_root = Path(project_root).resolve()
+        self.output_root = (
+            self.project_root / "outputs"
+            if output_root is None
+            else Path(output_root).resolve()
+        )
+        self.task = ProcessTask(self)
+        self.task.stdout_received.connect(self.stdout_received)
+        self.task.stderr_received.connect(self.stderr_received)
+        self.task.finished.connect(self._on_finished)
+        self._active: SingleMeasurementInvocation | None = None
+
+    @property
+    def is_running(self) -> bool:
+        return self.task.is_running
+
+    def prepare(self, saved: SavedMeasurementDraft) -> SingleMeasurementInvocation:
+        draft = saved.draft
+        mode = saved.metadata.measurement_mode
+        if (
+            draft.route is UsageRoute.REAL_DIAGNOSTIC
+            and mode is MeasurementMode.SCHROEDER_MULTISINE
+        ):
+            raise PermissionError(REAL_MULTISINE_BLOCK_MESSAGE)
+        output = (
+            self.output_root
+            / saved.metadata.data_origin.value
+            / draft.run_purpose
+            / draft.run_id
+        ).resolve()
+        if output.exists():
+            raise FileExistsError(f"Run output already exists: {output}")
+        verify_saved_input_hashes(saved)
+        script_name = (
+            "run_pipeline.py"
+            if mode is MeasurementMode.REW_SWEEP
+            else "analyze_multisine.py"
+        )
+        arguments = [
+            str(self.project_root / "scripts" / script_name),
+            "--config",
+            str(saved.config_snapshot_path),
+            "--input",
+            saved.metadata.source_path,
+            "--metadata",
+            str(saved.metadata_path),
+            "--output-root",
+            str(self.output_root),
+            "--run-id",
+            draft.run_id,
+        ]
+        if draft.stimulus_manifest_path is not None:
+            arguments.extend(
+                ["--stimulus-manifest", str(draft.stimulus_manifest_path)]
+            )
+        return SingleMeasurementInvocation(
+            run_id=draft.run_id,
+            program=sys.executable,
+            arguments=tuple(arguments),
+            output_directory=output,
+            session_directory=saved.session_directory,
+        )
+
+    def start(self, saved: SavedMeasurementDraft) -> SingleMeasurementInvocation:
+        if self.is_running:
+            raise RuntimeError("a single measurement is already running")
+        invocation = self.prepare(saved)
+        self._active = invocation
+        self.task.start(
+            invocation.program,
+            invocation.arguments,
+            working_directory=self.project_root,
+        )
+        self.started.emit(invocation.run_id, invocation)
+        return invocation
+
+    def cancel(self) -> None:
+        self.task.cancel()
+
+    def _on_finished(self, result: ProcessResult) -> None:
+        invocation = self._active
+        if invocation is None:
+            return
+        self._active = None
+        status = map_single_measurement_status(result.outcome, result.exit_code)
+        self.finished.emit(invocation.run_id, status, result, invocation)

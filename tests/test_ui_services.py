@@ -118,6 +118,33 @@ def test_unknown_exception_has_safe_human_message_and_keeps_technical_detail() -
     assert "RuntimeError: device exploded" in technical
 
 
+def test_import_errors_have_actionable_human_mappings() -> None:
+    cases = (
+        (FileNotFoundError("missing.wav"), "找不到"),
+        (FileExistsError("Run output already exists"), "不会覆盖"),
+        (PermissionError("当前 P8-A 后端只接受 simulated/software_validation。"), "P8-A"),
+        (ValueError("input hash mismatch"), "SHA-256"),
+        (ValueError("manual review required"), "人工确认"),
+        (ValueError("schema invalid"), "字段或 schema"),
+    )
+    for error, expected in cases:
+        user_message, technical = humanize_exception(error)
+        assert expected in user_message
+        assert type(error).__name__ in technical
+
+    detail_cases = (
+        (ValueError("REW impedance data"), "阻抗"),
+        (ValueError("file is empty"), "为空"),
+        (ValueError("frequency must be strictly increasing"), "频率"),
+        (ValueError("WAV channel 3 does not exist"), "通道"),
+        (ValueError("sample rate mismatch"), "采样率"),
+        (ValueError("date_time must include timezone"), "时区"),
+        (ValueError("angle_deg outside range"), "角度"),
+    )
+    for error, expected in detail_cases:
+        assert expected in humanize_exception(error)[0]
+
+
 def test_acceptance_summary_exposes_t0_t3_v2_and_test_status(tmp_path: Path) -> None:
     class Status(str, Enum):
         PASS = "pass"

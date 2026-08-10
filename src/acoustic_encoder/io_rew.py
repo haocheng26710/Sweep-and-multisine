@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 import re
 
@@ -39,6 +40,40 @@ class REWManualReviewRequired(REWImportError):
     def __init__(self, message: str, *, reasons: tuple[str, ...]) -> None:
         self.reasons = reasons
         super().__init__(message)
+
+
+@dataclass(frozen=True, slots=True)
+class REWPreflightResult:
+    source_path: Path
+    source_sha256: str
+    data_point_count: int
+    column_count: int
+    has_phase: bool
+    minimum_frequency_hz: float
+    maximum_frequency_hz: float
+
+
+def inspect_rew_frequency_response(path: str | Path) -> REWPreflightResult:
+    """Read-only preflight using the canonical REW parser and type checks."""
+    source = Path(path).resolve()
+    if not source.is_file():
+        raise FileNotFoundError(f"REW TXT file does not exist: {source}")
+    if source.suffix.casefold() != ".txt":
+        raise REWImportError(f"REW input must use the .txt extension: {source}")
+    if source.stat().st_size == 0:
+        raise REWImportError(f"REW TXT file is empty: {source}")
+    values, descriptor_text = _parse_numeric_rows(source)
+    _require_acoustic_spl(descriptor_text, source)
+    _validate_frequency(values, source)
+    return REWPreflightResult(
+        source_path=source,
+        source_sha256=artifact_sha256(source),
+        data_point_count=int(values.shape[0]),
+        column_count=int(values.shape[1]),
+        has_phase=values.shape[1] == 3,
+        minimum_frequency_hz=float(values[0, 0]),
+        maximum_frequency_hz=float(values[-1, 0]),
+    )
 
 
 def _parse_numeric_rows(source: Path) -> tuple[np.ndarray, str]:
