@@ -37,3 +37,9 @@ P9-A/B/C 只接受用户显式选择的 scope/input/authority，不扫描目录�
 ## 5. 真实实验下一步
 
 请进入 [真实实验接入清单](experiment/DEV_D_REAL_EXPERIMENT_ENTRY_CHECKLIST.md)。当前真实 Multisine/P8 和依赖它的真实 P9-C/final-test 仍硬阻塞；DEV-C16 ready 不等于真实 Multisine 已获准。
+
+## 6. 打包版模拟验收说明
+
+请保留完整 one-folder，直接运行其中的 `SweepMultisineUI.exe`。模拟验收所需官方 REW 样例和配置位于 `_internal/validation_assets` / `_internal/config`，均为只读 software-validation 资源；不要只复制 EXE，也不要编辑这些文件。
+
+先运行“检查软件环境”，再运行“模拟软件验收”。两项状态独立：验收失败不会把已经通过的环境检查改成 failed。成功结果应显示 T0～T3 全部通过、V2 最低要求 14/14；失败时请保留唯一 run-id 目录，并在专业模式查看 `technical_log.txt`。通过结果仍是 `scientifically_eligible=false`，不会开放真实 Multisine/P8 或 final-test。

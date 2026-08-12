@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -21,6 +22,13 @@ def _write_json(path: Path, payload: Any) -> None:
 
 def _file_sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _windows_extended_path(path: Path) -> Path:
+    value = str(path.resolve())
+    if os.name == "nt" and not value.startswith("\\\\?\\"):
+        return Path("\\\\?\\" + value)
+    return Path(value)
 
 
 def _encoded(value: Any) -> Any:
@@ -179,12 +187,13 @@ def write_acceptance_bundle(
     ):
         for artifact_id, record in sorted(records.items()):
             target = (output / record["path"]).resolve()
-            if not target.is_file() or _file_sha256(target) != record["sha256"]:
+            target_io = _windows_extended_path(target)
+            if not target_io.is_file() or _file_sha256(target_io) != record["sha256"]:
                 raise ValueError(f"{artifact_type} artifact hash mismatch: {artifact_id}")
             audit_rows.append({
                 "artifact_type": artifact_type, "artifact": artifact_id,
                 "path": record["path"], "sha256": record["sha256"],
-                "size_bytes": target.stat().st_size,
+                "size_bytes": target_io.stat().st_size,
             })
     _write_csv(
         output / "artifact_hash_audit.csv", audit_rows,

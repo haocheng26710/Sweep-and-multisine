@@ -52,6 +52,7 @@ from .schemas import (
     artifact_sha256,
 )
 from .version import SCHEMA_VERSION_QUARTET
+from .ui.acceptance_assets import audit_acceptance_assets, external_rew_asset_root
 
 
 def _acceptance_config(path: str | Path) -> dict[str, Any]:
@@ -730,8 +731,65 @@ def _run_verification_command(
     }
 
 
+def _packaged_verification(
+    project: Path, log_directory: Path,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    path = (
+        project
+        / "validation_assets"
+        / "pre_experiment_acceptance"
+        / "build_verification.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != "1.0.0":
+        raise ValueError("unsupported packaged build verification schema")
+    if payload.get("purpose") != "software_validation":
+        raise ValueError("packaged build verification has invalid purpose")
+    if payload.get("scientifically_eligible") is not False:
+        raise ValueError("packaged build verification cannot be scientifically eligible")
+    verification: dict[str, dict[str, Any]] = {}
+    for command_id, source in payload.get("verification", {}).items():
+        status = str(source.get("status"))
+        if status not in {"pass", "fail"}:
+            raise ValueError(f"invalid packaged verification status: {command_id}")
+        log_path = log_directory / f"{command_id}.txt"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(
+            "packaged_build_verification=true\n"
+            + f"command_id={command_id}\n"
+            + f"status={status}\n"
+            + f"exit_code={source.get('exit_code')}\n"
+            + f"summary_tail={source.get('summary_tail', '')}\n"
+            + f"original_output_sha256={source.get('output_sha256', '')}\n",
+            encoding="utf-8",
+        )
+        match = re.search(r"(\d+) passed", str(source.get("summary_tail", "")))
+        verification[str(command_id)] = {
+            "command_id": str(command_id),
+            "command": list(source.get("command", ())),
+            "exit_code": int(source.get("exit_code", 1)),
+            "passed_count": None if match is None else int(match.group(1)),
+            "status": status,
+            "log_path": log_path.as_posix(),
+            "log_sha256": artifact_sha256(log_path),
+            "summary_tail": str(source.get("summary_tail", "")),
+            "packaged_build_verification": True,
+        }
+    required = {
+        "v1_sweep_cli",
+        "focused_compatibility_and_leakage",
+        "key_dev_b_to_c15_e2e",
+        "full_pytest",
+        "compileall",
+        "git_diff_check",
+    }
+    if set(verification) != required:
+        raise ValueError("packaged build verification command set is incomplete")
+    return verification, payload
+
+
 def _verify_external_rew(project: Path) -> dict[str, Any]:
-    root = project / "tests" / "fixtures" / "rew" / "external_reference"
+    root = external_rew_asset_root(project)
     manifest_path = root / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     rows: list[dict[str, Any]] = []
@@ -826,15 +884,41 @@ def _check(
 
 
 def _relative_record(output: Path, path: Path) -> dict[str, str]:
+    hash_path = path
+    path_value = str(path)
+    if path_value.startswith("\\\\?\\"):
+        path = Path(path_value[4:])
     return {
         "path": Path(os.path.relpath(path.resolve(), output.resolve())).as_posix(),
-        "sha256": _prefixed_file_sha(path),
+        "sha256": _prefixed_file_sha(hash_path),
     }
+
+
+def _windows_extended_path(path: Path) -> Path:
+    """Use the Win32 extended-path namespace for deeply nested stage evidence."""
+    resolved = path.resolve()
+    value = str(resolved)
+    if os.name == "nt" and not value.startswith("\\\\?\\"):
+        return Path("\\\\?\\" + value)
+    return resolved
+
+
+def _portable_stage_paths(value: Any) -> Any:
+    """Remove the Win32 API prefix from persisted human-facing stage paths."""
+    if isinstance(value, dict):
+        return {key: _portable_stage_paths(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_portable_stage_paths(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_portable_stage_paths(item) for item in value)
+    if isinstance(value, str) and value.startswith("\\\\?\\"):
+        return value[4:]
+    return value
 
 
 def run_pre_experiment_acceptance(
     *, project_root: str | Path, config_path: str | Path,
-    output_root: str | Path, run_id: str,
+    output_root: str | Path, run_id: str, packaged_runtime: bool = False,
 ) -> dict[str, Any]:
     project = Path(project_root).resolve()
     config_file = Path(config_path).resolve()
@@ -846,6 +930,16 @@ def run_pre_experiment_acceptance(
         raise FileExistsError(f"acceptance run already exists: {run_root}")
     run_root.mkdir(parents=True, exist_ok=False)
     evidence = run_root / "e"
+    # The validation runners create intentionally descriptive nested paths.
+    # On Windows, write those files through the extended-path namespace while
+    # keeping persisted paths and the user's workspace layout conventional.
+    stage_evidence = _windows_extended_path(evidence)
+    asset_audit = audit_acceptance_assets(project)
+    if not asset_audit.hashes_verified:
+        raise FileNotFoundError(
+            "packaged acceptance validation assets are missing or invalid: "
+            + ";".join(asset_audit.failures)
+        )
     acceptance = _acceptance_config(config_file)
 
     def stage(call: Any, name: str) -> dict[str, Any]:
@@ -864,18 +958,18 @@ def run_pre_experiment_acceptance(
             failure["failure_evidence_sha256"] = artifact_sha256(path)
             return failure
 
-    t0 = stage(lambda: run_t0_mathematical_consistency(
-        project_root=project, evidence_root=evidence, config_path=config_file,
-    ), "t0")
-    t1 = stage(lambda: run_t1_robustness_scenarios(
-        project_root=project, evidence_root=evidence, config_path=config_file,
-    ), "t1")
-    t2 = stage(lambda: run_t2_selection_classification(
-        project_root=project, evidence_root=evidence, config_path=config_file,
-    ), "t2")
-    t3 = stage(lambda: run_t3_end_to_end(
-        project_root=project, evidence_root=evidence, config_path=config_file,
-    ), "t3")
+    t0 = _portable_stage_paths(stage(lambda: run_t0_mathematical_consistency(
+        project_root=project, evidence_root=stage_evidence, config_path=config_file,
+    ), "t0"))
+    t1 = _portable_stage_paths(stage(lambda: run_t1_robustness_scenarios(
+        project_root=project, evidence_root=stage_evidence, config_path=config_file,
+    ), "t1"))
+    t2 = _portable_stage_paths(stage(lambda: run_t2_selection_classification(
+        project_root=project, evidence_root=stage_evidence, config_path=config_file,
+    ), "t2"))
+    t3 = _portable_stage_paths(stage(lambda: run_t3_end_to_end(
+        project_root=project, evidence_root=stage_evidence, config_path=config_file,
+    ), "t3"))
 
     rew = _verify_external_rew(project)
     legacy = _verify_legacy_config(evidence / "support")
@@ -903,14 +997,23 @@ def run_pre_experiment_acceptance(
         "compileall": (sys.executable, "-m", "compileall", "-q", "src", "scripts", "tests"),
         "git_diff_check": ("git", "diff", "--check"),
     }
-    verification = {
-        name: _run_verification_command(
-            project=project, log_directory=verification_dir,
-            command_id=name, command=command,
+    build_verification: dict[str, Any] | None = None
+    if packaged_runtime:
+        verification, build_verification = _packaged_verification(
+            project, verification_dir
         )
-        for name, command in commands.items()
-    }
-    commit, branch, dirty = _git_state(project)
+        commit = str(build_verification["source_commit"])
+        branch = str(build_verification["source_branch"])
+        dirty = bool(build_verification["source_git_dirty"])
+    else:
+        verification = {
+            name: _run_verification_command(
+                project=project, log_directory=verification_dir,
+                command_id=name, command=command,
+            )
+            for name, command in commands.items()
+        }
+        commit, branch, dirty = _git_state(project)
     docs = (
         project / "README.md", project / "MIGRATION_V1_TO_V2.md",
         project / "docs" / "progress" / "DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md",
@@ -1026,7 +1129,10 @@ def run_pre_experiment_acceptance(
             str(acceptance["t3"]["bridge_config_path"]),
             str(acceptance["t3"]["readout_config_path"]),
         ],
-        "external_reference_manifest": "tests/fixtures/rew/external_reference/manifest.json",
+        "external_reference_manifest": (
+            "validation_assets/pre_experiment_acceptance/rew/"
+            "external_reference/manifest.json"
+        ),
         "data_origins": ["simulated", "external_reference"],
         "run_purpose": "software_validation",
         "final_test_policy": "sealed",
@@ -1047,7 +1153,7 @@ def run_pre_experiment_acceptance(
         project / str(acceptance["t2"]["config_path"]),
         project / str(acceptance["t3"]["bridge_config_path"]),
         project / str(acceptance["t3"]["readout_config_path"]),
-        project / "tests" / "fixtures" / "rew" / "external_reference" / "manifest.json",
+        external_rew_asset_root(project) / "manifest.json",
     ]
     input_records = {
         f"input-{index:02d}-{path.name}": _relative_record(acceptance_output, path)
@@ -1073,7 +1179,10 @@ def run_pre_experiment_acceptance(
     }
     dependency_versions = {"python": sys.version.split()[0]}
     for package in ("numpy", "pandas", "scipy", "matplotlib", "scikit-learn", "PyYAML", "joblib", "pytest"):
-        dependency_versions[package] = package_metadata.version(package)
+        try:
+            dependency_versions[package] = package_metadata.version(package)
+        except package_metadata.PackageNotFoundError:
+            dependency_versions[package] = "verified_at_build"
     manifest = write_acceptance_bundle(
         acceptance_output,
         result=result,

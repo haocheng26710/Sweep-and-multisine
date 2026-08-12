@@ -60,3 +60,13 @@ FIX1 专项 `8 passed in 2.48s`；UI 全集 `157 passed, 648 deselected in 20.06
 实际 P9/UAT 数据全部为 `simulated/software_validation`；官方 REW 路径为 `external_reference/software_validation`。没有读取真实研究数据或真实 final-test。模拟 package 为 `software_validation_only`，`final_test_evaluated=false`、`scientifically_eligible=false`、`deployment_allowed=false`。
 
 已知限制：真实 Multisine/P8 未开放；真实 calibration/tone/model/package 未冻结；final-test 无真实 authority；P3-C 仍无通用正式生产入口；打包产物较大；未创建 installer、签名、tag、release 或 push。后续只由硬件和真实数据触发 DEV-D，不再新增常规 DEV-UI 轮次。
+
+## DEV-UI4-FIX2：打包版模拟验收修复（2026-08-13）
+
+人工验收保留的失败证据位于 `outputs/ui4_fix2_uat/打包 验收 工作区/outputs/simulated/software_validation/ui4-fix2-dist-20260813-03/acceptance`：旧包缺少官方 REW fixture；补齐资源后的首次运行又在深层中文/空格工作区暴露 Win32 路径长度失败。两项证据均未删除或改写。
+
+修复后，源码 `tests/fixtures` 不再是生产 EXE 的隐式依赖。`validation_assets/pre_experiment_acceptance/assets_manifest.json` 管理 20 项只读资源，包括三份官方 REW TXT、其原始 manifest、全部 DEV-C16 配置/文档及构建验证记录。三份 REW 文件逐字节复制，SHA-256 与原 manifest 一致，provenance 固定为 `external_reference/parser_fixture`、`eligible_for_scientific_analysis=false`。spec 只打包显式运行时资产，不打包 `tests/` 或构建日志。
+
+worker 顶层现在把未预期异常写成结构化 stderr 和 `technical_log.txt`，返回 70；UI 简易模式显示“模拟验收未完成：打包验证资源缺失或不可读取。”，专业模式保留异常类型、路径和 traceback。环境检查、模拟验收和当前阶段总体状态分别存储；验收失败不会覆盖已通过的环境检查，未完成的 T0～T3 显示“尚未完成”。
+
+Windows 深层证据写入通过扩展路径命名空间完成，持久化 manifest 仍使用普通工作区路径。最终打包版从 dist 外启动，在新中文/空格工作区完成 T0、T1、T2、T3 全部 `pass`，V2 最低要求 `14/14`；输出均为 `simulated/external_reference + software_validation`，`scientifically_eligible=false`、`final_test_read=false`。EXE 与准确 SHA-256、专项/全量测试结果见同日 UAT 追加记录。

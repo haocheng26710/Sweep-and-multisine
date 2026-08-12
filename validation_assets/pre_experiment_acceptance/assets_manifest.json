@@ -1,0 +1,141 @@
+{
+  "asset_set_id": "dev-ui4-pre-experiment-acceptance",
+  "assets": [
+    {
+      "asset_role": "documentation",
+      "relative_path": "MIGRATION_V1_TO_V2.md",
+      "sha256": "0f7e0dc793c4b36b957152f282528366b85623016522fdc3710dbbb5651da338",
+      "size_bytes": 50912
+    },
+    {
+      "asset_role": "documentation",
+      "relative_path": "README.md",
+      "sha256": "ef84ba7fc026c5feb5afec2c2566ca5146834a14f89cd3478fa22ed8be7fd4f4",
+      "size_bytes": 47865
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/default.yaml",
+      "sha256": "2d5c72df181525a2c27411bc05dcccac9abd14d8ec6314fe86dbd48b409597f2",
+      "size_bytes": 12642
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/experiment_v2_u4.yaml",
+      "sha256": "0a7b871c9d42df2aa5d38c8ba268e1180794c2e255a94e490618b4f7d35ca400",
+      "size_bytes": 1056
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/experiment_v2_u4_multisine.yaml",
+      "sha256": "dd5186f6e716c36c576821ce7f162bbe3020375e23b250aef649ec977abf4ca2",
+      "size_bytes": 1827
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/stimulus_multisine_broadband.yaml",
+      "sha256": "139986edb1687dc5e825ebc63c7614de13792c44281ebd143f6f862bbdbe78a8",
+      "size_bytes": 698
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/validation_dev_c13_p9b.yaml",
+      "sha256": "f277bd0eed773ae5b08c929989f7eb577bb4abade959952e3ae894d3632ef5c4",
+      "size_bytes": 1168
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/validation_dev_c14_p9c.yaml",
+      "sha256": "cf57724e2ecb51e490751093a08c92ed930943fed1cf283b7ceac47d52b9fecc",
+      "size_bytes": 851
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/validation_dev_c15_p9d.yaml",
+      "sha256": "556c45bd7bd604770e172727ff47cb2a52767191806c9f2fe0222997fc3909c0",
+      "size_bytes": 1023
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/validation_dev_c16_acceptance.yaml",
+      "sha256": "af4b6ab9c37ce59cb497618e5b86d678a1343819869cc935f50050b8be204d5d",
+      "size_bytes": 1829
+    },
+    {
+      "asset_role": "config",
+      "relative_path": "config/validation_dev_c4_matched_tones.yaml",
+      "sha256": "4dd453f9a1810ca04847bf14ea6d89116bcf61386200f28a61dbe39736d96cfb",
+      "size_bytes": 703
+    },
+    {
+      "asset_role": "documentation",
+      "relative_path": "docs/experiment/DEV_D_ACQUISITION_PLAN_TEMPLATE.md",
+      "sha256": "1ab9053eebd781e9906fb1d082b3311042383b82d6e10730a4b73e242dd9833b",
+      "size_bytes": 3900
+    },
+    {
+      "asset_role": "documentation",
+      "relative_path": "docs/experiment/DEV_D_REAL_EXPERIMENT_ENTRY_CHECKLIST.md",
+      "sha256": "a39f855b4f3dc90e1adb57811f4ed36a4297ecd2994c4dcba80578597d208c7f",
+      "size_bytes": 5052
+    },
+    {
+      "asset_role": "documentation",
+      "relative_path": "docs/experiment/REAL_DATA_REPLACEMENT_GUIDE.md",
+      "sha256": "f4926711c3d259c4b224ad7d5f495828a1d8f16af2e050fc3cd1bd272d4d5c10",
+      "size_bytes": 4513
+    },
+    {
+      "asset_role": "documentation",
+      "relative_path": "docs/progress/DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md",
+      "sha256": "d9c9a4adf8c2c2f326ea297b164b8556cb0b17a59f271eefed531171a4607a14",
+      "size_bytes": 9201
+    },
+    {
+      "asset_role": "build_verification",
+      "relative_path": "validation_assets/pre_experiment_acceptance/build_verification.json",
+      "sha256": "f9c76473db8c7e666918c2302de13ef6ac0698b65c4544dcbd094d8af4ab8c86",
+      "size_bytes": 4366
+    },
+    {
+      "asset_role": "rew_fixture",
+      "data_origin": "external_reference",
+      "dataset_role": "parser_fixture",
+      "eligible_for_scientific_analysis": false,
+      "relative_path": "validation_assets/pre_experiment_acceptance/rew/external_reference/Artist 3 + Q2070Si.txt",
+      "sha256": "f06000bd7bc11923a23dc7d54e9c72d0d6e55c3804755c5cb8583bc13131454d",
+      "size_bytes": 36075
+    },
+    {
+      "asset_role": "rew_fixture",
+      "data_origin": "external_reference",
+      "dataset_role": "parser_fixture",
+      "eligible_for_scientific_analysis": false,
+      "relative_path": "validation_assets/pre_experiment_acceptance/rew/external_reference/BW M1.txt",
+      "sha256": "cc863c23f0f4ebf3cc4d875f9a511b76b1d3e20a391ffc7a47745d8f53365447",
+      "size_bytes": 36269
+    },
+    {
+      "asset_role": "rew_fixture",
+      "data_origin": "external_reference",
+      "dataset_role": "parser_fixture",
+      "eligible_for_scientific_analysis": false,
+      "relative_path": "validation_assets/pre_experiment_acceptance/rew/external_reference/REL Sub, No EQ.txt",
+      "sha256": "29bcfb447d7c1087df2ef217f324f3a0f86645896f357e5faa7bc1ef618279c9",
+      "size_bytes": 16677
+    },
+    {
+      "asset_role": "rew_manifest",
+      "data_origin": "external_reference",
+      "dataset_role": "parser_fixture",
+      "eligible_for_scientific_analysis": false,
+      "relative_path": "validation_assets/pre_experiment_acceptance/rew/external_reference/manifest.json",
+      "sha256": "15ee2d763cfa18262192a892fe5afd073f8c6d4488fc4989ce5d66691cfd3a87",
+      "size_bytes": 1274
+    }
+  ],
+  "final_test_read": false,
+  "purpose": "software_validation",
+  "schema_version": "1.0.0",
+  "scientifically_eligible": false
+}

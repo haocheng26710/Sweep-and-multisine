@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.worker is not None:
         from acoustic_encoder.ui.runtime import RuntimeContext
-        from acoustic_encoder.ui.worker_entry import dispatch_worker
+        from acoustic_encoder.ui.worker_entry import run_worker_safely
 
         runtime = RuntimeContext.discover(
             project_root=PROJECT_ROOT,
@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         worker_args = args.worker_args
         if worker_args[:1] == ["--"]:
             worker_args = worker_args[1:]
-        return dispatch_worker(
+        return run_worker_safely(
             args.worker,
             worker_args,
             resource_root=runtime.resource_root,

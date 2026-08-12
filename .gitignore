@@ -8,6 +8,7 @@ htmlcov/
 build/
 dist/
 work/
+validation_assets/pre_experiment_acceptance/build_verification_logs/
 
 # Raw measurements, generated stimuli, processed artifacts, and run outputs.
 data/exported_txt/**

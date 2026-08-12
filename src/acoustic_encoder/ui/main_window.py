@@ -135,6 +135,8 @@ class MainWindow(QMainWindow):
         self._current_step_id = "environment"
         self._active_invocation: AcceptanceInvocation | None = None
         self._last_acceptance_summary: AcceptanceSummary | None = None
+        self._environment_check_status = "not_completed"
+        self._acceptance_status = "not_completed"
         self._current_route = UsageRoute.SIMULATED_PRACTICE
         self._current_preflight: REWPreflightResult | MultisinePreflightResult | None = None
         self._current_draft: MeasurementDraft | None = None
@@ -280,7 +282,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.environment_button)
         layout.addWidget(self.acceptance_button)
         layout.addWidget(self.cancel_button)
-        self.acceptance_summary = QLabel("T0～T3 与 V2 最低要求：尚未运行。")
+        self.environment_status_label = QLabel("环境检查：尚未完成")
+        self.acceptance_status_label = QLabel("模拟验收：尚未完成")
+        self.environment_overall_status_label = QLabel("当前阶段总体状态：尚未完成")
+        layout.addWidget(self.environment_status_label)
+        layout.addWidget(self.acceptance_status_label)
+        layout.addWidget(self.environment_overall_status_label)
+        self.acceptance_summary = QLabel("T0～T3 与 V2 最低要求：尚未完成。")
         self.acceptance_summary.setWordWrap(True)
         layout.addWidget(self.acceptance_summary)
         links = QHBoxLayout()
@@ -1148,9 +1156,17 @@ class MainWindow(QMainWindow):
             user_message, technical = humanize_exception(exc)
             self.technical_error.setPlainText(technical)
             self._append_result(user_message)
+            self._environment_check_status = "failed"
+            self.environment_status_label.setText("环境检查：failed")
+            self._update_environment_overall_status()
             self._finish_step("environment", StepStatus.FAILED)
             return
         self._show_environment_report(report)
+        self._environment_check_status = "passed" if report.passed else "failed"
+        self.environment_status_label.setText(
+            f"环境检查：{self._environment_check_status}"
+        )
+        self._update_environment_overall_status()
         self._finish_step(
             "environment", StepStatus.PASSED if report.passed else StepStatus.FAILED
         )
@@ -1214,14 +1230,18 @@ class MainWindow(QMainWindow):
 
     def _run_acceptance(self) -> None:
         try:
-            self._begin_step("environment")
             invocation = self.acceptance_worker.start()
         except Exception as exc:
             user_message, technical = humanize_exception(exc)
             self._append_result(user_message)
             self.technical_error.setPlainText(technical)
-            self._finish_step("environment", StepStatus.FAILED)
+            self._acceptance_status = "failed"
+            self.acceptance_status_label.setText("模拟验收：failed")
+            self._update_environment_overall_status()
             return
+        self._acceptance_status = "running"
+        self.acceptance_status_label.setText("模拟验收：running")
+        self._update_environment_overall_status()
         self._active_invocation = invocation
         self.stdout_log.clear()
         self.stderr_log.clear()
@@ -1264,17 +1284,33 @@ class MainWindow(QMainWindow):
             self._append_result(
                 f"模拟软件验收已取消；outcome=cancelled；run-id={run_id}。"
             )
-            self._finish_step("environment", StepStatus.WARNING)
+            self._acceptance_status = "cancelled"
+            self.acceptance_status_label.setText("模拟验收：cancelled")
+            self._update_environment_overall_status()
+            return
+        if result.exit_code == 70:
+            self._append_result("模拟验收未完成：打包验证资源缺失或不可读取。")
+            self.technical_error.setPlainText(
+                result.stderr.strip() or "worker_unexpected_exception"
+            )
+            self._acceptance_status = "failed"
+            self.acceptance_status_label.setText("模拟验收：failed")
+            self.acceptance_summary.setText("T0～T3 与 V2 最低要求：尚未完成。")
+            self._update_environment_overall_status()
             return
         try:
             summary = self.services.load_acceptance_summary(
                 invocation.output_directory
             )
         except Exception as exc:
-            user_message, technical = humanize_exception(exc)
-            self._append_result(user_message)
-            self.technical_error.setPlainText(technical)
-            self._finish_step("environment", StepStatus.FAILED)
+            _, technical = humanize_exception(exc)
+            self._append_result("模拟验收未完成：打包验证资源缺失或不可读取。")
+            detail = result.stderr.strip() or technical
+            self.technical_error.setPlainText(detail)
+            self._acceptance_status = "failed"
+            self.acceptance_status_label.setText("模拟验收：failed")
+            self.acceptance_summary.setText("T0～T3 与 V2 最低要求：尚未完成。")
+            self._update_environment_overall_status()
             return
         self._last_acceptance_summary = summary
         self._show_acceptance_summary(
@@ -1321,7 +1357,26 @@ class MainWindow(QMainWindow):
         self.next_step_label.setText(
             "下一步建议：查看不可变验收报告；真实 Multisine/P8 仍保持硬阻塞。"
         )
-        self._finish_step("environment", status)
+        self._acceptance_status = status.value
+        self.acceptance_status_label.setText(
+            f"模拟验收：{self._acceptance_status}"
+        )
+        self._update_environment_overall_status()
+
+    def _update_environment_overall_status(self) -> None:
+        if "failed" in {self._environment_check_status, self._acceptance_status}:
+            overall = "failed"
+        elif self._acceptance_status == "running":
+            overall = "running"
+        elif self._environment_check_status == "passed" and self._acceptance_status == "passed":
+            overall = "passed"
+        elif self._acceptance_status in {"warning", "cancelled"}:
+            overall = "warning"
+        else:
+            overall = "尚未完成"
+        self.environment_overall_status_label.setText(
+            f"当前阶段总体状态：{overall}"
+        )
 
     def _show_placeholder(self) -> None:
         details = self.state.unavailable_details(self._current_step_id)

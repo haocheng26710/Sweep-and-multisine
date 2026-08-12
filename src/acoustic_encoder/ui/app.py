@@ -50,5 +50,7 @@ def run_desktop(
     )
     window.show()
     if smoke_test:
-        QTimer.singleShot(250, window.close)
+        # Exercise the same read-only environment check as the visible button.
+        QTimer.singleShot(0, window.environment_button.click)
+        QTimer.singleShot(750, window.close)
     return application.exec()

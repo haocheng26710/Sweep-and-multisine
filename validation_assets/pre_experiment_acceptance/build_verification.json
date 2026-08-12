@@ -1,0 +1,116 @@
+{
+  "created_at_utc": "2026-08-12T23:17:59.101798+00:00",
+  "final_test_read": false,
+  "purpose": "software_validation",
+  "python_version": "3.12.4",
+  "schema_version": "1.0.0",
+  "scientifically_eligible": false,
+  "source_branch": "feature/v2-dual-input",
+  "source_commit": "8f890c1edde85197d133a3ef45e60185fc0464a7",
+  "source_git_dirty": true,
+  "verification": {
+    "compileall": {
+      "command": [
+        "D:\\Anaconda3\\python.exe",
+        "-m",
+        "compileall",
+        "-q",
+        "src",
+        "scripts",
+        "tests"
+      ],
+      "command_id": "compileall",
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "pass",
+      "summary_tail": ""
+    },
+    "focused_compatibility_and_leakage": {
+      "command": [
+        "D:\\Anaconda3\\python.exe",
+        "-m",
+        "pytest",
+        "--basetemp",
+        "C:\\Users\\Firefly\\AppData\\Local\\Temp\\ac-dylt2k7k\\f",
+        "-q",
+        "--disable-warnings",
+        "tests/test_pipeline_cli.py",
+        "tests/test_io_rew.py",
+        "tests/test_config.py",
+        "tests/test_research_gate.py",
+        "tests/test_tone_selection.py",
+        "tests/test_projection_ablation.py",
+        "tests/test_cross_mode_bridge.py",
+        "tests/test_offline_readout.py"
+      ],
+      "command_id": "focused_compatibility_and_leakage",
+      "exit_code": 0,
+      "output_sha256": "d575d9d44c63580d1344ac4d9e5f6b2fc74e08588403040c0aac5bd53aab5f11",
+      "status": "pass",
+      "summary_tail": "255 passed in 8.18s"
+    },
+    "full_pytest": {
+      "command": [
+        "D:\\Anaconda3\\python.exe",
+        "-m",
+        "pytest",
+        "--basetemp",
+        "C:\\Users\\Firefly\\AppData\\Local\\Temp\\ac-dylt2k7k\\a",
+        "-q",
+        "--disable-warnings"
+      ],
+      "command_id": "full_pytest",
+      "exit_code": 0,
+      "output_sha256": "8f905da73376e5e5a0db043e594a37d0c24fd3c517fc0dfded410fc807970f19",
+      "status": "pass",
+      "summary_tail": "810 passed in 122.42s (0:02:02)"
+    },
+    "git_diff_check": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "command_id": "git_diff_check",
+      "exit_code": 0,
+      "output_sha256": "480b7e9b86ac52e7b4318521a301953572626926de3ee33cc401dab87bfc87c6",
+      "status": "pass",
+      "summary_tail": "warning: in the working copy of 'scripts/build_windows_gui.ps1', LF will be replaced by CRLF the next time Git touches it"
+    },
+    "key_dev_b_to_c15_e2e": {
+      "command": [
+        "D:\\Anaconda3\\python.exe",
+        "-m",
+        "pytest",
+        "--basetemp",
+        "C:\\Users\\Firefly\\AppData\\Local\\Temp\\ac-dylt2k7k\\k",
+        "-q",
+        "--disable-warnings",
+        "tests/test_matched_tone_e2e.py",
+        "tests/test_dataset_quality_e2e.py",
+        "tests/test_metrics_e2e.py",
+        "tests/test_classification_validation.py",
+        "tests/test_cross_mode_bridge_validation_e2e.py",
+        "tests/test_offline_readout_validation_e2e.py"
+      ],
+      "command_id": "key_dev_b_to_c15_e2e",
+      "exit_code": 0,
+      "output_sha256": "ae283005dd8acdf2736970515dcaaad928789667ed094eb558aa1ea77d9a2f6b",
+      "status": "pass",
+      "summary_tail": "12 passed in 18.09s"
+    },
+    "v1_sweep_cli": {
+      "command": [
+        "D:\\Anaconda3\\python.exe",
+        "D:\\Bristol course\\dissertation\\program work\\scripts\\run_pipeline.py",
+        "--config",
+        "D:\\Bristol course\\dissertation\\program work\\config\\experiment_v2_u4.yaml"
+      ],
+      "command_id": "v1_sweep_cli",
+      "exit_code": 0,
+      "output_sha256": "c1d2a467b7dc9f9b13272988bea085587b29b0afea185aa83c5729ab535b3517",
+      "status": "pass",
+      "summary_tail": "DEV-C stage gate: configuration is valid; provide --input, --metadata, and --run-id to execute P1/P2-A/P8 plus dense P3-A/P3-B. P2-B requires an explicit dataset scope and input manifest; canonical P4-A additionally requires the matching P2-B result/hash. P4-B requires its explicit comparison scope; P5-A/P5-B require explicit classification scopes; P6-A requires an explicit HR calibration scope; P6-B and P9-A require their own explicit scopes; P9-B/P9-C/P9-D remain closed."
+    }
+  }
+}

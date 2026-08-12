@@ -9,6 +9,12 @@ $DistRoot = Join-Path $ProjectRoot "dist"
 $ApplicationRoot = Join-Path $DistRoot "SweepMultisineUI"
 
 if (-not $SkipPyInstaller) {
+    & $PythonExecutable (Join-Path $ProjectRoot "scripts\build_acceptance_assets.py")
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    & $PythonExecutable (Join-Path $ProjectRoot "scripts\build_acceptance_verification.py")
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    & $PythonExecutable (Join-Path $ProjectRoot "scripts\build_acceptance_assets.py")
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     $env:QT_API = "pyside6"
     & $PythonExecutable -m PyInstaller --noconfirm --clean --distpath $DistRoot --workpath (Join-Path $ProjectRoot "build") $SpecPath
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -50,3 +50,19 @@ FIX1 更新：2026-08-12
 - packaged offline：`outputs/ui4_uat/simulated/software_validation/ui4-p9d-20260810/offline_readout_packaged`
 
 这些目录均为忽略的可再生成软件验证产物，不进入 Git，也不得用于科研结论。
+
+## DEV-UI4-FIX2 重新验收（2026-08-13）
+
+人工发现的原始失败是 frozen worker 查找 `_internal/tests/fixtures/rew/external_reference/manifest.json`。修复未改写 fixture；打包前后均核验三份 TXT 与官方 fixture manifest 的 SHA-256。随后保留 `ui4-fix2-dist-20260813-03` 的路径长度失败目录，并用新的 run-id 重新执行。
+
+- FIX2 专项：`17 passed in 1.36s`。
+- 全量：`810 passed in 122.42s (0:02:02)`；构建期 focused 回归 `255 passed in 8.18s`；关键 E2E `12 passed in 18.09s`。
+- `compileall` exit 0；`git diff --check` exit 0；源码和 dist offscreen smoke exit 0。
+- dist 资产闭包：20 项、SHA-256 失败 0；三份 REW TXT 全部存在且与原 manifest 一致；包内无 `tests/`、无构建验证日志。
+- 打包版从 `C:\Users\Firefly\AppData\Local\Temp` 外部目录启动；工作区为 `outputs/ui4_fix2_uat/打包 验收 工作区`。
+- 最终 run-id：`ui4-fix2-dist-final-20260813`；T0/T1/T2/T3=`pass/pass/pass/pass`，V2=`14/14`，artifact/manifest hash 复核通过。
+- 故意提供缺失配置的 packaged worker 返回 70 并写 `technical_log.txt`，未出现 PyInstaller “Unhandled exception in script”窗口。
+- UI 回归确认“环境检查：passed”“模拟验收：failed”“当前阶段总体状态：failed”可同时成立，worker 失败后按钮恢复、状态不再停留 `running`，T0～T3 显示“尚未完成”。
+- 真实 Multisine/P8 仍为 `blocked`；final-test 仍为 `sealed`，没有读取真实 final-test。
+
+最终 EXE：`dist/SweepMultisineUI/SweepMultisineUI.exe`；SHA-256：`ff70dd9dfe46373dac72efbb03220d4c34b9fc1c7b6e94d5fa18245555854be3`。此次验收仅证明软件验证闭环，不提升科研、canonical、deployment 或 final-test 资格。

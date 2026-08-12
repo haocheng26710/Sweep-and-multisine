@@ -178,7 +178,8 @@ def test_acceptance_success_streams_log_and_displays_t0_t3_and_v2(qtbot, tmp_pat
     worker.complete(ProcessOutcome.SUCCEEDED, 0)
 
     assert "live line" in window.stdout_log.toPlainText()
-    assert window.state.step("environment").status.value == "passed"
+    assert window.state.step("environment").status.value == "ready"
+    assert window.acceptance_status_label.text() == "模拟验收：passed"
     assert "T0=pass" in window.acceptance_summary.text()
     assert "T3=pass" in window.acceptance_summary.text()
     assert "14/14" in window.acceptance_summary.text()
@@ -191,7 +192,7 @@ def test_acceptance_failure_and_cancel_are_distinct(qtbot, tmp_path: Path) -> No
     failed, _, failed_worker = _window(qtbot, tmp_path / "failed")
     qtbot.mouseClick(failed.acceptance_button, Qt.LeftButton)
     failed_worker.complete(ProcessOutcome.FAILED, 2)
-    assert failed.state.step("environment").status.value == "failed"
+    assert failed.acceptance_status_label.text() == "模拟验收：failed"
     assert "失败" in failed.result_label.text()
     assert "T0=pass" in failed.acceptance_summary.text()
 
@@ -199,7 +200,7 @@ def test_acceptance_failure_and_cancel_are_distinct(qtbot, tmp_path: Path) -> No
     qtbot.mouseClick(cancelled.acceptance_button, Qt.LeftButton)
     qtbot.mouseClick(cancelled.cancel_button, Qt.LeftButton)
     assert cancel_worker.cancel_called
-    assert cancelled.state.step("environment").status.value == "warning"
+    assert cancelled.acceptance_status_label.text() == "模拟验收：cancelled"
     assert "cancelled" in cancelled.result_label.text()
 
 

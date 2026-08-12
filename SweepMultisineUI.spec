@@ -7,9 +7,25 @@ a = Analysis(
     binaries=[],
     datas=[
         ('config', 'config'),
+        (
+            'validation_assets/pre_experiment_acceptance/assets_manifest.json',
+            'validation_assets/pre_experiment_acceptance',
+        ),
+        (
+            'validation_assets/pre_experiment_acceptance/build_verification.json',
+            'validation_assets/pre_experiment_acceptance',
+        ),
+        (
+            'validation_assets/pre_experiment_acceptance/rew/external_reference',
+            'validation_assets/pre_experiment_acceptance/rew/external_reference',
+        ),
         ('docs/USER_GUIDE_ZH.md', 'docs'),
         ('docs/QUICKSTART_UI_ZH.md', 'docs'),
         ('docs/TROUBLESHOOTING_UI_ZH.md', 'docs'),
+        ('docs/progress/DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md', 'docs/progress'),
+        ('docs/experiment/DEV_D_REAL_EXPERIMENT_ENTRY_CHECKLIST.md', 'docs/experiment'),
+        ('docs/experiment/REAL_DATA_REPLACEMENT_GUIDE.md', 'docs/experiment'),
+        ('docs/experiment/DEV_D_ACQUISITION_PLAN_TEMPLATE.md', 'docs/experiment'),
         ('README.md', '.'),
         ('MIGRATION_V1_TO_V2.md', '.'),
     ],

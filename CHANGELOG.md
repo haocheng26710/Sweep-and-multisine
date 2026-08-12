@@ -1,5 +1,13 @@
 # Changelog
 
+## DEV-UI4-FIX2 — packaged acceptance assets and worker failure handling (unreleased)
+
+- Replaced the frozen executable's implicit dependency on source `tests/fixtures` with a hash-audited, read-only `validation_assets/pre_experiment_acceptance` bundle containing the official REW parser fixtures and complete DEV-C16 runtime configuration/document closure.
+- Added build-time acceptance verification evidence so frozen DEV-C16 does not require pytest, Git, source scripts or the source test tree at end-user runtime.
+- Added a top-level frozen-worker exception boundary with structured stderr, non-zero exit status and `technical_log.txt`; separated environment, acceptance and overall UI status.
+- Added Windows extended-path I/O for deeply nested acceptance evidence while preserving conventional persisted paths and support for spaces/Chinese characters.
+- Kept official REW fixtures scientifically ineligible, real Multisine/P8 blocked and final-test sealed.
+
 ## DEV-UI4-FIX1 — selectable persistent workspace (unreleased)
 
 - Added an always-visible workspace chooser with writable-directory validation, restart-required messaging and a separate immediate-restart action.

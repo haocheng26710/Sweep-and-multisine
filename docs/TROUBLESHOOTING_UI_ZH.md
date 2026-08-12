@@ -19,3 +19,11 @@
 | `--workspace` 与界面保存值不同 | 命令行值优先且只影响该次启动，不会改写保存值。移除 `--workspace` 后，下次启动恢复使用保存值。 |
 
 原始 WAV/TXT、sidecar、manifest 和 final-test 文件都应只读备份。不要通过改 JSON、改文件名或复制到其他 provenance 目录来绕过门禁。
+
+## 打包版“模拟软件验收”失败
+
+新版 one-folder 已包含受 `validation_assets/pre_experiment_acceptance/assets_manifest.json` 管理的只读验证资源。请完整解压/复制整个 `SweepMultisineUI` 文件夹，不能只复制 EXE；不要修改 `_internal/validation_assets` 中的官方 REW 文件。它们仅用于 `external_reference/software_validation`，不能用于科研结论。
+
+若界面显示“模拟验收未完成：打包验证资源缺失或不可读取。”，先查看专业模式的异常类型、缺失路径和 traceback，再打开该次唯一 run-id 下的 `acceptance/technical_log.txt`。失败不会覆盖已有输出；重新运行会生成新的 run-id。环境检查与模拟验收是两个独立结果，因此可同时看到“环境检查：passed”和“模拟验收：failed”。T0～T3 没有完成时应显示“尚未完成”。
+
+不要从源码 `tests/fixtures` 手工补文件，也不要修改 fixture 以迁就 hash。若 validation asset 缺失或 hash 不一致，应重新取得完整发行目录。真实 Multisine/P8 仍被阻塞，final-test 仍为 sealed；模拟验收通过不会解除这些门禁。
