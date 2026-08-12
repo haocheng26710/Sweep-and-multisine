@@ -1,5 +1,11 @@
 # Changelog
 
+## DEV-UI4-FIX1 — selectable persistent workspace (unreleased)
+
+- Added an always-visible workspace chooser with writable-directory validation, restart-required messaging and a separate immediate-restart action.
+- Persisted the user choice outside scientific artifacts with fixed precedence: command-line `--workspace`, saved selection, then the `%LOCALAPPDATA%` default.
+- Blocked workspace changes while tasks run, preserved all old workspace data, and kept every page and worker bound to one immutable runtime workspace per process.
+
 ## DEV-UI4 — frozen workflow and Windows delivery (unreleased)
 
 - Added formal P9-A/P9-B/P9-C/P9-D and frozen-package offline-readout UI orchestration using explicit authorities, no-overwrite outputs, hash previews and the existing scientific application services.

@@ -4,8 +4,12 @@
 
 日期：2026-08-10
 
+FIX1 更新：2026-08-12
+
 分支：`feature/v2-dual-input`
 提交：与本报告同一提交，标题 `feat(ui): complete frozen workflow and Windows delivery`
+
+FIX1 提交：与本次修复同一提交，标题 `fix(ui): allow users to change workspace`
 
 ## 目标与完成范围
 
@@ -16,6 +20,12 @@
 `RuntimeContext` 将 `resource_root` 与 `workspace_root` 分离；开发态 worker 为 `python scripts/run_gui.py --worker <task> -- ...`，打包态为 `SweepMultisineUI.exe --worker <task> -- ...`。QProcess 始终分离 program/argument，不拼 shell。dispatcher 直接调用现有 application service：P1/P8、P2-B、P4、P5-A/B、P6-A/B、P9-A/B/C、P9-D package、offline readout 和 DEV-C16 acceptance。
 
 P9 页面要求显式 config/scope/input/candidate/P2-B/P4/P3-C/P9-A authority；不按文件名、最近修改时间或目录顺序配对。P9-A preview 可从显式用户选择写出 scope/input/candidate snapshot、SHA-256 和未确认 audit，拒绝 final-test。P9-B 缺 P9-A fold authority 即锁定；P9-C 缺正式 pairing authority 或涉及真实 Multisine 即锁定。
+
+### DEV-UI4-FIX1 工作区修复
+
+窗口顶部在简易/专业模式均显示“更换工作区”。`QFileDialog.getExistingDirectory` 的选择先通过“可创建目录并实际创建临时文件”的写入检查，再原子写入用户设置；取消或失败不改变当前选择。优先级固定为命令行 `--workspace` > 用户保存值 > `%LOCALAPPDATA%\SweepMultisineUI\workspace`。
+
+切换采用重启生效策略：当前标签、所有页面、service 和 worker 在进程生命周期内继续绑定同一个旧 `RuntimeContext`；新路径只显示为“下次启动生效”。“立即重启”通过分离的 executable/arguments 传入 `--workspace`。任一任务运行时，选择和重启均被阻止并解释原因。程序不移动、复制或删除旧工作区数据，设置文件也不属于科研 artifact。
 
 ## 冻结与离线读取
 
@@ -35,15 +45,15 @@ P9-D 调用正式 `build_readout_package_from_manifest`，拒绝覆盖和 final-
 
 - 命令：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_windows_gui.ps1`
 - EXE：`dist/SweepMultisineUI/SweepMultisineUI.exe`
-- EXE SHA-256：`3360a281d54caa091e2170bbf7140eb01527aadf8e3d22d737720181c479c9ce`
+- EXE SHA-256：`5cf8786bcfecdec3add4c3ff784b134ec84293b0cca914290e940223c238276f`
 - Python `3.12.4`；PyInstaller `6.22.0`；PySide6 `6.8.3`
-- SHA 清单：2533 项，复核失败 0；分发目录共 2534 个文件、945979183 bytes。
+- SHA 清单：2533 项，复核失败 0；分发目录共 2534 个文件、945986004 bytes。
 
-构建产物约 935 MB，来自功能完整的 Anaconda 构建环境；one-folder 较大但可诊断。`build/`、`dist/` 受 `.gitignore` 管理，不提交。manifest 记录构建时 parent commit `13af400...` 且 `git_dirty=true`，因为单一提交边界要求代码、文档和 recipe 同时提交；这不提升科研资格。
+构建产物约 946 MB，来自功能完整的 Anaconda 构建环境；one-folder 较大但可诊断。`build/`、`dist/` 受 `.gitignore` 管理，不提交。FIX1 manifest 记录构建时 parent commit `49973abb...` 且 `git_dirty=true`，因为代码、测试、文档和重建证据在同一个本地提交边界内；这不提升科研资格。
 
 ## 验证结果
 
-UI4 专项 `18 passed in 3.43s`；全量 `797 passed in 124.05s`；compileall、diff-check、源码 smoke、最终 dist offscreen smoke、隔离 PATH worker、2533 项 checksum 均通过。完整 T-UI0～T-UI10 见 [最终 UAT](DEV-UI4_FINAL_UAT.md)。
+FIX1 专项 `8 passed in 2.48s`；UI 全集 `157 passed, 648 deselected in 20.06s`；全量 `805 passed in 136.80s`。compileall、diff-check、源码 smoke、最终 dist offscreen smoke、保存值恢复、CLI 覆盖保存值和 2533 项 checksum 均通过。完整 T-UI0～T-UI10 见 [最终 UAT](DEV-UI4_FINAL_UAT.md)。
 
 ## 数据来源、资格与限制
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QProcess, QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -61,6 +61,11 @@ from acoustic_encoder.ui.workers import (
     SingleMeasurementWorker,
 )
 from acoustic_encoder.ui.runtime import RuntimeContext
+from acoustic_encoder.ui.runtime import (
+    WorkspaceAccessError,
+    WorkspaceSelectionStore,
+    default_workspace_settings_path,
+)
 from acoustic_encoder.ui.final_delivery_page import FinalDeliveryPage
 
 
@@ -136,6 +141,7 @@ class MainWindow(QMainWindow):
         self._current_saved: SavedMeasurementDraft | None = None
         self._active_single_invocation: SingleMeasurementInvocation | None = None
         self._last_single_evidence: MeasurementRunEvidence | None = None
+        self._pending_workspace: Path | None = None
         self.setWindowTitle("双入口声学分析向导 — 软件验证")
         self.resize(1260, 820)
         self.setMinimumSize(1000, 680)
@@ -157,6 +163,17 @@ class MainWindow(QMainWindow):
         self.workspace_label.setToolTip(str(self.workspace_root))
         self.workspace_label.setMaximumWidth(420)
         header.addWidget(self.workspace_label)
+        self.change_workspace_button = QPushButton("更换工作区")
+        self.change_workspace_button.setObjectName("changeWorkspaceButton")
+        header.addWidget(self.change_workspace_button)
+        self.pending_workspace_label = QLabel()
+        self.pending_workspace_label.setObjectName("pendingWorkspaceLabel")
+        self.pending_workspace_label.setVisible(False)
+        header.addWidget(self.pending_workspace_label)
+        self.restart_workspace_button = QPushButton("立即重启")
+        self.restart_workspace_button.setObjectName("restartWorkspaceButton")
+        self.restart_workspace_button.setVisible(False)
+        header.addWidget(self.restart_workspace_button)
         header.addStretch(1)
         header.addWidget(QLabel("界面模式："))
         self.mode_combo = QComboBox()
@@ -460,6 +477,8 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.mode_combo.currentIndexChanged.connect(self._mode_changed)
+        self.change_workspace_button.clicked.connect(self._choose_workspace)
+        self.restart_workspace_button.clicked.connect(self._restart_with_pending_workspace)
         self.previous_button.clicked.connect(lambda: self._navigate_relative(-1))
         self.next_button.clicked.connect(lambda: self._navigate_relative(1))
         self.about_button.clicked.connect(self._show_about)
@@ -526,6 +545,72 @@ class MainWindow(QMainWindow):
         mode = UiMode(value)
         self.state.set_mode(mode)
         self.professional_panel.setVisible(mode is UiMode.PROFESSIONAL)
+
+    def _has_running_tasks(self) -> bool:
+        return bool(
+            self.acceptance_worker.is_running
+            or self.single_worker.is_running
+            or self.dataset_page.worker.is_running
+            or self.analysis_page.worker.is_running
+            or self.final_delivery_page.is_running
+        )
+
+    def _choose_workspace(self) -> None:
+        if self._has_running_tasks():
+            QMessageBox.warning(
+                self,
+                "暂时不能更换工作区",
+                "当前有任务正在运行。请等待任务结束或取消任务后再更换工作区，避免输出分散到不同目录。",
+            )
+            return
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            "选择工作区（下次启动生效）",
+            str(self.workspace_root),
+        )
+        if not selected:
+            return
+        try:
+            store = WorkspaceSelectionStore(
+                self.runtime.settings_path or default_workspace_settings_path()
+            )
+            store.save(selected)
+        except WorkspaceAccessError as exc:
+            QMessageBox.warning(self, "工作区不可用", str(exc))
+            return
+        self._pending_workspace = Path(selected).resolve()
+        self.pending_workspace_label.setText("已保存新工作区（下次启动生效）")
+        self.pending_workspace_label.setToolTip(str(self._pending_workspace))
+        self.pending_workspace_label.setVisible(True)
+        self.restart_workspace_button.setVisible(True)
+        self.restart_workspace_button.setEnabled(True)
+        QMessageBox.information(
+            self,
+            "工作区已保存",
+            f"新工作区：{self._pending_workspace}\n\n"
+            "当前窗口和正在显示的后端仍使用原工作区。新路径将在下次启动生效；"
+            "可点击“立即重启”。旧工作区中的数据不会被移动、复制或删除。",
+        )
+
+    def _restart_with_pending_workspace(self) -> None:
+        if self._pending_workspace is None:
+            return
+        if self._has_running_tasks():
+            QMessageBox.warning(
+                self,
+                "暂时不能重启",
+                "当前有任务正在运行。请等待任务结束或取消任务后再重启。",
+            )
+            return
+        program, arguments = self.runtime.restart_process(self._pending_workspace)
+        if not QProcess.startDetached(program, list(arguments), str(self._pending_workspace)):
+            QMessageBox.warning(
+                self,
+                "无法立即重启",
+                "工作区选择已经保存，将在下次手动启动时生效。请关闭程序后重新打开。",
+            )
+            return
+        self.close()
 
     def select_step(self, step_id: str) -> None:
         self._current_step_id = step_id
@@ -1286,13 +1371,7 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        running = (
-            self.acceptance_worker.is_running
-            or self.single_worker.is_running
-            or self.dataset_page.worker.is_running
-            or self.analysis_page.worker.is_running
-            or self.final_delivery_page.is_running
-        )
+        running = self._has_running_tasks()
         if running:
             choice = QMessageBox.question(
                 self,

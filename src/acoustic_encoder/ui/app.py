@@ -6,10 +6,10 @@ from pathlib import Path
 import sys
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from acoustic_encoder.ui.main_window import MainWindow
-from acoustic_encoder.ui.runtime import RuntimeContext
+from acoustic_encoder.ui.runtime import RuntimeContext, WorkspaceAccessError
 
 
 def create_main_window(
@@ -35,10 +35,14 @@ def run_desktop(
 ) -> int:
     application = QApplication.instance() or QApplication(sys.argv)
     application.setApplicationName("Acoustic Encoder Analysis")
-    runtime = RuntimeContext.discover(
-        project_root=project_root,
-        workspace_root=workspace_root,
-    )
+    try:
+        runtime = RuntimeContext.discover(
+            project_root=project_root,
+            workspace_root=workspace_root,
+        )
+    except WorkspaceAccessError as exc:
+        QMessageBox.critical(None, "工作区不可用", str(exc))
+        return 2
     window = create_main_window(
         runtime.resource_root,
         workspace_root=runtime.workspace_root,
