@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-UI4-FIX4 — 步骤 03 实验计划布局与可访问性 | 2026-08-13 | 实现与提交前验证完成；待从本步 clean commit 重建正式 EXE；科研门禁不变 | [DEV-UI4_FIX4_PLAN_LAYOUT.md](./DEV-UI4_FIX4_PLAN_LAYOUT.md) | 本报告与实现同一提交：`fix(ui): make experiment plan page scrollable` |
 | DEV-UI4-FIX3 — Windows clean-build provenance 与最终软件验收 | 2026-08-13 | 实现与提交前验证完成；正式 EXE 仅可从本步 clean commit 构建；科研资格 false | [DEV-UI4_FIX3_CLEAN_BUILD_PROVENANCE.md](./DEV-UI4_FIX3_CLEAN_BUILD_PROVENANCE.md) | 本报告与实现同一提交：`fix(ui): enforce clean release build provenance` |
 | DEV-UI4 — 冻结流程、final-test 安全入口、离线读取与 Windows 交付 | 2026-08-10 | 完成（软件验证；真实 Multisine/P8 与 final-test blocked；科研/部署资格 false） | [DEV-UI4_FINAL_DELIVERY.md](./DEV-UI4_FINAL_DELIVERY.md)；[DEV-UI4_FINAL_UAT.md](./DEV-UI4_FINAL_UAT.md) | 本报告与实现同一提交：`feat(ui): complete frozen workflow and Windows delivery` |
 | DEV-UI3 — 实验计划、样本管理与 P2-B～P6 批量分析向导 | 2026-08-10 | 完成（P3-C 无通用正式入口；final-test sealed；真实 Multisine/P8 blocked；全部验证非科研资格） | [DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md](./DEV-UI3_EXPERIMENT_PLAN_AND_BATCH_ANALYSIS.md)；[后端能力矩阵](./DEV-UI3_BACKEND_CAPABILITY_MATRIX.md) | 本报告与实现同一提交：`feat(ui): add experiment planning and batch analysis workflow` |

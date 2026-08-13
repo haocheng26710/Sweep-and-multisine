@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFormLayout,
     QGroupBox,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -57,9 +59,18 @@ class ExperimentPlanPage(QWidget):
         self._build()
 
     def _build(self) -> None:
-        layout = QVBoxLayout(self)
-        basic_box = QGroupBox("实验计划基本信息")
-        form = QFormLayout(basic_box)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        self.plan_scroll_area = QScrollArea()
+        self.plan_scroll_area.setObjectName("experimentPlanScrollArea")
+        self.plan_scroll_area.setWidgetResizable(True)
+        self.plan_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.plan_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.plan_scroll_content = QWidget()
+        layout = QVBoxLayout(self.plan_scroll_content)
+        self.basic_box = QGroupBox("实验计划基本信息")
+        form = QFormLayout(self.basic_box)
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         defaults = {
             "plan_id": "experiment-plan",
             "experiment_name": "声学方向实验",
@@ -100,10 +111,10 @@ class ExperimentPlanPage(QWidget):
             "首次保存可留空；后续 revision 必须说明变更原因"
         )
         form.addRow("修订理由", self.revision_reason_edit)
-        layout.addWidget(basic_box)
+        layout.addWidget(self.basic_box)
 
-        conditions = QGroupBox("显式实验条件 blocks")
-        conditions_layout = QVBoxLayout(conditions)
+        self.conditions_box = QGroupBox("显式实验条件 blocks")
+        conditions_layout = QVBoxLayout(self.conditions_box)
         self.condition_table = QTableWidget(1, 16)
         self.condition_table.setObjectName("planConditionTable")
         headers = (
@@ -113,6 +124,7 @@ class ExperimentPlanPage(QWidget):
             "tone_set_id", "sample_rate_hz", "audio_channel",
         )
         self.condition_table.setHorizontalHeaderLabels(headers)
+        self._configure_editable_table(self.condition_table, visible_rows=3)
         defaults_row = (
             "main", "U4SYM,U4ENC", "0,90,180,270", "S01", "B01",
             "rew_sweep", "training", "2", "1", "1", "1", "1", "", "", "", "",
@@ -127,15 +139,16 @@ class ExperimentPlanPage(QWidget):
         row_actions.addWidget(self.remove_block_button)
         row_actions.addStretch(1)
         conditions_layout.addLayout(row_actions)
-        layout.addWidget(conditions)
+        layout.addWidget(self.conditions_box)
 
-        safety = QGroupBox("安全与采集准备清单（人工声明，不授予科研资格）")
-        safety_layout = QVBoxLayout(safety)
+        self.safety_box = QGroupBox("安全与采集准备清单（人工声明，不授予科研资格）")
+        safety_layout = QVBoxLayout(self.safety_box)
         self.safety_table = QTableWidget(len(SafetyChecklist.required_check_ids()), 6)
         self.safety_table.setObjectName("safetyChecklistTable")
         self.safety_table.setHorizontalHeaderLabels(
             ("check_id", "status", "operator", "time", "note", "evidence path")
         )
+        self._configure_editable_table(self.safety_table, visible_rows=3)
         for row, check_id in enumerate(SafetyChecklist.required_check_ids()):
             self.safety_table.setItem(row, 0, QTableWidgetItem(check_id))
             status = QComboBox()
@@ -145,7 +158,7 @@ class ExperimentPlanPage(QWidget):
             for column in (2, 3, 4, 5):
                 self.safety_table.setItem(row, column, QTableWidgetItem(""))
         safety_layout.addWidget(self.safety_table)
-        layout.addWidget(safety)
+        layout.addWidget(self.safety_box)
 
         actions = QHBoxLayout()
         self.preview_button = QPushButton("预览样本矩阵")
@@ -159,11 +172,36 @@ class ExperimentPlanPage(QWidget):
         self.preview_label = QLabel("尚未生成矩阵。")
         self.preview_label.setWordWrap(True)
         layout.addWidget(self.preview_label)
+        layout.addStretch(1)
+        self.plan_scroll_area.setWidget(self.plan_scroll_content)
+        outer_layout.addWidget(self.plan_scroll_area)
 
         self.add_block_button.clicked.connect(self._add_block)
         self.remove_block_button.clicked.connect(self._remove_block)
         self.preview_button.clicked.connect(self._preview_clicked)
         self.save_button.clicked.connect(self._save_clicked)
+
+    @staticmethod
+    def _configure_editable_table(table: QTableWidget, *, visible_rows: int) -> None:
+        """Reserve an operable viewport without relying on desktop DPI settings."""
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        table.setWordWrap(False)
+        table.horizontalHeader().setMinimumSectionSize(80)
+        table.verticalHeader().setDefaultSectionSize(
+            max(28, table.fontMetrics().height() + 12)
+        )
+        minimum = (
+            table.horizontalHeader().sizeHint().height()
+            + visible_rows * table.verticalHeader().defaultSectionSize()
+            + table.horizontalScrollBar().sizeHint().height()
+            + 2 * table.frameWidth()
+            + 24  # font/DPI style allowance up to the supported 150% scale
+        )
+        table.setMinimumHeight(minimum)
+        table.setMaximumHeight(minimum)
 
     def _add_block(self) -> None:
         row = self.condition_table.rowCount()

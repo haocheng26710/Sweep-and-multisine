@@ -1,5 +1,11 @@
 # Changelog
 
+## DEV-UI4-FIX4 — operable experiment-plan layout (unreleased)
+
+- Added a page-level scroll area to step 03 so basic metadata, condition blocks and the acquisition-safety checklist remain accessible in simple mode.
+- Reserved a three-row editable viewport for both plan tables, added per-pixel scrolling and kept condition-block actions outside the table geometry.
+- Prioritized the action stack and converted the compact execution-result panel to a scrollable view, covering 1280×720/1920×1080 and 100%/125%/150% UI scaling without changing experiment semantics or scientific gates.
+
 ## DEV-UI4-FIX3 — clean Windows release provenance (unreleased)
 
 - Made a clean Git worktree the first hard prerequisite of formal Windows builds and revalidated the same branch/HEAD after verification and packaging.
