@@ -23,6 +23,8 @@ class StepStatus(str, Enum):
     MANUAL_REVIEW = "manual_review"
     BLOCKED = "blocked"
     FAILED = "failed"
+    NOT_APPLICABLE = "not_applicable"
+    SEALED = "sealed"
 
     @classmethod
     def from_external(cls, value: str) -> "StepStatus":
@@ -30,6 +32,13 @@ class StepStatus(str, Enum):
             return cls(value)
         except ValueError:
             return cls.BLOCKED
+
+    @classmethod
+    def display_text(cls, value: "StepStatus") -> str:
+        return {
+            cls.NOT_APPLICABLE: "不适用（安全跳过）",
+            cls.SEALED: "已封存（未读取）",
+        }.get(value, value.value)
 
 
 class UiMode(str, Enum):
@@ -75,10 +84,16 @@ _STEP_SPECS = (
 
 _ALLOWED_TRANSITIONS: dict[StepStatus, frozenset[StepStatus]] = {
     StepStatus.NOT_STARTED: frozenset(
-        {StepStatus.READY, StepStatus.WAITING_EXTERNAL, StepStatus.BLOCKED}
+        {
+            StepStatus.READY, StepStatus.WAITING_EXTERNAL, StepStatus.BLOCKED,
+            StepStatus.NOT_APPLICABLE, StepStatus.SEALED,
+        }
     ),
     StepStatus.READY: frozenset(
-        {StepStatus.RUNNING, StepStatus.NOT_STARTED, StepStatus.BLOCKED}
+        {
+            StepStatus.RUNNING, StepStatus.NOT_STARTED, StepStatus.BLOCKED,
+            StepStatus.NOT_APPLICABLE, StepStatus.SEALED,
+        }
     ),
     StepStatus.WAITING_EXTERNAL: frozenset(
         {StepStatus.READY, StepStatus.NOT_STARTED, StepStatus.BLOCKED}
@@ -90,6 +105,8 @@ _ALLOWED_TRANSITIONS: dict[StepStatus, frozenset[StepStatus]] = {
             StepStatus.MANUAL_REVIEW,
             StepStatus.BLOCKED,
             StepStatus.FAILED,
+            StepStatus.NOT_APPLICABLE,
+            StepStatus.SEALED,
         }
     ),
     StepStatus.PASSED: frozenset({StepStatus.READY, StepStatus.NOT_STARTED}),
@@ -97,6 +114,10 @@ _ALLOWED_TRANSITIONS: dict[StepStatus, frozenset[StepStatus]] = {
     StepStatus.MANUAL_REVIEW: frozenset({StepStatus.READY, StepStatus.NOT_STARTED}),
     StepStatus.BLOCKED: frozenset({StepStatus.READY, StepStatus.NOT_STARTED}),
     StepStatus.FAILED: frozenset({StepStatus.READY, StepStatus.NOT_STARTED}),
+    StepStatus.NOT_APPLICABLE: frozenset(
+        {StepStatus.READY, StepStatus.NOT_STARTED}
+    ),
+    StepStatus.SEALED: frozenset({StepStatus.READY, StepStatus.NOT_STARTED}),
 }
 
 

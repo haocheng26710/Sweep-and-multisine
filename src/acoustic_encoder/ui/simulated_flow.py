@@ -86,6 +86,14 @@ class SimulatedDatasetAudit:
     status: str
 
 
+@dataclass(frozen=True, slots=True)
+class SoftwareValidationSummary:
+    directory: Path
+    markdown_path: Path
+    manifest_path: Path
+    manifest_hash_path: Path
+
+
 class SimulatedFlowService:
     """Coordinate immutable simulated artifacts without becoming their authority."""
 
@@ -187,15 +195,48 @@ class SimulatedFlowService:
     def bind_plan(self, directory: str | Path) -> SavedPlanRevision:
         saved = self._load_plan(directory)
         state = self._read_state()
+        previous_plan = state.get("plan_revision_path")
+        plan_changed = bool(previous_plan and previous_plan != saved.directory.as_posix())
+        if plan_changed:
+            # A new immutable revision supersedes UI workflow pointers only.  Raw
+            # artifacts remain untouched and can never be claimed by the new plan.
+            state["artifacts"] = {}
+            state.pop("closeout", None)
+            preserved = {
+                key: value
+                for key, value in dict(state.get("steps", {})).items()
+                if key in {"environment", "usage"}
+            }
+            state["steps"] = {
+                **preserved,
+                "plan": (
+                    "passed" if saved.checklist.ready_for_acquisition else "warning"
+                ),
+                "stimulus": "ready",
+                "external_acquisition": "not_started",
+                "single_measurement": "not_started",
+                "dataset_qc": "not_started",
+                "comparison": "not_started",
+                "modeling": "not_started",
+                "freeze": "not_started",
+                "final_test": "not_started",
+                "reports": "not_started",
+            }
         state["plan_revision_path"] = saved.directory.as_posix()
         state["plan_manifest_sha256"] = artifact_sha256(
             saved.directory / "plan_manifest.json"
         )
         state["expected_sample_count"] = len(saved.samples)
-        state["steps"] = {
-            **dict(state.get("steps", {})),
-            "plan": "passed" if saved.checklist.ready_for_acquisition else "warning",
-        }
+        if not plan_changed:
+            state["steps"] = {
+                **dict(state.get("steps", {})),
+                "plan": "passed" if saved.checklist.ready_for_acquisition else "warning",
+                **(
+                    {"stimulus": "ready"}
+                    if "stimulus" not in dict(state.get("steps", {}))
+                    else {}
+                ),
+            }
         self._write_state(state)
         return saved
 
@@ -214,8 +255,10 @@ class SimulatedFlowService:
         }
         actual = {name: stimulus.get(name) for name in expected}
         if actual != expected:
+            field = next(name for name in expected if actual[name] != expected[name])
             raise ValueError(
-                f"plan/P7 stimulus contract mismatch: plan={expected}, config={actual}"
+                "plan/P7 stimulus contract mismatch: "
+                f"field={field} expected={expected[field]!r} actual={actual[field]!r}"
             )
         directory = self.flow_root / "stimuli" / stimulus_id
         hashes_path = directory / "artifact_hashes.json"
@@ -225,15 +268,17 @@ class SimulatedFlowService:
                     f"stimulus ID already has incomplete or different content: {directory}"
                 )
             payload = json.loads(hashes_path.read_text(encoding="utf-8"))
-            if (
-                payload.get("plan_revision_path") != saved.directory.as_posix()
-                or payload.get("plan_manifest_sha256")
-                != artifact_sha256(saved.directory / "plan_manifest.json")
-            ):
-                raise FileExistsError(
-                    f"stimulus ID is already bound to different plan content: {stimulus_id}"
-                )
-            for record in payload.get("artifacts", ()):
+            # The immutable stimulus may be reused by a newer plan revision only
+            # when its P7 contract and every recorded artifact hash still match.
+            # Keep the original creation binding unchanged for provenance.
+            records = tuple(payload.get("artifacts", ()))
+            required_names = {
+                "stimulus.wav", "stimulus_manifest.json", "tones.csv",
+                "stimulus_preview.png", "waveform_hash.txt",
+            }
+            if {Path(str(item.get("path"))).name for item in records} != required_names:
+                raise ValueError("stimulus artifact hash index is incomplete")
+            for record in records:
                 path = directory / str(record["path"])
                 if not path.is_file() or artifact_sha256(path) != str(record["sha256"]):
                     raise ValueError(f"stimulus artifact hash mismatch: {path}")
@@ -1042,4 +1087,238 @@ class SimulatedFlowService:
             manifest_path=manifest,
             manifest_hash_path=digest,
             status=str(payload["status"]),
+        )
+
+    def apply_sparse_closeout(self, audit_manifest: str | Path) -> dict[str, Any]:
+        """Route one verified sparse-only audit to safe UI terminal states."""
+        audit = self.load_dataset_audit(audit_manifest)
+        payload = json.loads(audit.manifest_path.read_text(encoding="utf-8"))
+        expected = int(payload.get("expected_count", -1))
+        present = int(payload.get("expected_and_present_count", -1))
+        qc_counts = dict(payload.get("qc_counts", {}))
+        if (
+            audit.status != "passed"
+            or expected <= 0
+            or present != expected
+            or int(payload.get("missing_count", -1)) != 0
+            or int(payload.get("duplicate_count", -1)) != 0
+            or int(payload.get("unexpected_count", -1)) != 0
+            or int(qc_counts.get("warning", -1)) != 0
+            or int(qc_counts.get("exclude_candidate", -1)) != 0
+            or payload.get("p2_b_status") != "not_applicable_sparse"
+            or payload.get("downstream_route") != "tone_p8_dataset_quality"
+        ):
+            raise ValueError("dataset audit is not a clean sparse Multisine closeout")
+        state = self._read_state()
+        state["steps"] = {
+            **dict(state.get("steps", {})),
+            "comparison": "not_applicable",
+            "modeling": "not_applicable",
+            "freeze": "blocked",
+            "final_test": "sealed",
+            "reports": "ready",
+        }
+        state["artifacts"] = {
+            **dict(state.get("artifacts", {})),
+            "dataset_audit": {
+                "path": audit.manifest_path.as_posix(),
+                "sha256": artifact_sha256(audit.manifest_path),
+            },
+        }
+        state["closeout"] = {
+            "route": "sparse_multisine_software_validation",
+            "p2_b_status": "not_applicable_sparse",
+            "downstream_route": "tone_p8_dataset_quality",
+            "comparison_reason": "no_canonical_p4_authority",
+            "modeling_reason": "no_canonical_p5_p6_authority",
+            "freeze_reason": "missing_approved_p9d_freeze_authority",
+            "final_test_status": "sealed",
+            "reports_status": "ready",
+        }
+        state["scientifically_eligible"] = False
+        state["final_test_read"] = False
+        self._write_state(state)
+        return self._read_state()
+
+    def export_software_validation_summary(
+        self, *, report_id: str | None = None
+    ) -> SoftwareValidationSummary:
+        """Export a non-scientific summary from the one hashed state chain."""
+        state = self._read_state()
+        required_steps = {
+            "environment": "passed",
+            "usage": "passed",
+            "plan": "passed",
+            "stimulus": "passed",
+            "external_acquisition": "passed",
+            "single_measurement": "passed",
+            "dataset_qc": "passed",
+            "comparison": "not_applicable",
+            "modeling": "not_applicable",
+            "freeze": "blocked",
+            "final_test": "sealed",
+            "reports": "ready",
+        }
+        if any(state.get("steps", {}).get(key) != value for key, value in required_steps.items()):
+            raise ValueError("workflow state is not ready for sparse validation closeout")
+        if (
+            state.get("data_origin") != "simulated"
+            or state.get("run_purpose") != "software_validation"
+            or state.get("scientifically_eligible") is not False
+            or state.get("final_test_read") is not False
+        ):
+            raise ValueError("software validation provenance/final-test gate failed")
+
+        saved = self._load_plan(state["plan_revision_path"])
+        plan_manifest = saved.directory / "plan_manifest.json"
+        if artifact_sha256(plan_manifest) != state.get("plan_manifest_sha256"):
+            raise ValueError("workflow plan manifest hash mismatch")
+        artifacts = dict(state.get("artifacts", {}))
+
+        def reference(name: str) -> tuple[Path, str]:
+            item = artifacts.get(name)
+            if not isinstance(item, dict):
+                raise ValueError(f"workflow state is missing explicit artifact: {name}")
+            path = Path(str(item.get("path"))).resolve()
+            expected_hash = str(item.get("sha256"))
+            if not path.is_file() or artifact_sha256(path) != expected_hash:
+                raise ValueError(f"workflow artifact hash mismatch: {name}")
+            return path, expected_hash
+
+        stimulus_hashes, _ = reference("stimulus_hashes")
+        stimulus_index = json.loads(stimulus_hashes.read_text(encoding="utf-8"))
+        stimulus_record = next(
+            (
+                item for item in stimulus_index.get("artifacts", ())
+                if Path(str(item.get("path"))).name == "stimulus_manifest.json"
+            ),
+            None,
+        )
+        if stimulus_record is None:
+            raise ValueError("stimulus hash index lacks stimulus_manifest.json")
+        stimulus_manifest = (
+            stimulus_hashes.parent / str(stimulus_record["path"])
+        ).resolve()
+        stimulus_hash = str(stimulus_record["sha256"])
+        if artifact_sha256(stimulus_manifest) != stimulus_hash:
+            raise ValueError("stimulus manifest hash mismatch")
+        acquisition_manifest, acquisition_hash = reference("acquisition_manifest")
+        processing_manifest, processing_hash = reference("processing_manifest")
+        dataset_audit, audit_hash = reference("dataset_audit")
+        processing = json.loads(processing_manifest.read_text(encoding="utf-8"))
+        audit = json.loads(dataset_audit.read_text(encoding="utf-8"))
+        if (
+            audit.get("expected_count") != 32
+            or audit.get("expected_and_present_count") != 32
+            or audit.get("p2_b_status") != "not_applicable_sparse"
+            or audit.get("downstream_route") != "tone_p8_dataset_quality"
+            or int(processing.get("warning_count", -1)) != 0
+            or int(processing.get("failed_count", -1)) != 0
+        ):
+            raise ValueError("explicit sparse manifests do not meet closeout counts")
+
+        selected_id = report_id or (
+            "summary-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        )
+        if Path(selected_id).name != selected_id or not selected_id.strip():
+            raise ValueError("report_id must be one non-empty path component")
+        directory = self.flow_root / "closeout_reports" / selected_id
+        if directory.exists():
+            raise FileExistsError(f"software validation report exists: {directory}")
+        directory.mkdir(parents=True, exist_ok=False)
+        markdown = directory / "software_validation_summary.md"
+        manifest = directory / "software_validation_summary.json"
+        manifest_hash = directory / "software_validation_summary.sha256"
+        artifact_rows = (
+            ("workflow_state", self.state_path, artifact_sha256(self.state_path)),
+            ("plan_manifest", plan_manifest, artifact_sha256(plan_manifest)),
+            ("stimulus_manifest", stimulus_manifest, stimulus_hash),
+            ("acquisition_manifest", acquisition_manifest, acquisition_hash),
+            ("processing_manifest", processing_manifest, processing_hash),
+            ("dataset_audit", dataset_audit, audit_hash),
+        )
+        step_rows = {
+            "01_environment": "passed",
+            "02_usage": "passed",
+            "03_plan": "passed",
+            "04_stimulus": "passed",
+            "05_external_acquisition": "passed",
+            "06_single_measurement": "passed",
+            "07_dataset_qc": "passed",
+            "08_comparison": "not_applicable",
+            "09_modeling": "not_applicable",
+            "10_freeze": "blocked",
+            "11_final_test": "sealed",
+            "12_reports": "ready",
+        }
+        markdown_text = (
+            "# Sparse Multisine 软件验证总结\n\n"
+            "> 仅用于 software_validation；不可用于科研结论。\n\n"
+            + "## 步骤状态\n\n"
+            + "\n".join(f"- {key}: `{value}`" for key, value in step_rows.items())
+            + "\n\n## 数据集\n\n"
+            + "- 32/32 expected_and_present\n- warning=0\n- failed=0\n"
+            + f"- plan rev-{saved.revision:03d}\n"
+            + "- P2-B=not_applicable_sparse\n"
+            + "- downstream_route=tone_p8_dataset_quality\n\n"
+            + "## Provenance 与安全边界\n\n"
+            + "- data_origin=simulated\n- run_purpose=software_validation\n"
+            + "- scientifically_eligible=false\n- final_test_read=false\n"
+            + "- canonical/deployment/freeze authority：未授予\n\n"
+            + "## 显式 artifacts\n\n"
+            + "\n".join(
+                f"- {role}: `{path.as_posix()}` — `{digest}`"
+                for role, path, digest in artifact_rows
+            )
+            + "\n"
+        )
+        markdown.write_text(markdown_text, encoding="utf-8")
+        payload = {
+            "schema_version": "1.0.0",
+            "report_id": selected_id,
+            "report_kind": "sparse_multisine_software_validation_summary",
+            "steps": step_rows,
+            "plan": {
+                "plan_id": saved.plan.plan_id,
+                "revision": saved.revision,
+                "revision_label": f"rev-{saved.revision:03d}",
+                "path": saved.directory.as_posix(),
+            },
+            "dataset_counts": {
+                "expected": 32,
+                "expected_and_present": 32,
+                "warning": 0,
+                "failed": 0,
+            },
+            "p2_b_status": "not_applicable_sparse",
+            "downstream_route": "tone_p8_dataset_quality",
+            "data_origin": "simulated",
+            "dataset_role": "software_validation",
+            "run_purpose": "software_validation",
+            "scientifically_eligible": False,
+            "eligible_for_research_conclusions": False,
+            "canonical_analysis": False,
+            "deployment_eligible": False,
+            "freeze_authority_approved": False,
+            "final_test_read": False,
+            "warning": "不可用于科研结论。",
+            "markdown": {
+                "path": markdown.as_posix(),
+                "sha256": artifact_sha256(markdown),
+            },
+            "artifacts": [
+                {"role": role, "path": path.as_posix(), "sha256": digest}
+                for role, path, digest in artifact_rows
+            ],
+        }
+        manifest.write_text(
+            json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        manifest_hash.write_text(artifact_sha256(manifest), encoding="ascii")
+        return SoftwareValidationSummary(
+            directory=directory,
+            markdown_path=markdown,
+            manifest_path=manifest,
+            manifest_hash_path=manifest_hash,
         )

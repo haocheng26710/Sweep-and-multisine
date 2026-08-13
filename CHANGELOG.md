@@ -1,5 +1,13 @@
 # Changelog
 
+## DEV-UI4-FIX7 — safe sparse-route closeout (unreleased)
+
+- Added explicit UI-only `not_applicable` and `sealed` terminal states for the completed 32-sample sparse Multisine software-validation route.
+- Disabled FeatureSet-only P2-B/P4/P5/P6 and freeze/final-test actions when the explicit dataset audit routes to `tone_p8_dataset_quality`; no dense or canonical pass is fabricated.
+- Added a Markdown/JSON/SHA-256 software-validation summary built only from the hashed workflow state and its explicit manifest chain, with no output-directory discovery.
+- Restored all twelve states and rev-002 from the same workspace, cleared stale downstream failure state on a new plan revision, and made revision/P7 errors field-specific.
+- Kept simulated data scientifically ineligible, real Multisine/P8 blocked, and final-test sealed and unread.
+
 ## DEV-UI4-FIX5 — readable Windows table editors (unreleased)
 
 - Switch the affected Windows 11 Qt style to Fusion before constructing any desktop pages, avoiding the native black-on-black combo and delegate-editor palette.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QProcess, QUrl
@@ -73,6 +74,7 @@ from acoustic_encoder.ui.simulated_flow_pages import (
     SimulatedBatchPage,
     StimulusPage,
 )
+from acoustic_encoder.ui.sparse_closeout_page import SparseCloseoutPage
 
 
 class MainWindow(QMainWindow):
@@ -142,6 +144,8 @@ class MainWindow(QMainWindow):
         self.simulated_batch_page = SimulatedBatchPage(
             self.simulated_flow_service, self.runtime, self
         )
+        self.sparse_closeout_page = SparseCloseoutPage(self)
+        self._sparse_closeout_active = False
         self.open_p9_button = QPushButton("打开正式 P9-A～P9-C 向导")
         self.open_p9_button.setObjectName("openP9WorkflowButton")
         self.analysis_page.layout().addWidget(self.open_p9_button)
@@ -250,6 +254,7 @@ class MainWindow(QMainWindow):
         self.action_stack.addWidget(self.stimulus_page)
         self.action_stack.addWidget(self.acquisition_page)
         self.action_stack.addWidget(self.simulated_batch_page)
+        self.action_stack.addWidget(self.sparse_closeout_page)
         self.action_stack.addWidget(self.plan_page)
         self.action_stack.addWidget(self.dataset_page)
         self.action_stack.addWidget(self.analysis_page)
@@ -586,6 +591,10 @@ class MainWindow(QMainWindow):
             lambda status: self._simulated_step_status("single_measurement", status)
         )
         self.simulated_batch_page.message.connect(self._append_result)
+        self.sparse_closeout_page.message.connect(self._append_result)
+        self.sparse_closeout_page.export_requested.connect(
+            self._export_software_validation_summary
+        )
         for field in self.metadata_fields.values():
             field.textChanged.connect(self._metadata_edited)
         self.audio_channel_spin.valueChanged.connect(self._metadata_edited)
@@ -695,6 +704,11 @@ class MainWindow(QMainWindow):
             self.action_stack.setCurrentWidget(self.plan_page)
         elif step_id == "dataset":
             self.action_stack.setCurrentWidget(self.dataset_page)
+        elif self._sparse_closeout_active and step_id in {
+            "comparison", "modeling", "freeze", "final_test", "reports"
+        }:
+            self.sparse_closeout_page.set_view(step_id)
+            self.action_stack.setCurrentWidget(self.sparse_closeout_page)
         elif step_id in {"comparison", "modeling"}:
             self.action_stack.setCurrentWidget(self.analysis_page)
         elif step_id in {"freeze", "final_test", "reports"}:
@@ -767,7 +781,52 @@ class MainWindow(QMainWindow):
             self._append_result(f"步骤07完整性审计失败：{error}")
             return
         self._simulated_step_status("dataset", "passed")
+        self.activate_sparse_closeout(audit)
         self._append_result(f"步骤07完成：32/32 显式样本；审计={audit}")
+
+    def activate_sparse_closeout(self, audit_manifest: str | Path) -> None:
+        state = self.simulated_flow_service.apply_sparse_closeout(audit_manifest)
+        self._sparse_closeout_active = True
+        self.sparse_closeout_page.bind_audit(audit_manifest)
+        for step_id in ("comparison", "modeling", "freeze", "final_test", "reports"):
+            self.state.step(step_id).status = StepStatus.from_external(
+                str(state["steps"][step_id])
+            )
+        self.dataset_page.preview_p2b_button.setEnabled(False)
+        self.dataset_page.run_p2b_button.setEnabled(False)
+        self.analysis_page.prepare_button.setEnabled(False)
+        self.analysis_page.run_button.setEnabled(False)
+        self.analysis_page.stage_combo.setEnabled(False)
+        for field in self.analysis_page.path_fields.values():
+            field.setEnabled(False)
+        for button in (
+            self.final_delivery_page.p9a_button,
+            self.final_delivery_page.p9b_button,
+            self.final_delivery_page.p9c_button,
+            self.final_delivery_page.freeze_button,
+            self.final_delivery_page.unseal_button,
+            self.final_delivery_page.offline_button,
+        ):
+            button.setEnabled(False)
+        self._refresh_step_buttons()
+
+    def _export_software_validation_summary(self) -> None:
+        report_id = "ui-summary-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        try:
+            exported = self.simulated_flow_service.export_software_validation_summary(
+                report_id=report_id
+            )
+        except Exception as error:
+            message, technical = humanize_exception(error)
+            self.sparse_closeout_page.message.emit(
+                f"软件验证总结生成失败：{message}\n{technical}"
+            )
+            return
+        self.sparse_closeout_page.show_export(exported.markdown_path)
+        self._append_result(
+            "软件验证总结已从 hashed workflow_state 显式引用链生成："
+            f"{exported.markdown_path}"
+        )
 
     def _simulated_step_status(self, step_id: str, status: str) -> None:
         target = {
@@ -781,6 +840,10 @@ class MainWindow(QMainWindow):
             self._begin_step(step_id)
         else:
             self._finish_step(step_id, target)
+        if target is StepStatus.FAILED:
+            self.next_step_label.setText(
+                "下一步建议：修复上方具体错误并重新执行当前步骤；不要继续外部采集。"
+            )
 
     def _restore_simulated_flow(self) -> None:
         """Restore only the artifacts named by the one hashed state manifest."""
@@ -812,6 +875,15 @@ class MainWindow(QMainWindow):
                 audit_ref = dict(state.get("artifacts", {})).get("dataset_audit")
                 if audit_ref:
                     self.dataset_page.restore_simulated_dataset_audit(audit_ref["path"])
+                    audit_payload = __import__("json").loads(
+                        Path(audit_ref["path"]).read_text(encoding="utf-8")
+                    )
+                    if (
+                        audit_payload.get("p2_b_status") == "not_applicable_sparse"
+                        and audit_payload.get("downstream_route")
+                        == "tone_p8_dataset_quality"
+                    ):
+                        self.activate_sparse_closeout(audit_ref["path"])
                 else:
                     processing_ref = dict(state.get("artifacts", {})).get(
                         "processing_manifest"
@@ -1550,6 +1622,19 @@ class MainWindow(QMainWindow):
             )
         current = self.state.step(self._current_step_id)
         self.current_status_label.setText(f"当前状态：{current.status.value}")
+
+        # Replace enum storage values with user-facing text after the legacy
+        # renderer has populated the title line.
+        for step in self.state.steps:
+            button = self.step_buttons[step.step_id]
+            title_line = button.text().splitlines()[0]
+            button.setText(
+                f"{title_line}\n状态：{StepStatus.display_text(step.status)}"
+            )
+        self.current_status_label.setText(
+            "当前状态："
+            + StepStatus.display_text(self.state.step(self._current_step_id).status)
+        )
 
     def _open_output(self) -> None:
         if self._last_acceptance_summary is not None:

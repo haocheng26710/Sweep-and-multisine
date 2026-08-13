@@ -84,6 +84,16 @@ class AcceptanceSummary:
 def humanize_exception(exc: BaseException) -> tuple[str, str]:
     technical = "".join(traceback.format_exception_only(type(exc), exc)).strip()
     message = str(exc).casefold()
+    if "requires revision_reason" in message:
+        return (
+            "已存在计划 revision；保存新 revision 必须填写修订理由（revision_reason）。",
+            technical,
+        )
+    if "plan/p7 stimulus contract mismatch" in message:
+        return (
+            "P7 刺激契约与计划不一致：" + str(exc).split(":", 1)[-1].strip(),
+            technical,
+        )
     if "p8-a" in message and "simulated/software_validation" in message:
         return (
             "当前 P8-A 真实 Multisine 分析门禁仍关闭；录音只能登记，不能运行 P8。",

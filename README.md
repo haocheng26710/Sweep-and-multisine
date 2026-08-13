@@ -8,6 +8,8 @@ DEV-B is complete as a software-validation entry-point slice. DEV-C1 adds the sh
 
 DEV-UI4 completes the planned desktop delivery: formal P9-A through P9-D launchers, immutable package freeze evidence, frozen-package offline readout, a sealed-by-default one-time final-test gate, source/frozen worker dispatch, separate read-only resources and writable workspace, and a reproducible Windows one-folder build. This is still software validation: real Multisine/P8, real package approval, real final-test access, scientific conclusions, and deployment remain blocked.
 
+DEV-UI4-FIX6/FIX7 complete the simulated practice path through its safe terminal state. An explicit 32-sample sparse Multisine plan can run P7 -> S3 -> P1/P8 -> dataset integrity, after which steps 08/09 are shown as not applicable, step 10 remains blocked, step 11 remains sealed, and step 12 exports a hash-audited software-validation summary. The UI never fabricates dense FeatureSets or a P2-B pass, never scans outputs to recover authority, and never promotes simulated data to scientific eligibility.
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
@@ -78,7 +80,7 @@ DEV-UI3 retains the twelve ordered step cards, default simple mode and professio
 
 P3-C is shown as unavailable because the repository currently has no generic formal production entry. P4, P5-A and P6-A are conditionally available after canonical-ready P2-B and exact explicit inputs. P5-B and P6-B additionally require pre-existing matched-tone/calibration authorities and remain blocked for real Multisine. The UI never scans directories to assemble a cohort, never reads sealed final-test content, and never promotes plan/checklist declarations to scientific eligibility. See [DEV-UI3 capability matrix](docs/progress/DEV-UI3_BACKEND_CAPABILITY_MATRIX.md).
 
-The real Multisine message is a hard gate, not a warning: the recording, manifest, sidecar and hashes may be registered, but the UI will not launch P8 or real-Multisine-dependent P5-B/P6-B until the DEV-D real-data gate is implemented and approved. DEV-UI4 freeze/final-test and complete reporting actions remain unavailable placeholders.
+The real Multisine message is a hard gate, not a warning: the recording, manifest, sidecar and hashes may be registered, but the UI will not launch P8 or real-Multisine-dependent P5-B/P6-B until the DEV-D real-data gate is implemented and approved. Sparse simulated validation can export a non-scientific closeout summary, but real freeze/final-test authority remains unavailable and sealed.
 
 DEV-UI4 adds the formal P9 and offline-readout controls. P9 inputs remain explicit and hash-verified; the UI never scans a workspace to infer scope. Package freezing performs the authoritative loader self-check and writes UI-owned approval/report/hash evidence without changing package scientific meaning. The final-test page is implemented but remains sealed and disabled because the repository has no complete real authority. UI selection never edits authoritative provenance, scientific eligibility, QC, final-test, or immutable artifact state.
 
