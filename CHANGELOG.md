@@ -1,5 +1,12 @@
 # Changelog
 
+## SIM-1 — bounded research-design stress simulation (unreleased)
+
+- Added an isolated, deterministic six-scenario/50-seed runner with explicit 32/64 identities, pure-level injection, independent REPOS/REASM stress, grouped validation, fail-closed provenance/final-test gates, checkpoints and complete hash inventories.
+- Executed all 300 frozen 32-sample runs from clean commit `47c60b07242c63f7adefa9c0ebaf1d80149ddea6`; no seed was dropped or repeated and the S3-64 branch was not triggered because S3 recovered 49/50 (98%).
+- Recorded S0/S1 false passes of 0/50, S2 recovery of 50/50, S4 safe handling of 50/50, and S5 manifest-driven detection/safe downgrade of 400/400 injected anomalies.
+- The frozen decision is “continue the original design” for real-device diagnostic preparation only. All evidence remains simulated/software-validation/scientifically ineligible, and final-test remains sealed.
+
 ## SIM-0 — bounded stress simulation plan frozen (unreleased)
 
 - Froze six predeclared software-stress scenarios, one shared 50-seed set, the default 32-sample plan, and one conditionally permitted S3-only 64-sample evaluation.
