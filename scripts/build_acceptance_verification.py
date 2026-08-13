@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from datetime import UTC, datetime
 import hashlib
 import json
@@ -11,13 +12,15 @@ import subprocess
 import sys
 import tempfile
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = (
-    PROJECT_ROOT
-    / "validation_assets"
-    / "pre_experiment_acceptance"
-    / "build_verification.json"
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from acoustic_encoder.ui.release_build import (
+    ReleaseBuildError,
+    build_verification_payload,
+    capture_clean_release_source,
+    verify_release_source_unchanged,
 )
 
 COMMANDS = {
@@ -75,28 +78,37 @@ COMMANDS = {
 }
 
 
-def _git(*arguments: str) -> str:
-    return subprocess.run(
-        ("git", *arguments),
-        cwd=PROJECT_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
 def _sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Create clean-source DEV-C16 build verification evidence"
+    )
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--source-branch", required=True)
+    args = parser.parse_args(argv)
+    output = Path(args.output).resolve()
+    try:
+        source = capture_clean_release_source(PROJECT_ROOT)
+    except ReleaseBuildError as exc:
+        print(str(exc), file=sys.stderr)
+        return 3
+    if (
+        source.source_commit != args.source_commit
+        or source.source_branch != args.source_branch
+    ):
+        print("正式发布构建已中止：预先采集的 Git 来源与当前 HEAD 不一致。", file=sys.stderr)
+        return 3
     results: dict[str, object] = {}
     failed = False
     environment = os.environ.copy()
     environment["QT_API"] = "pyside6"
     environment["QT_QPA_PLATFORM"] = "offscreen"
     # Build logs are audit evidence for developers, not frozen runtime assets.
-    log_root = PROJECT_ROOT / "build" / "acceptance_verification_logs"
+    log_root = output.parent / "build_verification_logs"
     log_root.mkdir(parents=True, exist_ok=True)
     # Bypass pytest's shared per-user root (which can retain restrictive ACLs)
     # while keeping deeply nested legacy Windows E2E paths below MAX_PATH.
@@ -134,20 +146,20 @@ def main() -> int:
             "summary_tail": combined.strip().splitlines()[-1] if combined.strip() else "",
             "output_sha256": _sha256_text(combined),
         }
-    payload = {
-        "schema_version": "1.0.0",
-        "purpose": "software_validation",
-        "scientifically_eligible": False,
-        "final_test_read": False,
-        "created_at_utc": datetime.now(UTC).isoformat(),
-        "source_commit": _git("rev-parse", "HEAD"),
-        "source_branch": _git("branch", "--show-current"),
-        "source_git_dirty": bool(_git("status", "--porcelain")),
-        "python_version": platform.python_version(),
-        "verification": results,
-    }
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(
+    try:
+        verify_release_source_unchanged(source)
+    except ReleaseBuildError as exc:
+        print(str(exc), file=sys.stderr)
+        shutil.rmtree(temp_root, ignore_errors=True)
+        return 3
+    payload = build_verification_payload(
+        source,
+        verification=results,
+        python_version=platform.python_version(),
+        created_at_utc=datetime.now(UTC).isoformat(),
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )

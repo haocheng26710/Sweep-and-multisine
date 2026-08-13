@@ -11,7 +11,8 @@ def test_windows_one_folder_recipe_is_windowed_and_excludes_sensitive_inputs() -
     assert "name=\"SweepMultisineUI\"" in spec
     assert "console=False" in spec
     assert "COLLECT(" in spec
-    assert "('config', 'config')" in spec
+    assert "SWEEP_MULTISINE_RELEASE_STAGING" in spec
+    assert "os.path.join(staging_root, 'config')" in spec
     assert "('tests'," not in spec
     assert '"pytest", "pytestqt", "PyQt5", "PyQt6", "PySide2"' in spec
     assert '"jupyter"' in spec and '"pyarrow"' in spec
@@ -20,3 +21,6 @@ def test_windows_one_folder_recipe_is_windowed_and_excludes_sensitive_inputs() -
     assert "SHA256SUMS.txt" in build
     assert "Get-FileHash" in build
     assert "SkipPyInstaller" in build
+    assert "$DirtyMessage" in build
+    assert "source_git_dirty = $false" in build
+    assert "$PackagedVerification.source_commit -ne $SourceCommit" in build

@@ -934,12 +934,13 @@ def run_pre_experiment_acceptance(
     # On Windows, write those files through the extended-path namespace while
     # keeping persisted paths and the user's workspace layout conventional.
     stage_evidence = _windows_extended_path(evidence)
-    asset_audit = audit_acceptance_assets(project)
-    if not asset_audit.hashes_verified:
-        raise FileNotFoundError(
-            "packaged acceptance validation assets are missing or invalid: "
-            + ";".join(asset_audit.failures)
-        )
+    if packaged_runtime:
+        asset_audit = audit_acceptance_assets(project)
+        if not asset_audit.hashes_verified:
+            raise FileNotFoundError(
+                "packaged acceptance validation assets are missing or invalid: "
+                + ";".join(asset_audit.failures)
+            )
     acceptance = _acceptance_config(config_file)
 
     def stage(call: Any, name: str) -> dict[str, Any]:

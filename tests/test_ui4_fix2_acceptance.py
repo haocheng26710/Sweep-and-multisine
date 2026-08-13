@@ -4,8 +4,10 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import sys
 
 from acoustic_encoder.ui.acceptance_assets import audit_acceptance_assets
+from scripts.build_acceptance_assets import build_acceptance_assets
 from acoustic_encoder.ui.worker_entry import run_worker_safely
 from acoustic_encoder.ui.main_window import MainWindow
 from acoustic_encoder.ui.workers import ProcessOutcome
@@ -16,13 +18,29 @@ from test_ui_main_window import _window
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_acceptance_validation_asset_closure_is_complete_and_hash_verified() -> None:
-    audit = audit_acceptance_assets(PROJECT_ROOT)
+def test_acceptance_validation_asset_closure_is_complete_and_hash_verified(
+    tmp_path: Path,
+) -> None:
+    staging = tmp_path / "runtime"
+    verification = tmp_path / "build_verification.json"
+    verification.write_text(
+        json.dumps({
+            "schema_version": "1.0.0", "purpose": "software_validation",
+            "scientifically_eligible": False, "final_test_read": False,
+            "source_commit": "a" * 40, "source_branch": "test",
+            "source_git_dirty": False, "verification": {},
+        }),
+        encoding="utf-8",
+    )
+    build_acceptance_assets(
+        output_root=staging, build_verification=verification,
+    )
+    audit = audit_acceptance_assets(staging)
 
     assert audit.available is True
     assert audit.hashes_verified is True
     assert audit.manifest_path == (
-        PROJECT_ROOT / "validation_assets/pre_experiment_acceptance/assets_manifest.json"
+        staging / "validation_assets/pre_experiment_acceptance/assets_manifest.json"
     )
     fixture_manifest = json.loads(
         (PROJECT_ROOT / "tests/fixtures/rew/external_reference/manifest.json").read_text(
@@ -40,7 +58,7 @@ def test_acceptance_validation_asset_closure_is_complete_and_hash_verified() -> 
         )
         record = fixture_records[relative]
         assert record.sha256 == expected["sha256"]
-        copied = PROJECT_ROOT / relative
+        copied = staging / relative
         assert hashlib.sha256(copied.read_bytes()).hexdigest() == expected["sha256"]
 
     required_configs = {
@@ -64,6 +82,7 @@ def test_acceptance_validation_asset_closure_is_complete_and_hash_verified() -> 
 def test_windows_spec_packages_explicit_validation_assets_not_source_tests() -> None:
     spec = (PROJECT_ROOT / "SweepMultisineUI.spec").read_text(encoding="utf-8")
 
+    assert "SWEEP_MULTISINE_RELEASE_STAGING" in spec
     assert "validation_assets/pre_experiment_acceptance" in spec
     assert "tests/fixtures" not in spec
     assert "DEV-C16_PRE_EXPERIMENT_ACCEPTANCE.md" in spec
@@ -128,8 +147,9 @@ def test_environment_pass_and_acceptance_failure_have_separate_ui_states(
 
 
 def test_missing_packaged_asset_returns_failure_without_uncaught_exception(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch,
 ) -> None:
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
     resources = tmp_path / "empty frozen resources"
     workspace = tmp_path / "空格 中文 工作区"
     resources.mkdir()

@@ -1,5 +1,12 @@
 # Changelog
 
+## DEV-UI4-FIX3 — clean Windows release provenance (unreleased)
+
+- Made a clean Git worktree the first hard prerequisite of formal Windows builds and revalidated the same branch/HEAD after verification and packaging.
+- Moved dynamic build verification and runtime asset manifests from tracked source files to ignored `build/release_staging`, with PyInstaller accepting them only through the formal staging boundary.
+- Bound build verification, build manifest and packaged acceptance to one clean source commit while keeping final-test unread and simulated validation scientifically ineligible.
+- Added release provenance audits and dirty/clean/staging/state/final-test regressions without changing scientific algorithms, schemas or gates.
+
 ## DEV-UI4-FIX2 — packaged acceptance assets and worker failure handling (unreleased)
 
 - Replaced the frozen executable's implicit dependency on source `tests/fixtures` with a hash-audited, read-only `validation_assets/pre_experiment_acceptance` bundle containing the official REW parser fixtures and complete DEV-C16 runtime configuration/document closure.

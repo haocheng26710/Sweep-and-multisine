@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -7,8 +8,13 @@ import shutil
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-ASSET_ROOT = PROJECT_ROOT / "validation_assets" / "pre_experiment_acceptance"
-FIXTURE_SOURCE = PROJECT_ROOT / "tests" / "fixtures" / "rew" / "external_reference"
+FIXTURE_SOURCE = (
+    PROJECT_ROOT
+    / "validation_assets"
+    / "pre_experiment_acceptance"
+    / "rew"
+    / "external_reference"
+)
 
 CONFIG_FILES = (
     "default.yaml",
@@ -35,8 +41,12 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def main() -> int:
-    fixture_target = ASSET_ROOT / "rew" / "external_reference"
+def build_acceptance_assets(
+    *, output_root: str | Path, build_verification: str | Path,
+) -> Path:
+    runtime_root = Path(output_root).resolve()
+    asset_root = runtime_root / "validation_assets" / "pre_experiment_acceptance"
+    fixture_target = asset_root / "rew" / "external_reference"
     fixture_target.mkdir(parents=True, exist_ok=True)
     fixture_manifest = json.loads(
         (FIXTURE_SOURCE / "manifest.json").read_text(encoding="utf-8")
@@ -53,7 +63,7 @@ def main() -> int:
         assets.append(
             {
                 "asset_role": "rew_manifest" if name == "manifest.json" else "rew_fixture",
-                "relative_path": path.relative_to(PROJECT_ROOT).as_posix(),
+                "relative_path": path.relative_to(runtime_root).as_posix(),
                 "sha256": _sha256(path),
                 "size_bytes": path.stat().st_size,
                 "data_origin": "external_reference",
@@ -62,35 +72,45 @@ def main() -> int:
             }
         )
     for name in CONFIG_FILES:
-        path = PROJECT_ROOT / "config" / name
+        source = PROJECT_ROOT / "config" / name
+        path = runtime_root / "config" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, path)
         assets.append(
             {
                 "asset_role": "config",
-                "relative_path": path.relative_to(PROJECT_ROOT).as_posix(),
+                "relative_path": path.relative_to(runtime_root).as_posix(),
                 "sha256": _sha256(path),
                 "size_bytes": path.stat().st_size,
             }
         )
     for name in DOCUMENT_FILES:
-        path = PROJECT_ROOT / name
+        source = PROJECT_ROOT / name
+        path = runtime_root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, path)
         assets.append(
             {
                 "asset_role": "documentation",
-                "relative_path": path.relative_to(PROJECT_ROOT).as_posix(),
+                "relative_path": path.relative_to(runtime_root).as_posix(),
                 "sha256": _sha256(path),
                 "size_bytes": path.stat().st_size,
             }
         )
-    build_verification = ASSET_ROOT / "build_verification.json"
-    if build_verification.is_file():
-        assets.append(
-            {
-                "asset_role": "build_verification",
-                "relative_path": build_verification.relative_to(PROJECT_ROOT).as_posix(),
-                "sha256": _sha256(build_verification),
-                "size_bytes": build_verification.stat().st_size,
-            }
-        )
+    verification_source = Path(build_verification).resolve()
+    if not verification_source.is_file():
+        raise FileNotFoundError(f"build verification is missing: {verification_source}")
+    verification_target = asset_root / "build_verification.json"
+    if verification_source != verification_target:
+        shutil.copyfile(verification_source, verification_target)
+    assets.append(
+        {
+            "asset_role": "build_verification",
+            "relative_path": verification_target.relative_to(runtime_root).as_posix(),
+            "sha256": _sha256(verification_target),
+            "size_bytes": verification_target.stat().st_size,
+        }
+    )
     payload = {
         "schema_version": "1.0.0",
         "asset_set_id": "dev-ui4-pre-experiment-acceptance",
@@ -99,10 +119,25 @@ def main() -> int:
         "final_test_read": False,
         "assets": sorted(assets, key=lambda item: str(item["relative_path"])),
     }
-    ASSET_ROOT.mkdir(parents=True, exist_ok=True)
-    (ASSET_ROOT / "assets_manifest.json").write_text(
+    asset_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = asset_root / "assets_manifest.json"
+    manifest_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+    )
+    return manifest_path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Stage immutable DEV-C16 runtime validation assets"
+    )
+    parser.add_argument("--output-root", required=True)
+    parser.add_argument("--build-verification", required=True)
+    args = parser.parse_args(argv)
+    build_acceptance_assets(
+        output_root=args.output_root,
+        build_verification=args.build_verification,
     )
     return 0
 
