@@ -1,5 +1,12 @@
 # Changelog
 
+## Research protocol rev-001 — questions and decision rules frozen (unreleased)
+
+- Frozen the four-direction, single-microphone `U4ENC` versus `U4SYM` primary research question and H0/H1 before bounded stress simulation or real experiments.
+- Fixed `G_demeaned` as the primary physical metric, with raw/z-score, REASM, configuration-difference and grouped-classification supporting evidence.
+- Recorded QC/completeness, 95% confidence-interval, grouped validation and three-way design decision rules, with only one documented pre-pilot rev-002 window.
+- Kept all existing simulated data scientifically ineligible and prohibited using software-validation results to tune scientific success thresholds; final-test remains sealed.
+
 ## DEV-UI4-FIX7 — safe sparse-route closeout (unreleased)
 
 - Added explicit UI-only `not_applicable` and `sealed` terminal states for the completed 32-sample sparse Multisine software-validation route.

@@ -10,6 +10,8 @@ DEV-UI4 completes the planned desktop delivery: formal P9-A through P9-D launche
 
 DEV-UI4-FIX6/FIX7 complete the simulated practice path through its safe terminal state. An explicit 32-sample sparse Multisine plan can run P7 -> S3 -> P1/P8 -> dataset integrity, after which steps 08/09 are shown as not applicable, step 10 remains blocked, step 11 remains sealed, and step 12 exports a hash-audited software-validation summary. The UI never fabricates dense FeatureSets or a P2-B pass, never scans outputs to recover authority, and never promotes simulated data to scientific eligibility.
 
+The confirmation-stage research question, primary `G_demeaned` metric, data/QC thresholds, grouped-classification rules, decision categories and revision policy are frozen in [RESEARCH_QUESTION_AND_DECISION_RULES.md](docs/experiment/RESEARCH_QUESTION_AND_DECISION_RULES.md) as `rev-001`. The next stage is bounded stress simulation and has not started; current simulated software-validation data cannot support scientific conclusions or tune the frozen success thresholds.
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.

@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| RESEARCH-PROTOCOL-LOCK rev-001 — 研究问题与判定标准冻结 | 2026-08-13 | 完成；主问题、G_demeaned、QC/CI/分类门槛及三类决策已冻结；压力模拟和真实实验尚未开始；final-test sealed | [RESEARCH_PROTOCOL_LOCK_REV001.md](./RESEARCH_PROTOCOL_LOCK_REV001.md)；[正式协议](../experiment/RESEARCH_QUESTION_AND_DECISION_RULES.md) | 本报告与协议同一 docs-only 提交：`docs(experiment): freeze research questions and decision rules` |
 | FINAL-UAT-ARCHIVE — 最终软件验证验收归档 | 2026-08-13 | 通过；32/32，步骤01–07 passed、08–09 not applicable、10 blocked、11 sealed、12 ready；6/6 上游 hash 匹配；科研资格 false | [FINAL_SOFTWARE_VALIDATION_UAT.md](./FINAL_SOFTWARE_VALIDATION_UAT.md) | 本报告与索引同一 docs-only 提交：`docs(uat): record final software validation acceptance` |
 | DEV-UI4-FIX7 — Sparse Multisine 路线安全收尾与报告出口 | 2026-08-13 | 实现与提交前验证完成；步骤08/09安全跳过、10 blocked、11 sealed、12 ready；科研资格 false | [DEV-UI4_FIX7_SPARSE_ROUTE_CLOSEOUT.md](./DEV-UI4_FIX7_SPARSE_ROUTE_CLOSEOUT.md) | 本报告与实现同一提交：`fix(ui): close sparse validation route safely` |
 | DEV-UI4-FIX6 — 模拟练习步骤04～07端到端工作流 | 2026-08-13 | 实现与提交前验证完成；32/32 simulated/software_validation；等待从本步 clean commit 构建正式 EXE；科研资格 false | [DEV-UI4_FIX6_SIMULATED_FLOW_04_07.md](./DEV-UI4_FIX6_SIMULATED_FLOW_04_07.md) | 本报告与实现同一提交：`feat(ui): complete simulated workflow steps 04 to 07` |
