@@ -67,6 +67,12 @@ from acoustic_encoder.ui.runtime import (
     default_workspace_settings_path,
 )
 from acoustic_encoder.ui.final_delivery_page import FinalDeliveryPage
+from acoustic_encoder.ui.simulated_flow import SimulatedFlowService
+from acoustic_encoder.ui.simulated_flow_pages import (
+    AcquisitionPage,
+    SimulatedBatchPage,
+    StimulusPage,
+)
 
 
 class MainWindow(QMainWindow):
@@ -128,6 +134,14 @@ class MainWindow(QMainWindow):
             runtime_context=self.runtime,
         )
         self.final_delivery_page = FinalDeliveryPage(self.runtime, self)
+        self.simulated_flow_service = SimulatedFlowService(
+            self.project_root, self.workspace_root
+        )
+        self.stimulus_page = StimulusPage(self.simulated_flow_service, self)
+        self.acquisition_page = AcquisitionPage(self.simulated_flow_service, self)
+        self.simulated_batch_page = SimulatedBatchPage(
+            self.simulated_flow_service, self.runtime, self
+        )
         self.open_p9_button = QPushButton("打开正式 P9-A～P9-C 向导")
         self.open_p9_button.setObjectName("openP9WorkflowButton")
         self.analysis_page.layout().addWidget(self.open_p9_button)
@@ -152,6 +166,7 @@ class MainWindow(QMainWindow):
         self.set_usage_route(UsageRoute.SIMULATED_PRACTICE, force=True)
         self.select_step("environment")
         self._refresh_step_buttons()
+        self._restore_simulated_flow()
 
     def _build_ui(self) -> None:
         central = QWidget(self)
@@ -232,6 +247,9 @@ class MainWindow(QMainWindow):
         self.action_stack.addWidget(self.environment_page)
         self.action_stack.addWidget(self.usage_page)
         self.action_stack.addWidget(self.single_measurement_page)
+        self.action_stack.addWidget(self.stimulus_page)
+        self.action_stack.addWidget(self.acquisition_page)
+        self.action_stack.addWidget(self.simulated_batch_page)
         self.action_stack.addWidget(self.plan_page)
         self.action_stack.addWidget(self.dataset_page)
         self.action_stack.addWidget(self.analysis_page)
@@ -552,6 +570,22 @@ class MainWindow(QMainWindow):
         self.final_delivery_page.stage_status_changed.connect(
             self._final_delivery_stage_status_changed
         )
+        self.stimulus_page.plan_selected.connect(self._plan_saved)
+        self.stimulus_page.stimulus_ready.connect(self._stimulus_ready)
+        self.stimulus_page.status_changed.connect(
+            lambda status: self._simulated_step_status("stimulus", status)
+        )
+        self.stimulus_page.message.connect(self._append_result)
+        self.acquisition_page.acquisition_ready.connect(self._acquisition_ready)
+        self.acquisition_page.status_changed.connect(
+            lambda status: self._simulated_step_status("external_acquisition", status)
+        )
+        self.acquisition_page.message.connect(self._append_result)
+        self.simulated_batch_page.processing_ready.connect(self._processing_ready)
+        self.simulated_batch_page.status_changed.connect(
+            lambda status: self._simulated_step_status("single_measurement", status)
+        )
+        self.simulated_batch_page.message.connect(self._append_result)
         for field in self.metadata_fields.values():
             field.textChanged.connect(self._metadata_edited)
         self.audio_channel_spin.valueChanged.connect(self._metadata_edited)
@@ -569,6 +603,7 @@ class MainWindow(QMainWindow):
             or self.dataset_page.worker.is_running
             or self.analysis_page.worker.is_running
             or self.final_delivery_page.is_running
+            or self.simulated_batch_page.is_running
         )
 
     def _choose_workspace(self) -> None:
@@ -644,7 +679,18 @@ class MainWindow(QMainWindow):
         elif step_id == "usage":
             self.action_stack.setCurrentWidget(self.usage_page)
         elif step_id == "single_measurement":
-            self.action_stack.setCurrentWidget(self.single_measurement_page)
+            self.action_stack.setCurrentWidget(
+                self.simulated_batch_page
+                if (
+                    self._current_route is UsageRoute.SIMULATED_PRACTICE
+                    and self.simulated_batch_page.batch is not None
+                )
+                else self.single_measurement_page
+            )
+        elif step_id == "stimulus":
+            self.action_stack.setCurrentWidget(self.stimulus_page)
+        elif step_id == "external_acquisition":
+            self.action_stack.setCurrentWidget(self.acquisition_page)
         elif step_id == "plan":
             self.action_stack.setCurrentWidget(self.plan_page)
         elif step_id == "dataset":
@@ -683,6 +729,8 @@ class MainWindow(QMainWindow):
         ready = bool(saved.checklist.ready_for_acquisition)
         self._finish_step("plan", StepStatus.PASSED if ready else StepStatus.WARNING)
         self.dataset_page.load_plan_revision(saved.directory)
+        self.stimulus_page.set_plan(saved)
+        self.acquisition_page.set_inputs(saved, self.stimulus_page.artifacts)
         self.analysis_page.set_plan_modes(
             tuple(
                 mode.value
@@ -697,6 +745,90 @@ class MainWindow(QMainWindow):
         self.next_step_label.setText(
             "下一步建议：按计划完成外部采集，然后显式登记 UI2 sessions。"
         )
+
+    def _stimulus_ready(self, artifacts: object) -> None:
+        if self.stimulus_page.saved_plan is not None:
+            self.acquisition_page.set_inputs(
+                self.stimulus_page.saved_plan, artifacts
+            )
+
+    def _acquisition_ready(self, batch: object) -> None:
+        self.simulated_batch_page.set_batch(batch)
+        if self._current_step_id == "single_measurement":
+            self.select_step("single_measurement")
+
+    def _processing_ready(self, manifest_path: str) -> None:
+        try:
+            audit = self.dataset_page.load_simulated_processing_manifest(
+                manifest_path
+            )
+        except Exception as error:
+            self._simulated_step_status("dataset", "failed")
+            self._append_result(f"步骤07完整性审计失败：{error}")
+            return
+        self._simulated_step_status("dataset", "passed")
+        self._append_result(f"步骤07完成：32/32 显式样本；审计={audit}")
+
+    def _simulated_step_status(self, step_id: str, status: str) -> None:
+        target = {
+            "running": StepStatus.RUNNING,
+            "passed": StepStatus.PASSED,
+            "warning": StepStatus.WARNING,
+            "failed": StepStatus.FAILED,
+            "blocked": StepStatus.BLOCKED,
+        }.get(status, StepStatus.BLOCKED)
+        if target is StepStatus.RUNNING:
+            self._begin_step(step_id)
+        else:
+            self._finish_step(step_id, target)
+
+    def _restore_simulated_flow(self) -> None:
+        """Restore only the artifacts named by the one hashed state manifest."""
+        try:
+            state = self.simulated_flow_service.load_state()
+            steps = dict(state.get("steps", {}))
+            for step_id, status in steps.items():
+                visible_step_id = "dataset" if step_id == "dataset_qc" else step_id
+                if visible_step_id in {item.step_id for item in self.state.steps}:
+                    self.state.step(visible_step_id).status = StepStatus.from_external(str(status))
+            plan_path = state.get("plan_revision_path")
+            if plan_path:
+                saved = self.simulated_flow_service.plan_service.load_revision(plan_path)
+                self.stimulus_page.set_plan(saved)
+                self.dataset_page.load_plan_revision(saved.directory)
+                stimulus = None
+                artifact = dict(state.get("artifacts", {})).get("stimulus_hashes")
+                if artifact:
+                    stimulus = self.simulated_flow_service.generate_stimulus(saved.directory)
+                    self.stimulus_page.restore(stimulus)
+                self.acquisition_page.set_inputs(saved, stimulus)
+                acquisition_ref = dict(state.get("artifacts", {})).get("acquisition_manifest")
+                if acquisition_ref:
+                    acquisition = self.simulated_flow_service.load_acquisition_batch(
+                        acquisition_ref["path"]
+                    )
+                    self.acquisition_page.restore(acquisition)
+                    self.simulated_batch_page.set_batch(acquisition)
+                audit_ref = dict(state.get("artifacts", {})).get("dataset_audit")
+                if audit_ref:
+                    self.dataset_page.restore_simulated_dataset_audit(audit_ref["path"])
+                else:
+                    processing_ref = dict(state.get("artifacts", {})).get(
+                        "processing_manifest"
+                    )
+                    if (
+                        processing_ref
+                        and steps.get("single_measurement") == "passed"
+                    ):
+                        self.dataset_page.load_simulated_processing_manifest(
+                            processing_ref["path"]
+                        )
+            self._refresh_step_buttons()
+        except Exception as error:
+            self._append_result(
+                "步骤01～07状态恢复被完整性门禁阻止；未扫描 outputs："
+                + str(error)
+            )
 
     def _dataset_workflow_status_changed(self, status: str) -> None:
         mapping = {
@@ -765,6 +897,8 @@ class MainWindow(QMainWindow):
         if selected is not self._current_route or force:
             self._clear_measurement_draft()
         self._current_route = selected
+        self.stimulus_page.set_route(selected)
+        self.acquisition_page.set_route(selected)
         index = self.usage_route_combo.findData(selected.value)
         self.usage_route_combo.blockSignals(True)
         self.usage_route_combo.setCurrentIndex(index)
@@ -1155,6 +1289,17 @@ class MainWindow(QMainWindow):
         self._refresh_step_buttons()
         if self._current_step_id == step_id:
             self.select_step(step_id)
+        if step_id in {
+            "environment", "usage", "plan", "stimulus",
+            "external_acquisition", "single_measurement", "dataset",
+        }:
+            persisted_id = "dataset_qc" if step_id == "dataset" else step_id
+            try:
+                self.simulated_flow_service.record_ui_step(
+                    persisted_id, status.value
+                )
+            except Exception as error:
+                self._append_result(f"UI 状态 manifest 写入失败：{error}")
 
     def _check_environment(self) -> None:
         try:

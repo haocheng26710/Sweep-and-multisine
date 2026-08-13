@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from pathlib import Path
 import sys
@@ -174,6 +174,114 @@ class ProcessTask(QObject):
                 arguments=self._arguments,
             )
         )
+
+
+@dataclass(frozen=True, slots=True)
+class SimulatedBatchInvocation:
+    program: str
+    arguments: tuple[str, ...]
+    acquisition_manifest: Path
+    cancel_file: Path
+
+
+class SimulatedBatchWorker(QObject):
+    """Run FIX6's explicit 32-sample batch outside the Qt main thread."""
+
+    started = Signal(object)
+    stdout_received = Signal(str)
+    stderr_received = Signal(str)
+    finished = Signal(object, object)
+
+    def __init__(
+        self,
+        project_root: str | Path,
+        *,
+        runtime_context: RuntimeContext,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.project_root = Path(project_root).resolve()
+        self.runtime_context = runtime_context
+        self.task = ProcessTask(self)
+        self.task.stdout_received.connect(self.stdout_received)
+        self.task.stderr_received.connect(self.stderr_received)
+        self.task.finished.connect(self._finished)
+        self._active: SimulatedBatchInvocation | None = None
+        self._cancel_requested = False
+
+    @property
+    def is_running(self) -> bool:
+        return self.task.is_running
+
+    def prepare(
+        self, acquisition_manifest: str | Path, *, processing_id: str | None = None
+    ) -> SimulatedBatchInvocation:
+        manifest = Path(acquisition_manifest).resolve()
+        selected_processing_id = processing_id or f"u6-{uuid.uuid4().hex[:12]}"
+        cancel_file = (
+            self.runtime_context.workspace_root
+            / "outputs/ui_simulated_flow/control"
+            / f"cancel-{uuid.uuid4().hex}.request"
+        )
+        arguments = [
+            "--acquisition-manifest", str(manifest),
+            "--cancel-file", str(cancel_file),
+        ]
+        arguments.extend(("--processing-id", selected_processing_id))
+        if self.runtime_context.is_frozen:
+            program, worker_args = self.runtime_context.worker_process(
+                "simulated_batch", arguments
+            )
+        else:
+            program = sys.executable
+            worker_args = (
+                str(self.project_root / "scripts/run_gui.py"),
+                "--worker",
+                "simulated_batch",
+                "--workspace",
+                str(self.runtime_context.workspace_root),
+                "--",
+                *arguments,
+            )
+        return SimulatedBatchInvocation(
+            program=program,
+            arguments=tuple(worker_args),
+            acquisition_manifest=manifest,
+            cancel_file=cancel_file,
+        )
+
+    def start(
+        self, acquisition_manifest: str | Path, *, processing_id: str | None = None
+    ) -> SimulatedBatchInvocation:
+        if self.is_running:
+            raise RuntimeError("simulated batch is already running")
+        invocation = self.prepare(acquisition_manifest, processing_id=processing_id)
+        self._active = invocation
+        self._cancel_requested = False
+        self.task.start(
+            invocation.program,
+            invocation.arguments,
+            working_directory=self.project_root,
+        )
+        self.started.emit(invocation)
+        return invocation
+
+    def cancel(self) -> None:
+        if self._active is None or not self.is_running:
+            return
+        self._active.cancel_file.parent.mkdir(parents=True, exist_ok=True)
+        self._active.cancel_file.write_text("cancel requested\n", encoding="utf-8")
+        self._cancel_requested = True
+
+    def _finished(self, result: ProcessResult) -> None:
+        invocation = self._active
+        if invocation is None:
+            return
+        self._active = None
+        if self._cancel_requested:
+            result = replace(result, outcome=ProcessOutcome.CANCELLED)
+        self._cancel_requested = False
+        self.finished.emit(result, invocation)
 
 
 @dataclass(frozen=True, slots=True)

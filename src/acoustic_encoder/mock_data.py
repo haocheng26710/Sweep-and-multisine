@@ -215,6 +215,42 @@ def _simulate_recording(
     return sample_rate, recording
 
 
+def simulate_multisine_recording_waveform(
+    stimulus_wav: str | Path,
+    stimulus_manifest: Mapping[str, Any],
+    *,
+    angle_deg: float,
+    configuration: str,
+    random_state: int,
+    recording_delay_samples: int = 1379,
+    sampling_clock_drift_ppm: float = 0.0,
+    additive_noise_std: float = 2.0e-5,
+) -> tuple[int, FloatArray]:
+    """Public S3 boundary for deterministic UI software-validation recordings.
+
+    The UI supplies identity and persistence; S3 remains the sole authority for
+    the known transfer function and waveform simulation.  The deliberately
+    non-periodic default delay exercises the P8 preamble synchronizer.
+    """
+    return _simulate_recording(
+        Path(stimulus_wav),
+        stimulus_manifest,
+        angle_deg=float(angle_deg),
+        configuration=str(configuration),
+        random_state=int(random_state),
+        recording_delay_samples=int(recording_delay_samples),
+        sampling_clock_drift_ppm=float(sampling_clock_drift_ppm),
+        additive_noise_std=float(additive_noise_std),
+        missing_tone_frequencies_hz=(),
+        interference_tones_dbfs={},
+        stable_period_gain_db=None,
+        stable_period_shift_samples=None,
+        clipping_run_samples=0,
+        multisine_to_sweep_slope=1.0,
+        multisine_to_sweep_intercept_db=0.0,
+    )
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:

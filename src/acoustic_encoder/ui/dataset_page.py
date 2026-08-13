@@ -38,6 +38,7 @@ from acoustic_encoder.ui.sample_registry import (
 from acoustic_encoder.ui.services import humanize_exception
 from acoustic_encoder.ui.workers import BatchStageWorker, ProcessOutcome, ProcessResult
 from acoustic_encoder.ui.runtime import RuntimeContext
+from acoustic_encoder.ui.simulated_flow import SimulatedFlowService
 
 
 class DatasetQCPage(QWidget):
@@ -61,6 +62,9 @@ class DatasetQCPage(QWidget):
             self.project_root, runtime_context=runtime_context
         )
         self.registry = SampleRegistry(self.workspace_root / "outputs/ui3_registry")
+        self.simulated_flow_service = SimulatedFlowService(
+            self.project_root, self.workspace_root
+        )
         self.worker = BatchStageWorker(self)
         self.workflow_state = BatchWorkflowState()
         self.saved_plan: SavedPlanRevision | None = None
@@ -68,6 +72,7 @@ class DatasetQCPage(QWidget):
         self.last_match: SampleMatchResult | None = None
         self.active_invocation: PreparedBatchInvocation | None = None
         self.last_p2b_directory: Path | None = None
+        self.simulated_sparse_audit: Path | None = None
         self.setObjectName("datasetQCPage")
         self._build()
         self.worker.stdout_received.connect(self.message)
@@ -176,6 +181,53 @@ class DatasetQCPage(QWidget):
         self.registrations.append(registered)
         self._refresh_table()
         return registered
+
+    def load_simulated_processing_manifest(
+        self, processing_manifest: str | Path
+    ) -> Path:
+        """Auto-register one explicit FIX6 batch and audit its sparse outputs."""
+        audit = self.simulated_flow_service.verify_processed_dataset(
+            processing_manifest
+        )
+        self.restore_simulated_dataset_audit(audit.manifest_path)
+        return audit.manifest_path
+
+    def restore_simulated_dataset_audit(self, audit_manifest: str | Path) -> None:
+        import json
+
+        audit = self.simulated_flow_service.load_dataset_audit(audit_manifest)
+        payload = json.loads(audit.manifest_path.read_text(encoding="utf-8"))
+        processing = json.loads(
+            Path(payload["processing_manifest_path"]).read_text(encoding="utf-8")
+        )
+        self.load_plan_revision(payload["plan_revision_path"])
+        assert self.saved_plan is not None
+        expected_by_id = {item.sample_id: item for item in self.saved_plan.samples}
+        self.registrations.clear()
+        for row in processing["samples"]:
+            expected = expected_by_id[row["sample_id"]]
+            self.registrations.append(
+                self.registry.register_ui2_session(
+                    row["ui_session_manifest_path"],
+                    expected=expected,
+                    output_directory=row["output_directory"],
+                )
+            )
+        self._refresh_table()
+        self.simulated_sparse_audit = audit.manifest_path
+        self.preview_p2b_button.setEnabled(False)
+        self.run_p2b_button.setEnabled(False)
+        self.summary_label.setText(
+            f"模拟 Multisine 完整性：{payload['expected_and_present_count']}/"
+            f"{payload['expected_count']} expected_and_present；"
+            f"P2-B={payload['p2_b_status']}（稀疏 tone 数据不强制 DENSE_RAW_SPL）；"
+            f"后续路线={payload['downstream_route']}；科研资格=false。"
+        )
+        self.workflow_status_changed.emit(
+            "dataset_qc_passed"
+            if audit.status == "passed"
+            else "dataset_qc_warning"
+        )
 
     def _choose_session(self) -> None:
         if self.saved_plan is None:
@@ -288,6 +340,13 @@ class DatasetQCPage(QWidget):
         self.message.emit(f"已追加人工审核记录 #{audit.audit_index}；原始 QC/metadata 未修改。")
 
     def prepare_p2b(self, *, run_id: str | None = None) -> PreparedBatchInvocation:
+        if self.saved_plan is not None and self.saved_plan.samples and all(
+            item.measurement_mode.value == "schroeder_multisine"
+            for item in self.saved_plan.samples
+        ):
+            raise ValueError(
+                "P2-B not_applicable_sparse: 纯 Multisine 计划使用 tone/P8 数据集完整性路线"
+            )
         if self.saved_plan is None:
             raise RuntimeError("必须先加载计划")
         selected_expected = tuple(

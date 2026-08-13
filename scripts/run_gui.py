@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=(
             "acceptance", "pipeline_sweep", "pipeline_multisine", "p2b", "p4",
             "p5a", "p5b", "p6a", "p6b", "p9a", "p9b", "p9c", "p9d", "offline",
+            "simulated_batch",
         ),
     )
     parser.add_argument("worker_args", nargs=argparse.REMAINDER)

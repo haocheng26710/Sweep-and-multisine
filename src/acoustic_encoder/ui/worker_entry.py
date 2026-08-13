@@ -41,7 +41,6 @@ def dispatch_worker(
     workspace_root: str | Path,
 ) -> int:
     """Run one authoritative backend entry point and print structured output."""
-    del workspace_root  # Outputs remain explicit arguments; no directory scanning.
     arguments = list(argv)
     project_root = str(Path(resource_root).resolve())
     if task in {"p9a", "p9b", "p9c"} and "--project-root" not in arguments:
@@ -68,6 +67,43 @@ def dispatch_worker(
 
         required = None if task == "pipeline_sweep" else MeasurementMode.SCHROEDER_MULTISINE
         return pipeline_main(arguments, required_mode=required, project_root=Path(project_root))
+    if task == "simulated_batch":
+        from acoustic_encoder.ui.simulated_flow import SimulatedFlowService
+
+        parser = argparse.ArgumentParser(description="Process explicit FIX6 simulated batch")
+        parser.add_argument("--acquisition-manifest", required=True)
+        parser.add_argument("--processing-id")
+        parser.add_argument("--cancel-file")
+        args = parser.parse_args(arguments)
+        service = SimulatedFlowService(project_root, workspace_root)
+
+        def report(event: object) -> None:
+            print(json.dumps(event, sort_keys=True, ensure_ascii=False), flush=True)
+
+        result = service.process_simulated_batch(
+            args.acquisition_manifest,
+            processing_id=args.processing_id,
+            cancel_requested=(
+                None
+                if args.cancel_file is None
+                else lambda: Path(args.cancel_file).is_file()
+            ),
+            progress=report,
+        )
+        print(
+            json.dumps(
+                {
+                    "event": "batch_finished",
+                    "status": result.status,
+                    "processed_count": result.processed_count,
+                    "manifest_path": result.manifest_path.as_posix(),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        return 0 if result.status == "passed" else 2
     if task == "p2b":
         from acoustic_encoder.dataset_quality_cli import run_dataset_quality_cli
 

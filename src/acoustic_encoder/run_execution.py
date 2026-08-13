@@ -43,23 +43,34 @@ class RunResult:
 
 
 def _git_state(project_root: Path) -> dict[str, Any]:
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=project_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    dirty = bool(
-        subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=project_root,
-            check=True,
-            capture_output=True,
-            text=True,
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=project_root, check=True,
+            capture_output=True, text=True,
         ).stdout.strip()
-    )
-    return {"commit": commit, "dirty": dirty}
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--porcelain"], cwd=project_root, check=True,
+                capture_output=True, text=True,
+            ).stdout.strip()
+        )
+        return {"commit": commit, "dirty": dirty}
+    except (OSError, subprocess.CalledProcessError):
+        candidates = (
+            project_root / "build_manifest.json",
+            project_root.parent / "build_manifest.json",
+            project_root
+            / "validation_assets/pre_experiment_acceptance/build_verification.json",
+        )
+        for candidate in candidates:
+            if not candidate.is_file():
+                continue
+            payload = json.loads(candidate.read_text(encoding="utf-8-sig"))
+            commit = payload.get("git_commit", payload.get("source_commit"))
+            dirty = payload.get("source_git_dirty", payload.get("git_dirty"))
+            if isinstance(commit, str) and commit and dirty is not None:
+                return {"commit": commit, "dirty": bool(dirty)}
+        raise RuntimeError("Git provenance is unavailable in this packaged runtime")
 
 
 def _write_measurement_index(path: Path, spectrum: SpectrumData) -> None:

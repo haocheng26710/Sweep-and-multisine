@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| DEV-UI4-FIX6 — 模拟练习步骤04～07端到端工作流 | 2026-08-13 | 实现与提交前验证完成；32/32 simulated/software_validation；等待从本步 clean commit 构建正式 EXE；科研资格 false | [DEV-UI4_FIX6_SIMULATED_FLOW_04_07.md](./DEV-UI4_FIX6_SIMULATED_FLOW_04_07.md) | 本报告与实现同一提交：`feat(ui): complete simulated workflow steps 04 to 07` |
 | DEV-UI4-FIX5 — Windows 表格编辑器与安全 status 对比度 | 2026-08-13 | 实现与提交前验证完成；待从本步 clean commit 重建正式 EXE；科研门禁不变 | [DEV-UI4_FIX5_WINDOWS_EDITOR_CONTRAST.md](./DEV-UI4_FIX5_WINDOWS_EDITOR_CONTRAST.md) | 本报告与实现同一提交：`fix(ui): ensure readable Windows table editors` |
 | DEV-UI4-FIX4 — 步骤 03 实验计划布局与可访问性 | 2026-08-13 | 实现与提交前验证完成；待从本步 clean commit 重建正式 EXE；科研门禁不变 | [DEV-UI4_FIX4_PLAN_LAYOUT.md](./DEV-UI4_FIX4_PLAN_LAYOUT.md) | 本报告与实现同一提交：`fix(ui): make experiment plan page scrollable` |
 | DEV-UI4-FIX3 — Windows clean-build provenance 与最终软件验收 | 2026-08-13 | 实现与提交前验证完成；正式 EXE 仅可从本步 clean commit 构建；科研资格 false | [DEV-UI4_FIX3_CLEAN_BUILD_PROVENANCE.md](./DEV-UI4_FIX3_CLEAN_BUILD_PROVENANCE.md) | 本报告与实现同一提交：`fix(ui): enforce clean release build provenance` |
