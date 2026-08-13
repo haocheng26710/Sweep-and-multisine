@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| SIM-0 — 有边界的压力模拟方案冻结 | 2026-08-13 | 完成（仅方案）；6 场景、每场景 50 seeds、基础 300 runs、最大 350 runs 已冻结；未生成数据、未运行 SIM-1；final-test sealed | [SIM_0_BOUNDED_STRESS_PLAN.md](./SIM_0_BOUNDED_STRESS_PLAN.md)；[正式方案](../experiment/BOUNDED_STRESS_SIMULATION_PLAN.md) | 本报告与方案同一 docs-only 提交：`docs(simulation): freeze bounded stress simulation plan` |
 | RESEARCH-PROTOCOL-LOCK rev-001 — 研究问题与判定标准冻结 | 2026-08-13 | 完成；主问题、G_demeaned、QC/CI/分类门槛及三类决策已冻结；压力模拟和真实实验尚未开始；final-test sealed | [RESEARCH_PROTOCOL_LOCK_REV001.md](./RESEARCH_PROTOCOL_LOCK_REV001.md)；[正式协议](../experiment/RESEARCH_QUESTION_AND_DECISION_RULES.md) | 本报告与协议同一 docs-only 提交：`docs(experiment): freeze research questions and decision rules` |
 | FINAL-UAT-ARCHIVE — 最终软件验证验收归档 | 2026-08-13 | 通过；32/32，步骤01–07 passed、08–09 not applicable、10 blocked、11 sealed、12 ready；6/6 上游 hash 匹配；科研资格 false | [FINAL_SOFTWARE_VALIDATION_UAT.md](./FINAL_SOFTWARE_VALIDATION_UAT.md) | 本报告与索引同一 docs-only 提交：`docs(uat): record final software validation acceptance` |
 | DEV-UI4-FIX7 — Sparse Multisine 路线安全收尾与报告出口 | 2026-08-13 | 实现与提交前验证完成；步骤08/09安全跳过、10 blocked、11 sealed、12 ready；科研资格 false | [DEV-UI4_FIX7_SPARSE_ROUTE_CLOSEOUT.md](./DEV-UI4_FIX7_SPARSE_ROUTE_CLOSEOUT.md) | 本报告与实现同一提交：`fix(ui): close sparse validation route safely` |

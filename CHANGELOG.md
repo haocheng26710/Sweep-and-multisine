@@ -1,5 +1,12 @@
 # Changelog
 
+## SIM-0 — bounded stress simulation plan frozen (unreleased)
+
+- Froze six predeclared software-stress scenarios, one shared 50-seed set, the default 32-sample plan, and one conditionally permitted S3-only 64-sample evaluation.
+- Fixed recovery, false-pass and QC-detection criteria plus an absolute ceiling of 350 scenario-seed runs; prohibited adaptive seed selection, extra scenarios and a third sample size.
+- Audited existing simulator/P8/P2/P4/P5 capabilities and documented the minimal SIM-1 orchestration, level-only injection and independent REPOS/REASM controls still required.
+- Generated no simulated data and ran no stress simulation. All future SIM-1 evidence remains simulated/software-validation/scientifically ineligible, and final-test remains sealed.
+
 ## Research protocol rev-001 — questions and decision rules frozen (unreleased)
 
 - Frozen the four-direction, single-microphone `U4ENC` versus `U4SYM` primary research question and H0/H1 before bounded stress simulation or real experiments.
