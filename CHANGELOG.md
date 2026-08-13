@@ -1,5 +1,11 @@
 # Changelog
 
+## DEV-UI4-FIX5 — readable Windows table editors (unreleased)
+
+- Switch the affected Windows 11 Qt style to Fusion before constructing any desktop pages, avoiding the native black-on-black combo and delegate-editor palette.
+- Apply one application-level readable palette for combo closed/popup states and table editors, including explicit active, inactive, selected and disabled contrast.
+- Preserve all safety-check values, plan semantics and scientific/final-test gates while adding deterministic keyboard, mouse, wheel and DPI/layout regressions.
+
 ## DEV-UI4-FIX4 — operable experiment-plan layout (unreleased)
 
 - Added a page-level scroll area to step 03 so basic metadata, condition blocks and the acquisition-safety checklist remain accessible in simple mode.
