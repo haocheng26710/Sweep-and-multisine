@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-0 — formal protocol and acquisition plan frozen (unreleased)
+
+- Used the single rev-002 window permitted by rev-001 to freeze REW V5.31.3 Sweep settings, 200–4000 Hz confirmation analysis, 4000–8000 Hz sensitivity analysis, a common logarithmic grid and 1/12-octave smoothing without changing the primary question or success thresholds.
+- Preregistered all 96 development/formal-pilot Sweep identities across U4SYM/U4ENC, four directions, three CONT repeats, two REPOS rounds and two REASM states, with a fixed balanced block order.
+- Added immutable naming, external raw/export directory separation, calibration/photo/environment/hash/dual-backup requirements and explicit stop/resume rules.
+- No real measurement was run. Existing pilot files remain diagnostic-only, real Multisine/P8 remains closed, and final-test remains sealed.
+
 ## SIM-1 — bounded research-design stress simulation (unreleased)
 
 - Added an isolated, deterministic six-scenario/50-seed runner with explicit 32/64 identities, pure-level injection, independent REPOS/REASM stress, grouped validation, fail-closed provenance/final-test gates, checkpoints and complete hash inventories.

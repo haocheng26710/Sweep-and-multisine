@@ -12,6 +12,8 @@ DEV-UI4-FIX6/FIX7 complete the simulated practice path through its safe terminal
 
 The confirmation-stage research question, primary `G_demeaned` metric, data/QC thresholds, grouped-classification rules, decision categories and revision policy are frozen in [RESEARCH_QUESTION_AND_DECISION_RULES.md](docs/experiment/RESEARCH_QUESTION_AND_DECISION_RULES.md) as `rev-001`. The six-scenario, 50-seed execution boundary is frozen in [BOUNDED_STRESS_SIMULATION_PLAN.md](docs/experiment/BOUNDED_STRESS_SIMULATION_PLAN.md), and the completed 300-run software stress result is recorded in [BOUNDED_STRESS_SIMULATION_REPORT.md](docs/experiment/BOUNDED_STRESS_SIMULATION_REPORT.md). The result is simulated/software-validation/scientifically-ineligible, cannot support scientific conclusions or tune frozen thresholds, and did not read final-test.
 
+The one permitted pre-pilot revision is now frozen in [RESEARCH_PROTOCOL_REV002.md](docs/experiment/RESEARCH_PROTOCOL_REV002.md), with the complete 96-sweep preregistered matrix and acquisition order in [FORMAL_ACQUISITION_PLAN_REV001.md](docs/experiment/FORMAL_ACQUISITION_PLAN_REV001.md). No formal measurement has yet been taken; all existing pilot files remain diagnostic-only, real Multisine/P8 remains closed, and final-test remains sealed.
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.
