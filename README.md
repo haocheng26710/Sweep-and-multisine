@@ -16,6 +16,8 @@ The one permitted pre-pilot revision is now frozen in [RESEARCH_PROTOCOL_REV002.
 
 FORMAL-1 implements the rev-002 Sweep preprocessing contract in an isolated, fail-closed entry: `f_n = 200 * 2**(n/48)` for `f_n <= 8000 Hz`, numeric 200–4000/4000–8000 Hz band masks, log-frequency interpolation that stops at invalid or missing-frequency gaps, and segment-local 1/12-octave smoothing in dB. The manifest binds the complete frozen contract, algorithm version and semantic input/output SHA-256. The existing linear-Hz P3 software-validation path remains compatible but is not accepted as formal preprocessing. See [FORMAL-1 implementation report](docs/progress/FORMAL_1_LOG_GRID_PREPROCESSING.md).
 
+FORMAL-2 prepares the empty, repository-external formal acquisition package and fail-closed B01 preflight gate. It derives the 96-row manifest and B01 sheet only from the frozen acquisition plan, creates blank geometry/environment/session/deviation/metadata templates, and hash-audits every baseline artifact without reading measurements. External backup is deliberately `not_configured`, `CMM29939.txt` is currently missing, all human checks remain unsigned, and therefore `ready_for_B01=false`. See [FORMAL-2 preflight report](docs/progress/FORMAL_2_PREFLIGHT_PACKAGE.md).
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.

@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-2 — formal acquisition package and preflight gate (unreleased)
+
+- Added an idempotent, no-overwrite generator for the repository-external FORMAL-U4-4DIR-SWEEP-REV001 acquisition directory, its blank field templates and hash baseline.
+- Derived and validated the exact 96-row formal manifest and 12-row B01 sheet directly from the frozen acquisition plan; no sample identity or order is inferred from files.
+- Added fail-closed calibration, physical-backup independence, GitHub prohibition, synthetic copy/hash/restore drill and package hash-verification utilities.
+- Generated the actual empty acquisition package with 13/13 baseline artifacts verified while preserving `external_backup_not_configured`, missing calibration/manual evidence, `ready_for_B01=false`, no real measurements and sealed final-test.
+
 ## FORMAL-1 — formal logarithmic-grid preprocessing (unreleased)
 
 - Added an isolated fail-closed formal Sweep preprocessing contract for the rev-002 200–8000 Hz, 48-points/octave lattice, 200–4000 Hz primary band, 4000–8000 Hz sensitivity band and post-interpolation 1/12-octave dB smoothing.
