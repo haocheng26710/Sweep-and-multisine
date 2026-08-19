@@ -20,6 +20,8 @@ FORMAL-2 prepares the empty, repository-external formal acquisition package and 
 
 FORMAL-2A registers the subsequently supplied `CMM29939.txt` byte-for-byte, validates its format, binds its intended role to the iMM-6C formal input in an audit record, and preserves the earlier FORMAL-2 hash/preflight baseline. The current screenshot shows the file under REW Soundcard calibration beside the iMM-6C speaker/output label; it does not prove microphone/input calibration binding. Consequently `calibration_file_missing` is cleared but `calibration_load_evidence_missing`, external-backup and human blockers remain, and `ready_for_B01=false`. See [FORMAL-2A report](docs/progress/FORMAL_2A_CALIBRATION_REGISTRATION.md).
 
+FORMAL-2A-FIX appends a second, explicit screenshot assessment without deleting or rewriting the insufficient FORMAL-2A evidence. The new screenshot shows the REW measurement input as the iMM-6C microphone and `CMM29939.txt` inside the separate `Mic calibration files` area, so the input binding is now `verified` and `calibration_load_evidence_missing` is cleared. External backup, restore drill, geometry/environment, signatures, manual preflight and B01 authorization remain unresolved; `ready_for_B01=false`, formal measurement has not started, and final-test remains sealed. See [FORMAL-2A-FIX report](docs/progress/FORMAL_2A_FIX_MIC_INPUT_EVIDENCE.md).
+
 It does **not** yet claim to analyze real measurements:
 
 - The REW parser is frozen only against three external-reference exports and synthetic edge cases; no project `real_experiment` measurement has been analyzed.

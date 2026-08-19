@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| FORMAL-2A-FIX — iMM-6C 麦克风输入校准加载证据 | 2026-08-19 | 新证据明确显示 iMM-6C 测量输入与 `Mic calibration files/CMM29939.txt`；输入绑定 `verified`，仅清除 load-evidence blocker；备份及人工项仍阻塞，`ready_for_B01=false`，未开测 | [FORMAL_2A_FIX_MIC_INPUT_EVIDENCE.md](./FORMAL_2A_FIX_MIC_INPUT_EVIDENCE.md) | 本报告与实现同一提交：`fix(acquisition): verify formal mic calibration evidence` |
 | FORMAL-2A — 正式校准文件登记 | 2026-08-19 | 文件/格式/hash 已登记且未修改；截图仅显示 soundcard/output calibration，不能证明 iMM-6C input binding；保留 load-evidence 与备份等 blockers，`ready_for_B01=false` | [FORMAL_2A_CALIBRATION_REGISTRATION.md](./FORMAL_2A_CALIBRATION_REGISTRATION.md) | 本报告与实现同一提交：`feat(acquisition): register formal calibration evidence` |
 | FORMAL-2 — 正式采集包与采集前预检门禁 | 2026-08-19 | 基础设施完成；96/96 manifest、B01 表和 13/13 hash 已生成；校准缺失、外置备份 not_configured、人工项未完成，`ready_for_B01=false`；未采集/导入/分析 | [FORMAL_2_PREFLIGHT_PACKAGE.md](./FORMAL_2_PREFLIGHT_PACKAGE.md) | 本报告与实现同一提交：`feat(acquisition): add formal preflight package gate` |
 | FORMAL-1 — 正式 Sweep 对数公共网格预处理 | 2026-08-19 | 完成（实现与 synthetic 软件验证）；48 PPO、200–8000 Hz、主/次频带、1/12-octave 段内 smoothing 与 fail-closed 契约；未读取真实/pilot/final-test | [FORMAL_1_LOG_GRID_PREPROCESSING.md](./FORMAL_1_LOG_GRID_PREPROCESSING.md) | 本报告与实现同一提交：`feat(preprocessing): add formal log-grid preprocessing` |

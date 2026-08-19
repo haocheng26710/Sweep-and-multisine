@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-2A-FIX — explicit microphone-input evidence (unreleased)
+
+- Added a fail-closed supplementary registration for a screenshot that explicitly shows the REW measurement input as the iMM-6C microphone and `CMM29939.txt` in the separate `Mic calibration files` area; Soundcard/output evidence is explicitly rejected as a substitute.
+- Preserved the originally uploaded double-extension PNG and the earlier insufficient FORMAL-2A record, created a byte-identical canonical-name copy, and refreshed the external package inventory to 25/25 verified artifacts.
+- Set the iMM-6C formal input calibration binding to `verified` and removed only `calibration_load_evidence_missing`; the calibration file hash remains unchanged.
+- Kept external backup and every unrelated human/preflight blocker intact, `ready_for_B01=false`, formal measurement unstarted, scientifically eligible false and final-test unread.
+
 ## FORMAL-2A — formal calibration registration (unreleased)
 
 - Added fail-closed, hash-audited registration for the formal `CMM29939.txt`, its iMM-6C input-device intent and explicit REW screenshot assessment without modifying calibration bytes.

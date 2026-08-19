@@ -69,6 +69,18 @@ class CalibrationRegistrationResult:
     screenshot_sha256: str
 
 
+@dataclass(frozen=True, slots=True)
+class CalibrationInputEvidenceFixResult:
+    evidence_path: Path
+    canonical_screenshot_path: Path
+    preflight_status_path: Path
+    input_binding_status: str
+    ready_for_b01: bool
+    unresolved_blockers: tuple[str, ...]
+    calibration_sha256: str
+    screenshot_sha256: str
+
+
 _PLAN_HEADERS = (
     "sequence",
     "sample_id",
@@ -617,7 +629,9 @@ def register_formal_calibration(
     if not screenshot.is_file():
         raise FileNotFoundError("REW_CMM29939_LOADED.png is missing")
     screenshot_bytes = screenshot.read_bytes()
-    if len(screenshot_bytes) <= 8 or not screenshot_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+    if len(screenshot_bytes) <= 8 or not screenshot_bytes.startswith(
+        b"\x89PNG\r\n\x1a\n"
+    ):
         raise FormalAcquisitionError("calibration load evidence must be a readable PNG file")
     if input_device != "iMM-6C":
         raise FormalAcquisitionError("formal calibration input_device must be iMM-6C")
@@ -738,6 +752,222 @@ def register_formal_calibration(
         unresolved_blockers=tuple(sorted(blockers)),
         calibration_sha256=copied_sha,
         screenshot_sha256=screenshot_sha,
+    )
+
+
+def supplement_formal_mic_input_evidence(
+    root: str | Path,
+    *,
+    source_screenshot_path: str | Path,
+    checked_at: str,
+    assessed_by: str,
+    observations: tuple[str, ...],
+    rew_input_is_imm6c_microphone: bool,
+    cmm_is_in_mic_calibration_files: bool,
+    soundcard_output_not_used_as_mic_evidence: bool,
+) -> CalibrationInputEvidenceFixResult:
+    """Register explicit REW microphone-input calibration evidence.
+
+    The three visual findings are supplied by a human/visual inspection.  This
+    function validates and records those findings; it does not infer screenshot
+    contents and never treats REW's soundcard/output calibration area as mic
+    calibration evidence.
+    """
+    visual_requirements = (
+        rew_input_is_imm6c_microphone,
+        cmm_is_in_mic_calibration_files,
+        soundcard_output_not_used_as_mic_evidence,
+    )
+    if not all(value is True for value in visual_requirements):
+        raise FormalAcquisitionError(
+            "all three explicit visual requirements must be true before "
+            "microphone-input calibration evidence can be verified"
+        )
+
+    root_path = Path(root)
+    calibration_dir = root_path / "01_calibration"
+    calibration = calibration_dir / "CMM29939.txt"
+    source_screenshot = Path(source_screenshot_path)
+    canonical_screenshot = calibration_dir / "REW_CMM29939_MIC_INPUT_LOADED.png"
+    registration_path = calibration_dir / "calibration_registration.json"
+    evidence_path = calibration_dir / "calibration_input_evidence_fix.json"
+    status_path = root_path / "00_protocol_and_manifests" / "preflight_status.json"
+
+    required_files = (calibration, source_screenshot, registration_path, status_path)
+    missing = [str(path) for path in required_files if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "formal microphone-input evidence prerequisites are missing: "
+            + ", ".join(missing)
+        )
+    if source_screenshot.resolve().parent != calibration_dir.resolve():
+        raise FormalAcquisitionError(
+            "microphone-input evidence screenshot must be inside 01_calibration"
+        )
+    screenshot_bytes = source_screenshot.read_bytes()
+    if len(screenshot_bytes) <= 8 or not screenshot_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise FormalAcquisitionError(
+            "microphone-input calibration evidence must be a readable PNG file"
+        )
+    if not assessed_by.strip() or not observations or any(
+        not observation.strip() for observation in observations
+    ):
+        raise FormalAcquisitionError(
+            "microphone-input evidence requires assessor and non-empty observations"
+        )
+    parsed_checked_at = datetime.fromisoformat(checked_at)
+    if parsed_checked_at.tzinfo is None:
+        raise FormalAcquisitionError(
+            "microphone-input evidence checked_at must include a timezone"
+        )
+
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    if status.get("final_test_read") is not False:
+        raise FormalAcquisitionError(
+            "microphone-input evidence registration requires sealed final-test"
+        )
+    if status.get("formal_measurement_started") is not False:
+        raise FormalAcquisitionError(
+            "microphone-input evidence registration must precede formal measurement"
+        )
+    registration = json.loads(registration_path.read_text(encoding="utf-8"))
+    if registration.get("schema_version") != "formal_calibration_registration_v1":
+        raise FormalAcquisitionError("unsupported calibration registration schema")
+    registered_file = registration.get("calibration_file", {})
+    registered_binding = registration.get("input_device_binding", {})
+    calibration_sha = _sha256(calibration)
+    if calibration_sha != registered_file.get("sha256"):
+        raise FormalAcquisitionError(
+            "CMM29939.txt SHA-256 no longer matches its immutable registration"
+        )
+    if registered_binding.get("device_name") != "iMM-6C":
+        raise FormalAcquisitionError(
+            "registered formal acquisition input device is not iMM-6C"
+        )
+    _validate_calibration_content(calibration)
+    source_screenshot_sha = _sha256(source_screenshot)
+
+    if canonical_screenshot.exists():
+        if (
+            not canonical_screenshot.is_file()
+            or _sha256(canonical_screenshot) != source_screenshot_sha
+        ):
+            raise FileExistsError(
+                "refusing to overwrite different canonical microphone-input evidence: "
+                f"{canonical_screenshot}"
+            )
+    if evidence_path.exists():
+        existing = json.loads(evidence_path.read_text(encoding="utf-8"))
+        existing_sha = existing.get("mic_input_load_evidence", {}).get("sha256")
+        if existing_sha != source_screenshot_sha:
+            raise FileExistsError(
+                f"refusing to overwrite existing formal acquisition artifact: {evidence_path}"
+            )
+
+    verify_formal_package_hashes(root_path)
+    hash_history = root_path / "07_hashes" / "history"
+    status_history = (
+        root_path
+        / "00_protocol_and_manifests"
+        / "preflight_status_history"
+        / "FORMAL_2A_PREFLIGHT_STATUS.json"
+    )
+    hash_history.mkdir(parents=True, exist_ok=True)
+    if not status_history.exists():
+        _write_immutable(status_history, status_path.read_bytes())
+    current_hash_json = root_path / "07_hashes" / "SHA256SUMS.json"
+    current_hash_text = root_path / "07_hashes" / "SHA256SUMS.txt"
+    prior_hash_json = hash_history / "FORMAL_2A_SHA256SUMS.json"
+    prior_hash_text = hash_history / "FORMAL_2A_SHA256SUMS.txt"
+    if not prior_hash_json.exists():
+        _write_immutable(prior_hash_json, current_hash_json.read_bytes())
+    if not prior_hash_text.exists():
+        _write_immutable(prior_hash_text, current_hash_text.read_bytes())
+
+    if not canonical_screenshot.exists():
+        shutil.copyfile(source_screenshot, canonical_screenshot)
+    canonical_sha = _sha256(canonical_screenshot)
+    if canonical_sha != source_screenshot_sha:
+        raise FormalAcquisitionError(
+            "canonical microphone-input screenshot differs from uploaded evidence"
+        )
+
+    evidence = {
+        "schema_version": "formal_calibration_input_evidence_fix_v1",
+        "checked_at": parsed_checked_at.isoformat(),
+        "assessed_by": assessed_by,
+        "observations": list(observations),
+        "visual_requirements": {
+            "rew_measurement_input_is_iMM_6C_microphone": True,
+            "CMM29939_is_in_mic_calibration_files": True,
+            "soundcard_or_output_area_not_used_as_mic_evidence": True,
+        },
+        "mic_input_load_evidence": {
+            "source_path": str(source_screenshot.resolve()),
+            "source_filename": source_screenshot.name,
+            "canonical_path": str(canonical_screenshot.resolve()),
+            "canonical_filename": canonical_screenshot.name,
+            "canonicalized_copy_created": (
+                source_screenshot.resolve() != canonical_screenshot.resolve()
+            ),
+            "sha256": canonical_sha,
+            "bytes": canonical_screenshot.stat().st_size,
+            "status": "verified",
+        },
+        "input_device_binding": {
+            "device_name": "iMM-6C",
+            "role": "formal_acquisition_input",
+            "calibration_filename": calibration.name,
+            "calibration_sha256": calibration_sha,
+            "status": "verified",
+        },
+        "supersedes_evidence_status_only": {
+            "registration_path": registration_path.relative_to(root_path).as_posix(),
+            "registration_sha256": _sha256(registration_path),
+            "previous_binding_status": registered_binding.get("status"),
+            "previous_evidence_preserved": True,
+        },
+        "data_origin": "real_experiment_infrastructure",
+        "formal_measurement_started": False,
+        "ready_for_B01": False,
+        "scientifically_eligible": False,
+        "final_test_read": False,
+    }
+    _write_immutable(evidence_path, _json_bytes(evidence))
+
+    blockers = set(str(item) for item in status.get("unresolved_blockers", ()))
+    blockers.discard("calibration_file_missing")
+    blockers.discard("calibration_load_evidence_missing")
+    updated_status = {
+        **status,
+        "calibration_status": "verified_for_iMM-6C_input",
+        "calibration_input_binding_status": "verified",
+        "calibration_input_evidence_path": evidence_path.relative_to(root_path).as_posix(),
+        "calibration_input_evidence_sha256": canonical_sha,
+        "calibration_sha256": calibration_sha,
+        "ready_for_B01": False,
+        "formal_measurement_started": False,
+        "final_test_read": False,
+        "unresolved_blockers": sorted(blockers),
+    }
+    updated_bytes = _json_bytes(updated_status)
+    if status_path.read_bytes() != updated_bytes:
+        _atomic_replace(status_path, updated_bytes)
+    _refresh_formal_hash_manifest(root_path)
+    verify_formal_package_hashes(root_path)
+    if _sha256(calibration) != calibration_sha:
+        raise FormalAcquisitionError("calibration file changed during evidence registration")
+    if _sha256(source_screenshot) != source_screenshot_sha:
+        raise FormalAcquisitionError("uploaded evidence changed during registration")
+    return CalibrationInputEvidenceFixResult(
+        evidence_path=evidence_path,
+        canonical_screenshot_path=canonical_screenshot,
+        preflight_status_path=status_path,
+        input_binding_status="verified",
+        ready_for_b01=False,
+        unresolved_blockers=tuple(sorted(blockers)),
+        calibration_sha256=calibration_sha,
+        screenshot_sha256=canonical_sha,
     )
 
 
