@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from datetime import datetime
 import hashlib
 import io
 import json
+import math
 from pathlib import Path
 import re
 import shutil
@@ -55,6 +57,16 @@ class BackupGateResult:
     ready: bool
     status: str
     blockers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationRegistrationResult:
+    registration_path: Path
+    preflight_status_path: Path
+    ready_for_b01: bool
+    unresolved_blockers: tuple[str, ...]
+    calibration_sha256: str
+    screenshot_sha256: str
 
 
 _PLAN_HEADERS = (
@@ -483,6 +495,250 @@ def verify_formal_package_hashes(root: str | Path) -> dict[str, Any]:
         "artifact_count": len(checked),
         "verified_paths": checked,
     }
+
+
+def _validate_calibration_content(path: Path) -> dict[str, Any]:
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    sensitivity_header = next(
+        (line.strip() for line in lines if line.strip().lower().startswith("*1000hz")),
+        None,
+    )
+    if sensitivity_header is None:
+        raise FormalAcquisitionError("calibration file is missing the *1000Hz header")
+    frequencies: list[float] = []
+    corrections: list[float] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("*", "#")):
+            continue
+        fields = re.split(r"[\s,;]+", stripped)
+        if len(fields) < 2:
+            raise FormalAcquisitionError("calibration file contains a malformed data row")
+        try:
+            frequency = float(fields[0])
+            correction = float(fields[1])
+        except ValueError as exc:
+            raise FormalAcquisitionError(
+                "calibration file contains a non-numeric data row"
+            ) from exc
+        if not (math.isfinite(frequency) and math.isfinite(correction)):
+            raise FormalAcquisitionError("calibration values must be finite")
+        frequencies.append(frequency)
+        corrections.append(correction)
+    if len(frequencies) < 5:
+        raise FormalAcquisitionError("calibration file must contain at least five data rows")
+    if any(right <= left for left, right in zip(frequencies, frequencies[1:])):
+        raise FormalAcquisitionError(
+            "calibration frequencies must be strictly increasing and unique"
+        )
+    if frequencies[0] <= 0.0:
+        raise FormalAcquisitionError("calibration frequencies must be positive")
+    return {
+        "sensitivity_header": sensitivity_header,
+        "data_row_count": len(frequencies),
+        "frequency_min_hz": frequencies[0],
+        "frequency_max_hz": frequencies[-1],
+    }
+
+
+def _atomic_replace(path: Path, payload: bytes) -> None:
+    temporary = path.with_name(path.name + ".tmp")
+    if temporary.exists():
+        raise FileExistsError(f"temporary formal artifact already exists: {temporary}")
+    temporary.write_bytes(payload)
+    temporary.replace(path)
+
+
+def _refresh_formal_hash_manifest(root: Path) -> tuple[Path, Path]:
+    hashes_dir = root / "07_hashes"
+    json_path = hashes_dir / "SHA256SUMS.json"
+    text_path = hashes_dir / "SHA256SUMS.txt"
+    excluded = {json_path.resolve(), text_path.resolve()}
+    artifacts = sorted(
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file() and path.resolve() not in excluded
+        ),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+    records = [
+        {
+            "path": path.relative_to(root).as_posix(),
+            "sha256": _sha256(path),
+            "bytes": path.stat().st_size,
+        }
+        for path in artifacts
+    ]
+    json_payload = _json_bytes(
+        {
+            "schema_version": "formal_sha256_manifest_v1",
+            "algorithm": "SHA-256",
+            "artifacts": records,
+        }
+    )
+    text_payload = "".join(
+        f"{record['sha256']}  {record['path']}\n" for record in records
+    ).encode("utf-8")
+    _atomic_replace(json_path, json_payload)
+    _atomic_replace(text_path, text_payload)
+    return json_path, text_path
+
+
+def register_formal_calibration(
+    root: str | Path,
+    *,
+    source_path: str | Path,
+    copy_path: str | Path,
+    screenshot_path: str | Path,
+    checked_at: str,
+    input_device: str,
+    evidence_status: str,
+    evidence_assessed_by: str,
+    evidence_observations: tuple[str, ...],
+) -> CalibrationRegistrationResult:
+    """Register immutable calibration evidence and update only its blockers."""
+    root_path = Path(root)
+    source = Path(source_path)
+    copied = Path(copy_path)
+    screenshot = Path(screenshot_path)
+    expected_copy = root_path / "01_calibration" / "CMM29939.txt"
+    expected_screenshot = root_path / "01_calibration" / "REW_CMM29939_LOADED.png"
+    if copied.resolve() != expected_copy.resolve():
+        raise FormalAcquisitionError(
+            f"calibration copy_path must be the formal package path: {expected_copy}"
+        )
+    if screenshot.resolve() != expected_screenshot.resolve():
+        raise FormalAcquisitionError(
+            f"calibration screenshot_path must be: {expected_screenshot}"
+        )
+    if not source.is_file() or not copied.is_file():
+        raise FileNotFoundError("CMM29939.txt source or formal copy is missing")
+    if not screenshot.is_file():
+        raise FileNotFoundError("REW_CMM29939_LOADED.png is missing")
+    screenshot_bytes = screenshot.read_bytes()
+    if len(screenshot_bytes) <= 8 or not screenshot_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise FormalAcquisitionError("calibration load evidence must be a readable PNG file")
+    if input_device != "iMM-6C":
+        raise FormalAcquisitionError("formal calibration input_device must be iMM-6C")
+    allowed_evidence = {
+        "verified_input_binding",
+        "insufficient_input_binding_evidence",
+    }
+    if evidence_status not in allowed_evidence:
+        raise FormalAcquisitionError("unsupported calibration evidence_status")
+    if not evidence_assessed_by.strip() or not evidence_observations:
+        raise FormalAcquisitionError(
+            "calibration screenshot assessment requires assessor and observations"
+        )
+    parsed_checked_at = datetime.fromisoformat(checked_at)
+    if parsed_checked_at.tzinfo is None:
+        raise FormalAcquisitionError("calibration checked_at must include a timezone")
+    source_sha = _sha256(source)
+    copied_sha = _sha256(copied)
+    if source_sha != copied_sha:
+        raise FormalAcquisitionError("calibration source and formal copy SHA-256 differ")
+    calibration_definition = _validate_calibration_content(copied)
+    screenshot_sha = _sha256(screenshot)
+
+    status_path = root_path / "00_protocol_and_manifests" / "preflight_status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    if status.get("final_test_read") is not False:
+        raise FormalAcquisitionError("formal calibration registration requires sealed final-test")
+    if status.get("formal_measurement_started") is not False:
+        raise FormalAcquisitionError(
+            "formal calibration registration must precede formal measurement"
+        )
+    history_dir = root_path / "07_hashes" / "history"
+    history_dir.mkdir(parents=True, exist_ok=True)
+    old_hash_json = root_path / "07_hashes" / "SHA256SUMS.json"
+    old_hash_text = root_path / "07_hashes" / "SHA256SUMS.txt"
+    history_json = history_dir / "FORMAL_2_BASELINE_SHA256SUMS.json"
+    history_text = history_dir / "FORMAL_2_BASELINE_SHA256SUMS.txt"
+    if not history_json.exists():
+        _write_immutable(history_json, old_hash_json.read_bytes())
+    if not history_text.exists():
+        _write_immutable(history_text, old_hash_text.read_bytes())
+    status_history = (
+        root_path
+        / "00_protocol_and_manifests"
+        / "preflight_status_history"
+        / "FORMAL_2_PREFLIGHT_STATUS.json"
+    )
+    if not status_history.exists():
+        _write_immutable(status_history, status_path.read_bytes())
+
+    evidence_verified = evidence_status == "verified_input_binding"
+    registration = {
+        "schema_version": "formal_calibration_registration_v1",
+        "checked_at": parsed_checked_at.isoformat(),
+        "calibration_file": {
+            "filename": copied.name,
+            "sha256": copied_sha,
+            "bytes": copied.stat().st_size,
+            "source_path": str(source.resolve()),
+            "copy_path": str(copied.resolve()),
+            "registered_in_place": source.resolve() == copied.resolve(),
+            "content_modified_by_registration": False,
+            "format_validation": calibration_definition,
+        },
+        "load_evidence": {
+            "path": str(screenshot.resolve()),
+            "sha256": screenshot_sha,
+            "bytes": screenshot.stat().st_size,
+            "status": evidence_status,
+            "assessed_by": evidence_assessed_by,
+            "observations": list(evidence_observations),
+        },
+        "input_device_binding": {
+            "device_name": input_device,
+            "role": "formal_acquisition_input",
+            "calibration_filename": copied.name,
+            "calibration_sha256": copied_sha,
+            "status": "verified" if evidence_verified else "pending_evidence",
+        },
+        "data_origin": "real_experiment_infrastructure",
+        "formal_measurement_started": False,
+        "scientifically_eligible": False,
+        "final_test_read": False,
+    }
+    registration_path = root_path / "01_calibration" / "calibration_registration.json"
+    _write_immutable(registration_path, _json_bytes(registration))
+
+    blockers = set(str(item) for item in status.get("unresolved_blockers", ()))
+    blockers.discard("calibration_file_missing")
+    if evidence_verified:
+        blockers.discard("calibration_load_evidence_missing")
+    else:
+        blockers.add("calibration_load_evidence_missing")
+    updated_status = {
+        **status,
+        "calibration_status": (
+            "verified_for_iMM-6C_input"
+            if evidence_verified
+            else "file_registered_input_binding_evidence_insufficient"
+        ),
+        "calibration_registration_path": registration_path.relative_to(root_path).as_posix(),
+        "calibration_sha256": copied_sha,
+        "calibration_evidence_sha256": screenshot_sha,
+        "ready_for_B01": False,
+        "unresolved_blockers": sorted(blockers),
+    }
+    updated_bytes = _json_bytes(updated_status)
+    if status_path.read_bytes() != updated_bytes:
+        _atomic_replace(status_path, updated_bytes)
+    _refresh_formal_hash_manifest(root_path)
+    verify_formal_package_hashes(root_path)
+    if _sha256(copied) != copied_sha:
+        raise FormalAcquisitionError("calibration file changed during registration")
+    return CalibrationRegistrationResult(
+        registration_path=registration_path,
+        preflight_status_path=status_path,
+        ready_for_b01=False,
+        unresolved_blockers=tuple(sorted(blockers)),
+        calibration_sha256=copied_sha,
+        screenshot_sha256=screenshot_sha,
+    )
 
 
 def _external_backup_checklist() -> bytes:

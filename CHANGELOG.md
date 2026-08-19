@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-2A — formal calibration registration (unreleased)
+
+- Added fail-closed, hash-audited registration for the formal `CMM29939.txt`, its iMM-6C input-device intent and explicit REW screenshot assessment without modifying calibration bytes.
+- Preserved FORMAL-2 preflight/hash baselines and refreshed the external package inventory to 19/19 verified artifacts.
+- Registered the 3,205-byte calibration file and removed `calibration_file_missing`, but retained `calibration_load_evidence_missing` because the supplied screenshot shows Soundcard/output calibration rather than an explicit microphone/input binding.
+- Kept external backup `not_configured`, every unrelated blocker intact, `ready_for_B01=false`, formal measurement unstarted and final-test unread.
+
 ## FORMAL-2 — formal acquisition package and preflight gate (unreleased)
 
 - Added an idempotent, no-overwrite generator for the repository-external FORMAL-U4-4DIR-SWEEP-REV001 acquisition directory, its blank field templates and hash baseline.
