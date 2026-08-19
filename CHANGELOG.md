@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-1 — formal logarithmic-grid preprocessing (unreleased)
+
+- Added an isolated fail-closed formal Sweep preprocessing contract for the rev-002 200–8000 Hz, 48-points/octave lattice, 200–4000 Hz primary band, 4000–8000 Hz sensitivity band and post-interpolation 1/12-octave dB smoothing.
+- Split interpolation and smoothing at explicit invalid samples and missing-frequency discontinuities; no value is filled with zero or borrowed across a gap.
+- Added deterministic semantic input/output SHA-256, a complete preprocessing manifest and immutable hash-audited result output while preserving the legacy linear-Hz software-validation path.
+- Validated only with newly constructed simulated/software-validation fixtures; no real, diagnostic-pilot or final-test data was read, and no scientific/canonical/freeze/deployment eligibility was granted.
+
 ## FORMAL-0 — formal protocol and acquisition plan frozen (unreleased)
 
 - Used the single rev-002 window permitted by rev-001 to freeze REW V5.31.3 Sweep settings, 200–4000 Hz confirmation analysis, 4000–8000 Hz sensitivity analysis, a common logarithmic grid and 1/12-octave smoothing without changing the primary question or success thresholds.

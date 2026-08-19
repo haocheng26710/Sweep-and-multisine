@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| FORMAL-1 — 正式 Sweep 对数公共网格预处理 | 2026-08-19 | 完成（实现与 synthetic 软件验证）；48 PPO、200–8000 Hz、主/次频带、1/12-octave 段内 smoothing 与 fail-closed 契约；未读取真实/pilot/final-test | [FORMAL_1_LOG_GRID_PREPROCESSING.md](./FORMAL_1_LOG_GRID_PREPROCESSING.md) | 本报告与实现同一提交：`feat(preprocessing): add formal log-grid preprocessing` |
 | FORMAL-0 — 真实设备正式实验协议与采集计划冻结 | 2026-08-19 | 完成（仅文档）；唯一 rev-002、96 Sweep 矩阵、REW 参数、顺序与停止门禁已冻结；未测量；final-test sealed | [FORMAL_0_PROTOCOL_AND_ACQUISITION_FREEZE.md](./FORMAL_0_PROTOCOL_AND_ACQUISITION_FREEZE.md)；[协议 rev-002](../experiment/RESEARCH_PROTOCOL_REV002.md)；[采集计划](../experiment/FORMAL_ACQUISITION_PLAN_REV001.md) | 本报告与正式文档同一 docs-only 提交：`docs(experiment): freeze formal protocol and acquisition plan` |
 | SIM-1 — 有边界的研究设计压力模拟 | 2026-08-13 | 完成；300 基础 runs，S3=98% 因此未触发 64；最终“继续原设计”；simulated/software_validation/scientifically ineligible；final-test sealed | [SIM_1_BOUNDED_STRESS_EXECUTION.md](./SIM_1_BOUNDED_STRESS_EXECUTION.md)；[正式结果报告](../experiment/BOUNDED_STRESS_SIMULATION_REPORT.md) | runner：`47c60b07242c63f7adefa9c0ebaf1d80149ddea6`；结果文档：`docs(simulation): report bounded stress simulation results` |
 | SIM-0 — 有边界的压力模拟方案冻结 | 2026-08-13 | 完成（仅方案）；6 场景、每场景 50 seeds、基础 300 runs、最大 350 runs 已冻结；未生成数据、未运行 SIM-1；final-test sealed | [SIM_0_BOUNDED_STRESS_PLAN.md](./SIM_0_BOUNDED_STRESS_PLAN.md)；[正式方案](../experiment/BOUNDED_STRESS_SIMULATION_PLAN.md) | 本报告与方案同一 docs-only 提交：`docs(simulation): freeze bounded stress simulation plan` |
