@@ -80,6 +80,7 @@ class DatasetRole(str, Enum):
     PARSER_FIXTURE = "parser_fixture"
     SOFTWARE_VALIDATION = "software_validation"
     RESEARCH_INPUT = "research_input"
+    RESEARCH_ANALYSIS = "research_analysis"
 
 
 def normalize_measurement_mode(value: str | MeasurementMode) -> MeasurementMode:
@@ -223,11 +224,14 @@ class MeasurementMeta:
         ):
             raise ValueError("source_sha256 must be a lowercase 64-character SHA-256 digest")
         expected_roles = {
-            DataOrigin.EXTERNAL_REFERENCE: DatasetRole.PARSER_FIXTURE,
-            DataOrigin.SIMULATED: DatasetRole.SOFTWARE_VALIDATION,
-            DataOrigin.REAL_EXPERIMENT: DatasetRole.RESEARCH_INPUT,
+            DataOrigin.EXTERNAL_REFERENCE: {DatasetRole.PARSER_FIXTURE},
+            DataOrigin.SIMULATED: {DatasetRole.SOFTWARE_VALIDATION},
+            DataOrigin.REAL_EXPERIMENT: {
+                DatasetRole.RESEARCH_INPUT,
+                DatasetRole.RESEARCH_ANALYSIS,
+            },
         }
-        if self.dataset_role is not expected_roles.get(self.data_origin):
+        if self.dataset_role not in expected_roles.get(self.data_origin, set()):
             raise ValueError(
                 f"dataset_role {self.dataset_role!r} is incompatible with "
                 f"data_origin {self.data_origin!r}"
