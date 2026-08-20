@@ -1,0 +1,110 @@
+{
+  "schema_version": "write4-final-delivery-1.0",
+  "created_date": "2026-08-20",
+  "source_commit": "0e8185bfa117b8f73b19e801ead1a75470437e9d",
+  "branch": "feature/v2-dual-input",
+  "disposition": "supported_with_limits",
+  "hypothesis_decisions": {
+    "H0": "not_rejected",
+    "H1": "not_confirmed"
+  },
+  "selection": {
+    "active_count": 72,
+    "excluded_count": 19,
+    "outlier_flag_count": 10,
+    "selection_changed": false
+  },
+  "scientifically_eligible": false,
+  "final_test_read": false,
+  "final_test_status": "sealed",
+  "analysis_recomputed": false,
+  "figures_regenerated": false,
+  "authoritative_inputs": {
+    "formal3_artifact_manifest_sha256": "9aa329a730066f4487ac4a77f8700dca40862fec71a46d53817a7dc4d8d9e850",
+    "formal4_artifact_manifest_sha256": "6744b7142480a20a631ff6a33f763329e852b4086ba5f05d53301beb6853d4ef",
+    "formal5_final_analysis_manifest_sha256": "2134cd1d42de0ac136dd41d1a30b71f049835a822a17b9f88ed41d8fd76bc907",
+    "source_zip_sha256": "cfbaa7a3c300b8443d934462386e9a5faad74d2b2cf0a50292d8c08423f7b4cb"
+  },
+  "write2_asset_verification": {
+    "all_match": true,
+    "figure_count": 7,
+    "figure_file_count": 14,
+    "table_count": 4,
+    "table_file_count": 8,
+    "minimum_png_dpi": 300
+  },
+  "files": [
+    {
+      "path": "docs/dissertation/EXPERIMENTAL_CHAPTERS_FINAL.md",
+      "role": "final_integrated_experimental_chapters",
+      "sha256": "6677f5e2c72d8db8111972ba3e8dd625c02759128f5c35c6b297c3673de2d2da"
+    },
+    {
+      "path": "docs/dissertation/FINAL_CITATION_REQUIREMENTS.md",
+      "role": "citation_requirement_register",
+      "sha256": "b78e7a539d59426e922aa73e64dcda4d7db7d6ca347a3f44e6703ac53d296c57"
+    },
+    {
+      "path": "docs/dissertation/FINAL_CONSISTENCY_AUDIT.md",
+      "role": "final_consistency_audit",
+      "sha256": "6df37a68e876cafe7ad8cb61c2da807d84403748c9f5e9f0f9a1de29e5bdfb3c"
+    },
+    {
+      "path": "docs/progress/WRITE-4_FINAL_DELIVERY.md",
+      "role": "implementation_record",
+      "sha256": "2e42f194bca1a9207f77e32ebecf162a5877596cbb5dbf329ea857fec9c5e765"
+    },
+    {
+      "path": "docs/progress/INDEX.md",
+      "role": "progress_index",
+      "sha256": "5eda9244272e8dcf0ef5470c4f7a8a50afd606fbbdd5eb2a6a4fd3ad7fb94cf6"
+    },
+    {
+      "path": "README.md",
+      "role": "project_entry",
+      "sha256": "6a904e3bfd6e5f6027fdd15ed7a161ffa93287a3eb72fb215ee1b2ef64318434"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "role": "change_record",
+      "sha256": "089744ab1bb78049be38328f45837f161486ca168a3f32ea69e93004c12824ce"
+    },
+    {
+      "path": "docs/dissertation/METHODS_DRAFT.md",
+      "role": "write3_method_input",
+      "sha256": "ae02e7844706287d2a62392b6c1095859d5ae436a0de8b750e91a0d54c192521"
+    },
+    {
+      "path": "docs/dissertation/RESULTS_DRAFT.md",
+      "role": "write1_result_input",
+      "sha256": "7aebe6a4c1ff84ae1d5135ad98430aa6ce61950dce6e5c7f6172c9daab8c2e14"
+    },
+    {
+      "path": "docs/dissertation/DISCUSSION_DRAFT.md",
+      "role": "write3_discussion_input",
+      "sha256": "31cb5acc540efb9ddd4867be81a1737a31d3a1301f8fb747b45aeab8da84d165"
+    },
+    {
+      "path": "docs/dissertation/LIMITATIONS_AND_FUTURE_WORK.md",
+      "role": "write3_limitations_input",
+      "sha256": "5d10221efa6bf1c7053ddd704433a0745db9e51d0b310e2265f1e48aa07f1478"
+    },
+    {
+      "path": "docs/dissertation/RESULTS_CLAIM_CHECKLIST.md",
+      "role": "write1_claim_boundary_input",
+      "sha256": "fc1703deaffea437d39afc9e5bdda8a2a5a12b233e1aa87cbd6cebb0c5e089a1"
+    },
+    {
+      "path": "docs/dissertation/FIGURE_AND_TABLE_MANIFEST.json",
+      "role": "write2_asset_authority",
+      "sha256": "a2c67184bd0c5065bbb848a36fd3d9edec8e4d7ba8883351f8b7d7331d02bbee"
+    },
+    {
+      "path": "docs/dissertation/FIGURE_AND_TABLE_MANIFEST.md",
+      "role": "write2_asset_human_view",
+      "sha256": "db9f33be421edf44c8bcf884bf3997bd53f10bc9de9fdded6584b5c9deaf2ab6"
+    }
+  ],
+  "manifest_self_hash_excluded": true,
+  "manifest_self_hash_exclusion_reason": "A file cannot embed its own stable SHA-256; the manifest hash is verified externally."
+}

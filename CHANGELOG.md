@@ -1,5 +1,12 @@
 # Changelog
 
+## WRITE-4 — final experimental-chapter delivery (unreleased)
+
+- Integrated the frozen Methods, Results, Discussion and Limitations drafts into one consistently numbered experimental chapter without recalculating statistics, changing selection or regenerating figures.
+- Added a 13-item citation-requirements register, a claim/link/number consistency audit and a SHA-256 delivery manifest covering all WRITE-4 final documents.
+- Verified seven figure groups, four table groups and all 22 WRITE-2 asset files while preserving `supported_with_limits`, H0 not rejected, H1 not confirmed and all exploratory labels.
+- Kept 72 ACTIVE/19 EXCLUDED and 10 outlier flags unchanged, retained `scientifically_eligible=false`, and kept final-test sealed and unread.
+
 ## FORMAL-5 — final experimental synthesis and claim freeze (unreleased)
 
 - Added a fail-closed, manifest-only FORMAL-5 synthesis entry that verifies the complete FORMAL-3/4 artifact closures, frozen 72 ACTIVE/19 EXCLUDED selection, 255-point FeatureSet contract, calibration evidence and all headline values against authoritative CSV/JSON files without reading raw TXT or final-test.
