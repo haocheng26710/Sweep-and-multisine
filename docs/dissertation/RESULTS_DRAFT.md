@@ -28,7 +28,13 @@ The CONT repeatability floor was estimated from all pairwise RMS dB differences 
 
 The secondary-band median and p95 were higher than their primary-band counterparts. Subsequent claims therefore prioritize the primary band and treat 4–8 kHz as secondary evidence. [F4-R]
 
-Figure 1 should show repeatability error across frequency. Its role is to establish the measurement floor before any direction or configuration comparison is introduced.
+Figure 1 shows repeatability error across frequency. It establishes the measurement floor before any direction or configuration comparison is introduced.
+
+![Figure 1. Continuous-repeat measurement floor](figures/figure_01_repeatability_floor.png)
+
+*Figure 1 / 图1. Continuous-repeat measurement floor / 连续重复测量误差底线. The secondary band is shaded and remains sensitivity evidence.*
+
+Formal table files: [Table 1 Markdown](tables/table_01_repeatability_floor.md) and [Table 1 CSV](tables/table_01_repeatability_floor.csv).
 
 ## 3. Direction-related spectral differences
 
@@ -51,7 +57,21 @@ The U4ENC 95% CI was 0.8297–1.7667, so its lower limit did not exceed the froz
 
 Accordingly, the confirmatory criteria were not fully met. H0 was not rejected and H1 was not confirmed, even though the U4ENC point estimate was higher. [F5-CB; F5-HD]
 
-Figures 2–4 should present the block curves, pairwise distances, and effect-to-floor ratios. Captions must distinguish “exceeded the repeatability floor” from “passed the confirmatory G and CI criteria.”
+Figures 2–4 present block curves, pairwise effects, and G/ΔG confidence intervals. Their captions distinguish “exceeded the repeatability floor” from “passed the confirmatory G and CI criteria.”
+
+![Figure 2. AS01 direction spectra by acquisition block](figures/figure_02_as01_direction_spectra.png)
+
+*Figure 2 / 图2. AS01 direction spectra by acquisition block / AS01 各采集 block 的方向频谱. Panels preserve block and REPOS identity.*
+
+![Figure 3. Primary-band pairwise direction effects](figures/figure_03_pairwise_direction_effects.png)
+
+*Figure 3 / 图3. Pairwise direction effects / 方向两两效应. A ratio above one exceeds the CONT p95 floor but does not imply classification success.*
+
+![Figure 4. Direction-effect gain and confidence intervals](figures/figure_04_direction_gain_and_ci.png)
+
+*Figure 4 / 图4. Direction-effect gain and confidence intervals / 方向效应增益及置信区间. Both confirmatory reference crossings remain visible.*
+
+Formal table files: [Table 2 Markdown](tables/table_02_direction_gain.md) and [Table 2 CSV](tables/table_02_direction_gain.csv).
 
 ## 4. U4ENC–U4SYM configuration differences
 
@@ -63,7 +83,11 @@ The median AS01 effect/floor ratio was 1.5688. This supports a bounded claim tha
 
 This configuration result does not demonstrate superior direction encoding. The frozen direction-gain difference CI included 0, and grouped classification remained below its practical target. [F4-DC; F4-GV; F5-CB]
 
-Figure 5 should show the U4ENC−U4SYM difference curves and mark primary and secondary bands. The AS01 trace is the bounded main result; AS02 must be labelled exploratory.
+Figure 5 shows the U4ENC−U4SYM difference curves and marks primary and secondary bands. The AS01 trace is the bounded main result; AS02 is labelled exploratory.
+
+![Figure 5. U4ENC–U4SYM configuration-difference curves](figures/figure_05_configuration_difference.png)
+
+*Figure 5 / 图5. Configuration-difference curves / 配置差值曲线. AS01 is bounded evidence; AS02 is explicitly exploratory.*
 
 ## 5. Assembly-set observations
 
@@ -90,7 +114,13 @@ Neither configuration reached the frozen 50% balanced-accuracy target. The data 
 
 The all-assembly U4ENC result reached balanced accuracy 0.500, but it mixed assembly and acquisition time across only three blocks. FORMAL-4 classified it as exploratory, so it cannot override the AS01 result. [F4-GV; F4-S]
 
-Figure 7 should report the AS01 confusion matrices as a negative result. The caption must state the grouped protocol, number of folds, chance level, and unmet 50% target.
+Figure 7 reports the AS01 confusion matrices as a negative result. Its companion table states the grouped protocol, folds, chance level, and unmet 50% target.
+
+![Figure 7. Grouped four-direction classification](figures/figure_07_grouped_classification.png)
+
+*Figure 7 / 图7. Grouped four-direction classification / 四方向分组分类. Both AS01 balanced accuracies remained below the 0.50 target.*
+
+Formal table files: [Table 3 Markdown](tables/table_03_grouped_classification.md) and [Table 3 CSV](tables/table_03_grouped_classification.csv).
 
 ## 7. Outlier-flag sensitivity
 
@@ -108,7 +138,13 @@ Primary analysis retained all 72 ACTIVE curves, including all 10 outlier flags. 
 
 U4SYM’s stable direction-pair count decreased from three to two in the sensitivity view. The broader descriptive conclusion—some U4SYM pairs exceeded the floor—did not change. [F4-O; F4-S]
 
-Figure 6 should show this sensitivity comparison. It must not imply that flagged curves were deleted or moved to EXCLUDED.
+Figure 6 shows this sensitivity comparison without implying that flagged curves were deleted or moved to EXCLUDED.
+
+![Figure 6. Outlier-flag sensitivity](figures/figure_06_outlier_sensitivity.png)
+
+*Figure 6 / 图6. Outlier-flag sensitivity / Outlier flag 敏感性. Temporary omission changed no frozen threshold conclusion or selection.*
+
+Formal table files: [Table 4 Markdown](tables/table_04_outlier_sensitivity.md) and [Table 4 CSV](tables/table_04_outlier_sensitivity.csv).
 
 ## 8. Integrated result
 

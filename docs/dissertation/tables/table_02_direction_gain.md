@@ -1,0 +1,11 @@
+# Table 2. Frozen direction-effect gains and confidence intervals
+
+AS01 direction-to-REPOS gains; ΔG is the U4ENC minus U4SYM contrast.
+
+表2：AS01 方向效应增益及 95% 置信区间；ΔG 为 U4ENC 减 U4SYM。
+
+| configuration_or_contrast | assembly_scope | G_raw | G_demeaned_or_delta | ci95_low | ci95_high | G_zscore | decision | source_artifact |
+|---|---|---|---|---|---|---|---|---|
+| U4SYM | AS01 | 0.6925 | 0.6824 | 0.6105 | 1.2699 | 0.7034 | point estimate only; confirmatory CI criterion not fully met | FORMAL-4/direction_gain_summary.csv |
+| U4ENC | AS01 | 1.2619 | 1.2805 | 0.8297 | 1.7667 | 1.3292 | point estimate only; confirmatory CI criterion not fully met | FORMAL-4/direction_gain_summary.csv |
+| U4ENC − U4SYM | AS01 | — | 0.5982 | -0.1131 | 1.0843 | — | CI includes 0; H1 not confirmed | FORMAL-4/direction_gain_contrasts.csv |

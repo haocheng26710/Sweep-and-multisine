@@ -1,0 +1,404 @@
+{
+  "disposition": "supported_with_limits",
+  "figure_count": 7,
+  "figure_file_count": 14,
+  "figures": [
+    {
+      "caption_en": "Frequency-dependent pointwise MAD and frozen all-CONT pairwise RMS summaries. CONT repeats are technical repeats, not independent scientific samples.",
+      "caption_zh": "逐频点 MAD 与全部 CONT 配对 RMS 的冻结摘要；CONT 是技术重复，不是独立科学样本。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 774171,
+          "path": "figures/figure_01_repeatability_floor.png",
+          "sha256": "e3199a77798b52a7b1c3c0dacf19d0fd6a4ddaa21d5b4ad23e36e952294e6d63"
+        },
+        {
+          "bytes": 219495,
+          "path": "figures/figure_01_repeatability_floor.svg",
+          "sha256": "e7e36cfdbac781d1aee306f16d0bd476617cc7c268629636259c1ff73753b8e5"
+        }
+      ],
+      "number": "Figure 1",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 506025,
+          "path": "repeatability_frequency.csv",
+          "sha256": "ed1855aeca704386473d124cafdcba696fab213a6bee5e8b12c57d2ea71306a0"
+        },
+        {
+          "bytes": 621,
+          "path": "repeatability_summary.csv",
+          "sha256": "1f7166f10ce2fe3730e7d37505617202c7b56db03c952b9d2b34f1b703f1c5e1"
+        }
+      ],
+      "stem": "figure_01_repeatability_floor",
+      "title_en": "Continuous-repeat measurement floor",
+      "title_zh": "连续重复测量误差底线"
+    },
+    {
+      "caption_en": "Frozen block panels for two U4SYM and two U4ENC REPOS blocks. Visible separation is descriptive until assessed against floor and CI criteria.",
+      "caption_zh": "两组 U4SYM 与两组 U4ENC REPOS block 的冻结面板；可见分离须结合底线和 CI 判定。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 1547634,
+          "path": "figures/figure_02_as01_direction_spectra.png",
+          "sha256": "4a8ece334b4620224b7d0721b090f994e5eb7d364dde259bf4995593f2861194"
+        },
+        {
+          "bytes": 358689,
+          "path": "figures/figure_02_as01_direction_spectra.svg",
+          "sha256": "215113397cb99ea16023fdf24fea2aca663f7dcaf0ff6174f79f005afb4148d2"
+        }
+      ],
+      "number": "Figure 2",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 176616,
+          "path": "plots/block_direction_B01.png",
+          "sha256": "39289581397dade6265dcfffd9f960cef5d2482d747c44f03757480f1ea808a2"
+        },
+        {
+          "bytes": 168217,
+          "path": "plots/block_direction_B02.png",
+          "sha256": "81f010b62281313e814cde95cd2c7b12a1994fb2e2811cdf983970e5f280dd5d"
+        },
+        {
+          "bytes": 201447,
+          "path": "plots/block_direction_B03.png",
+          "sha256": "25c1ca95aef79b9efb4e771f7965f9d33c44942cf347a01ca7b504274cff729d"
+        },
+        {
+          "bytes": 190754,
+          "path": "plots/block_direction_B04.png",
+          "sha256": "27c1c8313c2a184db18a7fbfc78fe2652ad992733facdecee6613ce6fb0bc8b4"
+        }
+      ],
+      "stem": "figure_02_as01_direction_spectra",
+      "title_en": "AS01 direction spectra by acquisition block",
+      "title_zh": "AS01 各采集 block 的方向频谱"
+    },
+    {
+      "caption_en": "Frozen demeaned effect-to-CONT-p95 ratios. U4ENC had 6/6 and U4SYM 3/6 stable AS01 pairs above the floor; this does not imply classification success.",
+      "caption_zh": "冻结的 demeaned effect/CONT-p95 比值；U4ENC 6/6、U4SYM 3/6 稳定方向对超过底线，但不等于分类成功。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 230490,
+          "path": "figures/figure_03_pairwise_direction_effects.png",
+          "sha256": "ce0a2729e4239c85afd9577b91c4cb2a5294aaff24857928c77b4bb348abfd39"
+        },
+        {
+          "bytes": 82905,
+          "path": "figures/figure_03_pairwise_direction_effects.svg",
+          "sha256": "f83fcea74aa9afb657ab0d36cf8ba2bcf11bd6905a98c9dfbe54e9bb338b4048"
+        }
+      ],
+      "number": "Figure 3",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 20576,
+          "path": "direction_pairwise_effects.csv",
+          "sha256": "b35e38bd928bca75f9509b95266fe71a06866c9e25504c99e896ecc58d726d35"
+        }
+      ],
+      "stem": "figure_03_pairwise_direction_effects",
+      "title_en": "Primary-band pairwise direction effects",
+      "title_zh": "主频带方向两两效应"
+    },
+    {
+      "caption_en": "Frozen AS01 G values, 95% CIs, ΔG and normalization views. U4ENC and ΔG confidence intervals cross their confirmatory references.",
+      "caption_zh": "冻结的 AS01 G、95% CI、ΔG 与归一化视图；U4ENC 和 ΔG 的区间跨越确认性参考线。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 260841,
+          "path": "figures/figure_04_direction_gain_and_ci.png",
+          "sha256": "81f6faaf476e025bc36f47ac99bedb48b991a9c613346a29c9cc63737b0408f5"
+        },
+        {
+          "bytes": 82566,
+          "path": "figures/figure_04_direction_gain_and_ci.svg",
+          "sha256": "9c70fe50b77507ee1ba93c99d16be56d3f4874ecd6a854dbb62b4e230a2d8ae7"
+        }
+      ],
+      "number": "Figure 4",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 5895,
+          "path": "direction_gain_summary.csv",
+          "sha256": "8d7791041ccd55067ed4abe3f4f5d1bf6e4a7ce0167887e9d2b31ff3c02f7dbf"
+        },
+        {
+          "bytes": 2494,
+          "path": "direction_gain_contrasts.csv",
+          "sha256": "8f77db86d1e9eb7de8a6adae6215461cfe9318d1a815637e7a07e463b6827b52"
+        }
+      ],
+      "stem": "figure_04_direction_gain_and_ci",
+      "title_en": "Direction-effect gain and confidence intervals",
+      "title_zh": "方向效应增益及置信区间"
+    },
+    {
+      "caption_en": "Frozen differences across frequency. AS01 is bounded evidence; AS02 is exploratory because assembly, block and time are confounded.",
+      "caption_zh": "冻结的频率差值；AS01 为有边界证据，AS02 因 assembly、block 与 time 混杂而仅为探索性。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 609624,
+          "path": "figures/figure_05_configuration_difference.png",
+          "sha256": "7862e42728f1c075848a1a0fb7958aa9c5fe313260dbe396222138bb13968bcc"
+        },
+        {
+          "bytes": 112198,
+          "path": "figures/figure_05_configuration_difference.svg",
+          "sha256": "58402cbf521620217b2c5ff7cde9e18924a375638f58d6f99d0ecac26ec35e24"
+        }
+      ],
+      "number": "Figure 5",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 223478,
+          "path": "configuration_difference_curves.csv",
+          "sha256": "9c54faeba5e08c027101da2b19a31ab9749ab2ed4dd26d727584b61ca5925b6d"
+        },
+        {
+          "bytes": 5525,
+          "path": "configuration_effects.csv",
+          "sha256": "9f96888e77f2964f6d2aedee7192c79ef449f31272a3773aeb95fcebb945de39"
+        }
+      ],
+      "stem": "figure_05_configuration_difference",
+      "title_en": "U4ENC–U4SYM configuration-difference curves",
+      "title_zh": "U4ENC–U4SYM 配置差值曲线"
+    },
+    {
+      "caption_en": "All 72 ACTIVE results versus temporary omission of 10 flags. No frozen threshold conclusion or selection changed.",
+      "caption_zh": "全部 72 条 ACTIVE 与临时省略 10 个 flags 的比较；冻结门槛结论和样本选择均未改变。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 256272,
+          "path": "figures/figure_06_outlier_sensitivity.png",
+          "sha256": "58b841bd2a609ec0486fa4da94d6047ce752d5c9f46ab16e16c5274583f7ac60"
+        },
+        {
+          "bytes": 75355,
+          "path": "figures/figure_06_outlier_sensitivity.svg",
+          "sha256": "a1f26b9e2ff0b7b9bdbe13861400879de177c5633fd5732db81c9833d83996aa"
+        }
+      ],
+      "number": "Figure 6",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 6721,
+          "path": "outlier_sensitivity.csv",
+          "sha256": "a4f9eecd6cc4c1d8338a44c14e427fdd55048bf5836feb5df3e6df37821683f7"
+        }
+      ],
+      "stem": "figure_06_outlier_sensitivity",
+      "title_en": "Outlier-flag sensitivity",
+      "title_zh": "Outlier flag 敏感性"
+    },
+    {
+      "caption_en": "Frozen leave-one-block-out confusion matrices and scores. Both AS01 balanced accuracies were below the 0.50 practical target.",
+      "caption_zh": "冻结的留一 block 混淆矩阵与分数；两项 AS01 balanced accuracy 均低于 0.50 实用目标。",
+      "claim_boundary": "supported_with_limits; no superiority or reliable-classification claim",
+      "files": [
+        {
+          "bytes": 390626,
+          "path": "figures/figure_07_grouped_classification.png",
+          "sha256": "2dd5cb77718437e12236a3122e89cfa943b4386f8aad793b59493476ac1139b0"
+        },
+        {
+          "bytes": 94304,
+          "path": "figures/figure_07_grouped_classification.svg",
+          "sha256": "dfcb69047c39b03a971d310801586896d97e9372faa976a3162ae9ce25f24113"
+        }
+      ],
+      "number": "Figure 7",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 50699,
+          "path": "plots/grouped_validation_confusion_matrix.png",
+          "sha256": "f7b82802750145780277433a46cf5ecac3951648c9b0c2453fa2a7dbe407a71a"
+        },
+        {
+          "bytes": 1389,
+          "path": "grouped_validation_metrics.csv",
+          "sha256": "c9df8527c0f0947c8fb2be75205d54d7480c28942ea1cac95870d1a1be9030da"
+        }
+      ],
+      "stem": "figure_07_grouped_classification",
+      "title_en": "Grouped four-direction classification",
+      "title_zh": "四方向分组分类"
+    }
+  ],
+  "final_test_read": false,
+  "generator_module": {
+    "path": "src/acoustic_encoder/dissertation_assets.py",
+    "sha256": "04665dab7c02b9cf76509d360d4ddb549e89b2a35f6b59cf7919d54ab36b5a17"
+  },
+  "hypothesis_decisions": {
+    "H0": "not_rejected",
+    "H1": "not_confirmed"
+  },
+  "manifest_markdown": {
+    "bytes": 7967,
+    "path": "FIGURE_AND_TABLE_MANIFEST.md",
+    "sha256": "db9f33be421edf44c8bcf884bf3997bd53f10bc9de9fdded6584b5c9deaf2ab6"
+  },
+  "png_minimum_dpi": 300,
+  "provenance": {
+    "data_origin": "real_experiment",
+    "dataset_role": "research_analysis",
+    "run_purpose": "research_analysis",
+    "scientifically_eligible": false
+  },
+  "reproduction_script": {
+    "path": "scripts/build_dissertation_results_assets.py",
+    "sha256": "01bd5cdbd687f0fd617cfa8a2081013b4894ac4a045e7976b1a5a99f600152ab"
+  },
+  "schema_version": "write2_dissertation_assets_v1",
+  "selection": {
+    "active_count": 72,
+    "excluded_count": 19,
+    "outlier_flag_count": 10,
+    "selection_changed": false
+  },
+  "source_authorities": {
+    "formal3_artifact_manifest_sha256": "9aa329a730066f4487ac4a77f8700dca40862fec71a46d53817a7dc4d8d9e850",
+    "formal4_artifact_manifest_sha256": "6744b7142480a20a631ff6a33f763329e852b4086ba5f05d53301beb6853d4ef",
+    "formal5_artifact_manifest_sha256": "2134cd1d42de0ac136dd41d1a30b71f049835a822a17b9f88ed41d8fd76bc907"
+  },
+  "source_commit": "94a26947e6604c1ed25fce71778883bf6e176618",
+  "table_count": 4,
+  "table_file_count": 8,
+  "tables": [
+    {
+      "caption_en": "Frozen distribution of all CONT pairwise RMS differences.",
+      "caption_zh": "表1：全部 CONT 配对 RMS 差的冻结重复性底线。",
+      "files": [
+        {
+          "bytes": 376,
+          "path": "tables/table_01_repeatability_floor.csv",
+          "sha256": "47d65543388c5280ae5155ceb60f70cbec3c03c5d1ba8ebc8ecc1784d7fb41aa"
+        },
+        {
+          "bytes": 639,
+          "path": "tables/table_01_repeatability_floor.md",
+          "sha256": "5a42c9ab13ebc704eda9d21e80bc7bc44bb1d6578ba34337916974be10d4e3b0"
+        }
+      ],
+      "number": "Table 1",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 621,
+          "path": "repeatability_summary.csv",
+          "sha256": "1f7166f10ce2fe3730e7d37505617202c7b56db03c952b9d2b34f1b703f1c5e1"
+        }
+      ],
+      "stem": "table_01_repeatability_floor",
+      "title_en": "Table 1. Continuous-repeat measurement floor",
+      "title_zh": "表1：全部 CONT 配对 RMS 差的冻结重复性底线。"
+    },
+    {
+      "caption_en": "AS01 direction-to-REPOS gains; ΔG is the U4ENC minus U4SYM contrast.",
+      "caption_zh": "表2：AS01 方向效应增益及 95% 置信区间；ΔG 为 U4ENC 减 U4SYM。",
+      "files": [
+        {
+          "bytes": 527,
+          "path": "tables/table_02_direction_gain.csv",
+          "sha256": "65576617fbc0fe7791a1c9d3af84059124b578c6cdd70e21776950cfadd2f200"
+        },
+        {
+          "bytes": 864,
+          "path": "tables/table_02_direction_gain.md",
+          "sha256": "3498c04aec4bc2e7430dc7759c9b18c35d89f588941851cd24bc823299279226"
+        }
+      ],
+      "number": "Table 2",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 5895,
+          "path": "direction_gain_summary.csv",
+          "sha256": "8d7791041ccd55067ed4abe3f4f5d1bf6e4a7ce0167887e9d2b31ff3c02f7dbf"
+        },
+        {
+          "bytes": 2494,
+          "path": "direction_gain_contrasts.csv",
+          "sha256": "8f77db86d1e9eb7de8a6adae6215461cfe9318d1a815637e7a07e463b6827b52"
+        }
+      ],
+      "stem": "table_02_direction_gain",
+      "title_en": "Table 2. Frozen direction-effect gains and confidence intervals",
+      "title_zh": "表2：AS01 方向效应增益及 95% 置信区间；ΔG 为 U4ENC 减 U4SYM。"
+    },
+    {
+      "caption_en": "Leave-one-block-out results; CONT repeats were aggregated before splitting.",
+      "caption_zh": "表3：AS01 留一 block 分组分类；CONT 重复在划分前聚合。",
+      "files": [
+        {
+          "bytes": 363,
+          "path": "tables/table_03_grouped_classification.csv",
+          "sha256": "1eb16795a5c5c4e8d3fd29047a85f1e8aaad81da7a8047f5a76d3f4089434e1a"
+        },
+        {
+          "bytes": 694,
+          "path": "tables/table_03_grouped_classification.md",
+          "sha256": "6ab2d37efcf3a4af41232c973bd5fd38a98728fdf88acf003dbe1a559e2a60ac"
+        }
+      ],
+      "number": "Table 3",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 1389,
+          "path": "grouped_validation_metrics.csv",
+          "sha256": "c9df8527c0f0947c8fb2be75205d54d7480c28942ea1cac95870d1a1be9030da"
+        }
+      ],
+      "stem": "table_03_grouped_classification",
+      "title_en": "Table 3. AS01 grouped direction-classification performance",
+      "title_zh": "表3：AS01 留一 block 分组分类；CONT 重复在划分前聚合。"
+    },
+    {
+      "caption_en": "Primary analysis retained all 72 ACTIVE curves; omission was temporary and changed no frozen conclusion.",
+      "caption_zh": "表4：主分析保留全部 72 条 ACTIVE；临时省略 flags 未改变冻结结论。",
+      "files": [
+        {
+          "bytes": 719,
+          "path": "tables/table_04_outlier_sensitivity.csv",
+          "sha256": "c5a4c78fe568330d16ce34c3c430d2a7bc541533758ddd7a00f0e0e29012bc4a"
+        },
+        {
+          "bytes": 1110,
+          "path": "tables/table_04_outlier_sensitivity.md",
+          "sha256": "8fae9fc0445af025f786930bb4f8d4e3378238a722cfdc31ee8a2f28c3fe7761"
+        }
+      ],
+      "number": "Table 4",
+      "reproduction_script": "scripts/build_dissertation_results_assets.py",
+      "source_artifacts": [
+        {
+          "bytes": 6721,
+          "path": "outlier_sensitivity.csv",
+          "sha256": "a4f9eecd6cc4c1d8338a44c14e427fdd55048bf5836feb5df3e6df37821683f7"
+        }
+      ],
+      "stem": "table_04_outlier_sensitivity",
+      "title_en": "Table 4. Outlier-flag sensitivity",
+      "title_zh": "表4：主分析保留全部 72 条 ACTIVE；临时省略 flags 未改变冻结结论。"
+    }
+  ]
+}

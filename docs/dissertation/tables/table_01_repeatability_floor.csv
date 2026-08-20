@@ -1,0 +1,4 @@
+band,median_rms_db,iqr_db,p95_rms_db,unit,interpretation,source_artifact
+Primary 200–4000 Hz,0.3783,0.2191,0.8793,dB,confirmatory floor,FORMAL-4/repeatability_summary.csv
+Secondary 4000–8000 Hz,0.7687,0.3357,1.3452,dB,secondary/descriptive,FORMAL-4/repeatability_summary.csv
+Full valid band,0.5057,0.2274,0.9162,dB,secondary/descriptive,FORMAL-4/repeatability_summary.csv

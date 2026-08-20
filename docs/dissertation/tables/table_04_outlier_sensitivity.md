@@ -1,0 +1,15 @@
+# Table 4. Outlier-flag sensitivity
+
+Primary analysis retained all 72 ACTIVE curves; omission was temporary and changed no frozen conclusion.
+
+表4：主分析保留全部 72 条 ACTIVE；临时省略 flags 未改变冻结结论。
+
+| metric | all_72_active | without_10_flags | unit | frozen_conclusion_changed | selection_changed | source_artifact |
+|---|---|---|---|---|---|---|
+| Primary CONT median floor | 0.3783 | 0.3739 | dB | false | false | FORMAL-4/outlier_sensitivity.csv |
+| U4SYM G_demeaned | 0.6824 | 0.7051 | dimensionless | false | false | FORMAL-4/outlier_sensitivity.csv |
+| U4ENC G_demeaned | 1.2805 | 1.2790 | dimensionless | false | false | FORMAL-4/outlier_sensitivity.csv |
+| ΔG_demeaned | 0.5982 | 0.5739 | dimensionless | false | false | FORMAL-4/outlier_sensitivity.csv |
+| AS01 configuration/floor | 1.5688 | 1.4423 | dimensionless | false | false | FORMAL-4/outlier_sensitivity.csv |
+| U4SYM grouped BA | 0.3750 | 0.3750 | score | false | false | FORMAL-4/outlier_sensitivity.csv |
+| U4ENC grouped BA | 0.2500 | 0.2500 | score | false | false | FORMAL-4/outlier_sensitivity.csv |

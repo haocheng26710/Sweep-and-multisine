@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| WRITE-2 — 论文正式图表与结果表格 | 2026-08-20 | 完成；从 FORMAL-3/4/5 冻结产物生成 7 图（PNG/SVG）与 4 表（CSV/Markdown），300 dpi、数量、核心数值和全部输出 hash 通过；保持 `supported_with_limits`、H0 not rejected、H1 not confirmed、科研资格 false 与 final-test sealed | [WRITE_2_FIGURES_AND_TABLES.md](./WRITE_2_FIGURES_AND_TABLES.md)；[图表 manifest](../dissertation/FIGURE_AND_TABLE_MANIFEST.md) | 本报告、生成器与论文图表同一提交：`docs(dissertation): add formal results figures and tables` |
 | WRITE-1 — 论文 Results 章节整合 | 2026-08-20 | 完成；仅整合 FORMAL-3/4/5 冻结证据；形成 Results 初稿、七图安排和 claim checklist；保持 `supported_with_limits`、H0 not rejected、H1 not confirmed、科研资格 false 与 final-test sealed | [WRITE_1_RESULTS_INTEGRATION.md](./WRITE_1_RESULTS_INTEGRATION.md) | 本报告与论文文档同一提交：`docs(dissertation): integrate frozen formal results` |
 | FORMAL-5 — 最终综合审查、结论冻结与论文材料 | 2026-08-20 | 完成；`supported_with_limits`；H1 未确认、H0 未拒绝；存在超过 CONT 底线的可测方向频谱差异，但 ΔG CI 包含 0、AS01 grouped BA 未达 50%；6 项论文业务产物 hash 通过；科研资格 false、final-test sealed | [FORMAL_5_FINAL_SYNTHESIS.md](./FORMAL_5_FINAL_SYNTHESIS.md) | 本报告与实现同一提交：`docs(formal): freeze final experimental conclusions` |
 | FORMAL-4 — 精简正式实验核心定量分析 | 2026-08-20 | 完成；72 ACTIVE 全保留、10 flags 仅敏感性；主频带 CONT floor median 0.3783 dB；U4ENC G_demeaned=1.2805 但 CI 跨 1、ΔG CI 跨 0，AS01 grouped BA 未达 50%；28 项 hash 通过；`ready_for_formal_synthesis=true`，科研资格仍 false、final-test sealed | [FORMAL_4_CORE_ANALYSIS.md](./FORMAL_4_CORE_ANALYSIS.md) | 本报告与实现同一提交：`feat(formal): analyse streamlined real measurements` |

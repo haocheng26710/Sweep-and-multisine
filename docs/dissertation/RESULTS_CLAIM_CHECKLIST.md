@@ -126,3 +126,16 @@ The following statements are prohibited:
 - [ ] Confirm that editing has not changed `supported_with_limits`, H0, H1, or exploratory labels.
 - [ ] Confirm that final-test remains sealed and unread.
 - [ ] Confirm that no abstract or conclusion sentence exceeds the approved claim boundary.
+
+## 9. WRITE-2 generated-asset verification
+
+- [x] Seven planned figure groups exist as PNG and SVG; no additional result figure was introduced.
+- [x] Four planned table groups exist as CSV and Markdown.
+- [x] PNG metadata reports at least 300 dpi and every PNG is at least 1200 × 900 pixels.
+- [x] Every generated file matches the SHA-256 recorded in `FIGURE_AND_TABLE_MANIFEST.json`.
+- [x] Every figure/table entry records its frozen FORMAL-4 source artifact and reproduction script.
+- [x] The generated tables reproduce the frozen rounded values for CONT floor, G, ΔG, AS01 configuration/floor ratio and grouped classification.
+- [x] Figure captions preserve `supported_with_limits`, H0 `not_rejected`, H1 `not_confirmed`, exploratory labels and the 0.50 classification target.
+- [x] WRITE-2 did not change ACTIVE/EXCLUDED, run a new estimator, or read final-test.
+
+These checks validate the generated WRITE-2 assets. The unchecked pre-submission items above remain manual gates after final dissertation typesetting.
