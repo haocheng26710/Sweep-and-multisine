@@ -24,6 +24,8 @@ FORMAL-2A-FIX appends a second, explicit screenshot assessment without deleting 
 
 FORMAL-3 imported and QC-audited the immutable streamlined archive without revising its human selection, then applied the FORMAL-1 logarithmic preprocessing contract to all 72 ACTIVE Sweep measurements. FORMAL-4 performed block-aware repeatability, direction/configuration, sensitivity and grouped-classification analysis. FORMAL-5 now freezes the disposition as `supported_with_limits`: measurable direction-related spectral differences exceed the CONT floor, but the U4ENC-versus-U4SYM confidence interval includes the null and AS01 grouped classification remains below its 50% target. H1 is not confirmed, AS02 remains exploratory, `scientifically_eligible=false`, and final-test remains sealed. See the [FORMAL-5 final synthesis](docs/progress/FORMAL_5_FINAL_SYNTHESIS.md).
 
+The dissertation writing set now includes the frozen [Results](docs/dissertation/RESULTS_DRAFT.md), [Methods](docs/dissertation/METHODS_DRAFT.md), [Discussion](docs/dissertation/DISCUSSION_DRAFT.md), and [Limitations and Future Work](docs/dissertation/LIMITATIONS_AND_FUTURE_WORK.md) drafts. Figures and tables remain bound to the [WRITE-2 manifest](docs/dissertation/FIGURE_AND_TABLE_MANIFEST.md); writing does not reopen analysis or final-test.
+
 The following boundaries still apply:
 
 - Real Sweep results may be reported only with the claim boundaries frozen by FORMAL-5; they do not prove stable direction classification, deployment readiness or final-test generalization.
