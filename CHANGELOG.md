@@ -1,5 +1,12 @@
 # Changelog
 
+## FORMAL-5 — final experimental synthesis and claim freeze (unreleased)
+
+- Added a fail-closed, manifest-only FORMAL-5 synthesis entry that verifies the complete FORMAL-3/4 artifact closures, frozen 72 ACTIVE/19 EXCLUDED selection, 255-point FeatureSet contract, calibration evidence and all headline values against authoritative CSV/JSON files without reading raw TXT or final-test.
+- Frozen the only permitted final disposition as `supported_with_limits`: measurable direction-related spectral differences are present, while H1 remains unconfirmed because the U4ENC and delta-G confidence-interval gates are not fully met and grouped direction classification remains below the 50% practical target.
+- Added hash-audited Chinese evidence, hypothesis-decision and claim-boundary outputs plus a dissertation Methods/Results/Discussion/Limitations/Future-work draft and a non-duplicative FORMAL-4 figure index.
+- Preserved all 10 outlier flags and the 72/19 selection, kept AS02 exploratory because of block/time confounding, retained `scientifically_eligible=false`, and kept final-test sealed and unread.
+
 ## FORMAL-2A-FIX — explicit microphone-input evidence (unreleased)
 
 - Added a fail-closed supplementary registration for a screenshot that explicitly shows the REW measurement input as the iMM-6C microphone and `CMM29939.txt` in the separate `Mic calibration files` area; Soundcard/output evidence is explicitly rejected as a substitute.

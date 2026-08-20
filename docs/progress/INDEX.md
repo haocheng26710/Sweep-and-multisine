@@ -4,6 +4,7 @@
 
 | 步骤 | 日期 | 状态 | 报告 | Git commit |
 |---|---|---|---|---|
+| FORMAL-5 — 最终综合审查、结论冻结与论文材料 | 2026-08-20 | 完成；`supported_with_limits`；H1 未确认、H0 未拒绝；存在超过 CONT 底线的可测方向频谱差异，但 ΔG CI 包含 0、AS01 grouped BA 未达 50%；6 项论文业务产物 hash 通过；科研资格 false、final-test sealed | [FORMAL_5_FINAL_SYNTHESIS.md](./FORMAL_5_FINAL_SYNTHESIS.md) | 本报告与实现同一提交：`docs(formal): freeze final experimental conclusions` |
 | FORMAL-4 — 精简正式实验核心定量分析 | 2026-08-20 | 完成；72 ACTIVE 全保留、10 flags 仅敏感性；主频带 CONT floor median 0.3783 dB；U4ENC G_demeaned=1.2805 但 CI 跨 1、ΔG CI 跨 0，AS01 grouped BA 未达 50%；28 项 hash 通过；`ready_for_formal_synthesis=true`，科研资格仍 false、final-test sealed | [FORMAL_4_CORE_ANALYSIS.md](./FORMAL_4_CORE_ANALYSIS.md) | 本报告与实现同一提交：`feat(formal): analyse streamlined real measurements` |
 | FORMAL-3 — 正式实验精简数据导入、FORMAL-1 预处理与 QC | 2026-08-20 | 完成；72 ACTIVE、19 EXCLUDED 冻结不变；ACTIVE 0 pass/72 warning/0 fail（warning 均为 TXT header 未列校准文件）；72 个 FeatureSet、225 项 hash 通过；`ready_for_formal_analysis=true`，但科研资格仍 false、final-test sealed | [FORMAL_3_REAL_DATA_IMPORT_QC.md](./FORMAL_3_REAL_DATA_IMPORT_QC.md) | 本报告与实现同一提交：`feat(formal): import and QC streamlined real measurements` |
 | FORMAL-2A-FIX — iMM-6C 麦克风输入校准加载证据 | 2026-08-19 | 新证据明确显示 iMM-6C 测量输入与 `Mic calibration files/CMM29939.txt`；输入绑定 `verified`，仅清除 load-evidence blocker；备份及人工项仍阻塞，`ready_for_B01=false`，未开测 | [FORMAL_2A_FIX_MIC_INPUT_EVIDENCE.md](./FORMAL_2A_FIX_MIC_INPUT_EVIDENCE.md) | 本报告与实现同一提交：`fix(acquisition): verify formal mic calibration evidence` |
@@ -48,4 +49,4 @@
 | DEV-C11 — P6-B 冻结校准约束下的 Multisine HR readout | 2026-08-06 | 完成 | [DEV-C11_P6B_MULTISINE_HR_READOUT.md](./DEV-C11_P6B_MULTISINE_HR_READOUT.md) | 本报告与实现同一提交（`feat(hr): add calibrated multisine HR readout`） |
 | DEV-C12 — P9-A 严格防数据泄漏的 tone 候选评分与选择冻结框架 | 2026-08-06 | 完成 | [DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md](./DEV-C12_P9A_LEAKAGE_SAFE_TONE_SELECTION.md) | 本报告与实现同一提交（`feat(bridge): add leakage-safe tone selection`） |
 
-当前科研资格边界：FORMAL-3 已将冻结的 72 份真实 Sweep ACTIVE 数据导入 `real_experiment/research_analysis`，FORMAL-4 已完成 block-aware 核心分析并达到 `ready_for_formal_synthesis=true`；但两步均明确保持 `scientifically_eligible=false`。FORMAL-4 的 U4ENC `G_demeaned` 和结构差点估计方向符合部分冻结门槛，但相应 95% CI 与 AS01 grouped classification 不足，不能提前声明 H1、canonical science、freeze 或 deployment。AS02/组装集和合并 assembly 分类仅 exploratory。真实 Multisine/P8 仍 blocked，P2–P9-D 软件验证参数/模型不因此升级；final-test 继续封存。只有 FORMAL-5 完成综合审查后，才能决定哪些真实 Sweep 结果具备论文报告资格。
+当前科研资格边界：FORMAL-5 已从 FORMAL-3/4 的显式、hash-verified 权威产物冻结最终 disposition `supported_with_limits`。可在论文中报告超过技术重复底线的方向相关频谱变化、G/CI、AS01 配置差异及分类未达标这一负结果；H1 未确认，不能宣称 U4ENC 已证明优于 U4SYM 或方向可稳定分类。AS02/组装集和合并 assembly 分类仅 exploratory。`scientifically_eligible=false` 表示证据必须保持受限/探索性边界，并非软件失败。真实 Multisine/P8 仍 blocked，P2–P9-D 软件验证参数/模型不因此升级；final-test 继续封存。
