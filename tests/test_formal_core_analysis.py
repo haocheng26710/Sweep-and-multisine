@@ -15,6 +15,11 @@ from acoustic_encoder.formal_core_analysis import (
     verify_formal3_authority,
     verify_formal4_output_hashes,
 )
+from acoustic_encoder.supplemental_frequency_localization import (
+    build_frequency_windows,
+    run_sup0_frequency_localization,
+    verify_sup0_output_hashes,
+)
 from acoustic_encoder.schemas import (
     DataOrigin,
     DatasetRole,
@@ -345,3 +350,85 @@ def test_output_hash_tampering_fails_closed(tmp_path: Path) -> None:
         handle.write("tampered\n")
     with pytest.raises(Formal4InputError, match="hash mismatch"):
         verify_formal4_output_hashes(output)
+
+
+def test_sup0_windows_cover_frozen_bands_without_crossing_4khz() -> None:
+    frequency = 200.0 * np.power(2.0, np.arange(256) / 48.0)
+    valid = np.ones(256, dtype=bool)
+    valid[0] = False
+
+    windows = build_frequency_windows(frequency, valid)
+
+    assert len(windows) == 16
+    assert sum(window.parent_band == "primary" for window in windows) == 13
+    assert sum(window.parent_band == "secondary" for window in windows) == 3
+    assert all(window.point_count >= 8 for window in windows)
+    assert max(window.frequency_high_hz for window in windows if window.parent_band == "primary") < 4000
+    assert min(window.frequency_low_hz for window in windows if window.parent_band == "secondary") > 4000
+    covered = np.concatenate([window.indices for window in windows])
+    assert np.array_equal(covered, np.flatnonzero(valid))
+
+
+def test_sup0_is_selection_preserving_hash_audited_and_non_overwriting(
+    tmp_path: Path,
+) -> None:
+    formal3 = _formal3_fixture(tmp_path / "formal3")
+    formal4 = tmp_path / "formal4"
+    run_formal4_core_analysis(
+        formal3, formal4, source_commit="d" * 40,
+        created_at="2026-08-20T18:00:00+01:00",
+        bootstrap_iterations=20, permutation_iterations=8,
+    )
+    active_before = (formal3 / "active_manifest.csv").read_bytes()
+    output = tmp_path / "sup0"
+
+    result = run_sup0_frequency_localization(
+        formal3, formal4, output, source_commit="e" * 40,
+        created_at="2026-08-23T12:00:00+01:00", source_worktree_clean=False,
+    )
+
+    assert result.active_count == 72
+    assert result.excluded_count == 19
+    assert result.outlier_count == 1
+    assert verify_sup0_output_hashes(output)["all_match"] is True
+    assert (formal3 / "active_manifest.csv").read_bytes() == active_before
+    summary = json.loads((output / "analysis_summary.json").read_text(encoding="utf-8"))
+    assert summary["status"] == "SUP-0_frozen"
+    assert summary["selection"]["primary_uses_all_ACTIVE"] is True
+    assert summary["selection"]["selection_manifest_changed"] is False
+    assert summary["formal4_verification"]["repeatability_p95_reproduced"] is True
+    assert summary["claim_boundary"]["existing_FORMAL5_disposition_changed"] is False
+    assert summary["final_test_read"] is False
+    assert {
+        "frequency_window_metrics.csv", "parent_band_metrics.csv",
+        "direction_pair_effects.csv", "configuration_direction_effects.csv",
+        "candidate_bands.csv", "analysis_summary.json", "run_manifest.json",
+        "artifact_manifest.json", "SHA256SUMS",
+    } <= {path.name for path in output.iterdir() if path.is_file()}
+    assert {"frequency_localization.png", "frequency_localization.svg"} <= {
+        path.name for path in (output / "plots").iterdir()
+    }
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        run_sup0_frequency_localization(
+            formal3, formal4, output, source_commit="e" * 40,
+            created_at="2026-08-23T12:00:01+01:00", source_worktree_clean=False,
+        )
+
+
+def test_sup0_output_hash_tampering_fails_closed(tmp_path: Path) -> None:
+    formal3 = _formal3_fixture(tmp_path / "formal3")
+    formal4 = tmp_path / "formal4"
+    run_formal4_core_analysis(
+        formal3, formal4, source_commit="f" * 40,
+        created_at="2026-08-20T18:00:00+01:00",
+        bootstrap_iterations=10, permutation_iterations=4,
+    )
+    output = tmp_path / "sup0"
+    run_sup0_frequency_localization(
+        formal3, formal4, output, source_commit="a" * 40,
+        created_at="2026-08-23T12:00:00+01:00", source_worktree_clean=False,
+    )
+    with (output / "candidate_bands.csv").open("a", encoding="utf-8") as handle:
+        handle.write("tampered\n")
+    with pytest.raises(Formal4InputError, match="hash mismatch"):
+        verify_sup0_output_hashes(output)
