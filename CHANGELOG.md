@@ -1,5 +1,12 @@
 # Changelog
 
+## SUP-1 + SUP-2R — existing-data mechanism reanalysis (unreleased)
+
+- Corrected the supplemental identity model so HOM-A reuses authoritative U4SYM AS01 B01/B02 and HET-ABDF reuses U4ENC AS01 B03/B04; no duplicate acquisition was requested or performed.
+- Added a hash-verified A–H single-entry fixed-window signature library and direction-stratified HET−HOM analysis over 29 SUP-1 measurements and 48 existing AS01 ACTIVE measurements.
+- Added block/repeat-cluster bootstrap uncertainty and fixed-window Pearson/Spearman/cosine correspondence without treating frequency points as independent samples or correlations as causal contributions.
+- Preserved 72 ACTIVE/19 EXCLUDED, existing flags, frozen SUP-0 windows and FORMAL-4/5 conclusions; ran no classifier, used no simulated replacement data and kept final-test sealed and unread.
+
 ## WRITE-4 — final experimental-chapter delivery (unreleased)
 
 - Integrated the frozen Methods, Results, Discussion and Limitations drafts into one consistently numbered experimental chapter without recalculating statistics, changing selection or regenerating figures.
