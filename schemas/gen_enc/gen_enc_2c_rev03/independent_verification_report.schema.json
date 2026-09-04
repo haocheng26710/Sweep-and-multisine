@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:independent-verification-report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "status",
+    "observed_counts",
+    "recomputed_checks",
+    "failure_count",
+    "scientific_hypothesis_status",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_independent_verification_rev03_v1"
+    },
+    "mode": {
+      "const": "READ_ONLY_INDEPENDENT_RECOMPUTATION"
+    },
+    "status": {
+      "enum": [
+        "PASS_STATIC_IDENTITY_RECOMPUTATION",
+        "FAIL_CLOSED_TECHNICAL_RECOMPUTATION"
+      ]
+    },
+    "observed_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "recomputed_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "failure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "final_test_read": {
+      "const": false
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen independent_verification_report.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

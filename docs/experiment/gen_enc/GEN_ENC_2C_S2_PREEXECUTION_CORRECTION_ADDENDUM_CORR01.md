@@ -1,0 +1,19 @@
+# GEN-ENC-2C S2-CORR01 preexecution correction addendum
+
+Addendum metadata: new S2-CORR01 technical preexecution correction; relates to the immutable rejected S2 freeze and its guardian review; all prior bytes unchanged; evidence level `E1_TECHNICAL_PREEXECUTION_CORRECTION_ONLY`; `overrides=false`.
+
+Task binding is exactly `01a048bd-dc5e-7e93-87e6-72d299ebaa4d`. This increment performs no formal generation or static eligibility and reads no formal rows or seeds. It does not authorize GEN-ENC-2 or any downstream operation.
+
+The endpoint constructs an isolated `TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY` 4×20 mirror containing exactly 80 member artifacts, four family manifests, one index, six result artifacts and one progress artifact. The same exact 92 relative paths are frozen by the sealed allowlist, but technical tests use task-owned temporary roots that neither equal nor contain formal roots.
+
+The CAD/static adapter derives the 0.40 central share and 0.60 softmax sector shares, maps family parameters to exact active slots, solves every sector length by 80-step deterministic bisection under the approved root equation, derives volume, primitive-envelope extrema, interface identity, fixed exceptions, minimum-feature/load-path witnesses, RANDOM exact-zero reduced graph and the independent actual-positive-area shared-plenum BFS. Thresholds and caps are comparisons only, never measurements. The independent verifier imports no driver, orchestrator, generator or CAD mapper and duplicates these computations.
+
+The unique authorization schema makes every DRAFT execution permission false; prospective scope exists only under `requested_scope`. A RELEASE must be a newly generated guardian record with a distinct dispatch ID, guardian review path/hash, canonical payload/full-file hashes and external guardian-controlled one-way attestation. The DRAFT can never be edited into or reused as RELEASE.
+
+The exact sequence is preflight → generation/static audit → independent verifier → atomic publication → package-results. Every fatal stage writes one schema-valid `FAIL_CLOSED` marker with honest observed counts. Only the verifier writes `VERIFIED_SUCCESS`; packaging accepts exactly one marker. Publication first verifies a complete run-specific shadow tree, journals every target, uses same-directory temporary files and `os.replace`, rolls back all targets on failure, and never publishes success until all 92 targets are reverified. The progress target is handled as a separate root under the same journal. Recovery must roll back any journal not in `COMMITTED` before retry; a retry requires a new guardian RELEASE and therefore a new run ID.
+
+Run ID bytes are `GEN-ENC-2C-S2-CORR01-RUN-ID-v1`, release full SHA-256, task ID, then source/schema/fixture/authority/allowlist manifest SHA-256 values, joined in that exact order by byte `0x0A`, with no trailing newline, then SHA-256. It is derived only after guardian RELEASE and external attestation validation. Current `run_id=null` and formal attempt count is zero.
+
+Windows publication semantics require each temporary and destination pair on the same volume; cross-directory progress is journaled as one logical transaction. A crash before `COMMITTED` is not success and requires deterministic rollback before a new attempt. Collision, reparse, containment, casefold duplicates, reserved names and unlisted paths fail closed.
+
+Permanent disclosures remain: original S2 had 12 pass/2 stale-hash failures followed by two 14-pass runs, yet guardian source review showed the tests were insufficient; three S2 basetemp roots (21 files/21 dirs), six S1 roots (44 files/58 dirs) and CORR04 residue were not cleaned. S1's first ACL setup errors and corrected FunctionDef AST scan remain disclosed. CAD-0 E0 and CAD-1 E1 do not equal formal eligibility. Four-state, held-out, continuous-angle, inverse-design, NO_IMPROVEMENT and limited full-wave work remain later obligations.

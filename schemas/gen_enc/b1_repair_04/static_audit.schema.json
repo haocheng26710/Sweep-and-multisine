@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authority_read_count_at_generation": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "complete_cad_witness_count": {
+      "const": 20
+    },
+    "failed_slots_retained": {
+      "const": true
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "member_count": {
+      "const": 20
+    },
+    "member_paths": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 20,
+      "type": "array"
+    },
+    "record_kind": {
+      "const": "COMPLETE_BATCH_LOCAL_STATIC_AUDIT_20"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-04"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_04_static_audit_v1"
+    },
+    "status_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "COST_INELIGIBLE": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ELIGIBLE": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "FAIL_CLOSED": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "TEMPLATE_VALIDITY_REJECTED": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ELIGIBLE",
+        "COST_INELIGIBLE",
+        "TEMPLATE_VALIDITY_REJECTED",
+        "FAIL_CLOSED"
+      ],
+      "type": "object"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "member_paths",
+    "member_count",
+    "complete_cad_witness_count",
+    "failed_slots_retained",
+    "status_counts",
+    "claim_ceiling",
+    "final_test_read",
+    "authority_read_count_at_generation"
+  ],
+  "type": "object"
+}

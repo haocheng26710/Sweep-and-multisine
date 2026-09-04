@@ -1,0 +1,213 @@
+{
+  "schema_version": "gen_enc_2c_s1_technical_80_slot_fixture_v1",
+  "identity_class": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY",
+  "families": [
+    {
+      "family_id": "TECHNICAL_FIXTURE_HAND",
+      "algorithm": "LITERAL_FORMULA",
+      "parameter_count": 12,
+      "expected_parameter_matrix_sha256": "a85b0cc87cd967d79bcf5c1abc2c8fa8c86563525c7e8a4a0e13ed8ed17fe6ca",
+      "static_template": {
+        "volume_m3": 0.00003,
+        "volume_interval": [
+          0.000029,
+          0.000031
+        ],
+        "dof": 12,
+        "dof_max": 16,
+        "envelope_m": [
+          0.2,
+          0.2,
+          0.01
+        ],
+        "envelope_caps_m": [
+          0.23,
+          0.23,
+          0.02
+        ],
+        "interface": "TECHNICAL_FIXTURE_U4_INTERFACE",
+        "minimum_feature_m": 0.002,
+        "solid_load_path_m": 0.0016,
+        "fluid_nodes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "positive_area_faces": [
+          [
+            "A",
+            "B",
+            1
+          ],
+          [
+            "B",
+            "C",
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "family_id": "TECHNICAL_FIXTURE_NEAR",
+      "algorithm": "LITERAL_FORMULA",
+      "parameter_count": 12,
+      "expected_parameter_matrix_sha256": "a85b0cc87cd967d79bcf5c1abc2c8fa8c86563525c7e8a4a0e13ed8ed17fe6ca",
+      "static_template": {
+        "volume_m3": 0.00003,
+        "volume_interval": [
+          0.000029,
+          0.000031
+        ],
+        "dof": 12,
+        "dof_max": 16,
+        "envelope_m": [
+          0.2,
+          0.2,
+          0.01
+        ],
+        "envelope_caps_m": [
+          0.23,
+          0.23,
+          0.02
+        ],
+        "interface": "TECHNICAL_FIXTURE_U4_INTERFACE",
+        "minimum_feature_m": 0.002,
+        "solid_load_path_m": 0.0016,
+        "fluid_nodes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "positive_area_faces": [
+          [
+            "A",
+            "B",
+            1
+          ],
+          [
+            "B",
+            "C",
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "family_id": "TECHNICAL_FIXTURE_RANDOM",
+      "algorithm": "SPLITMIX64",
+      "parameter_count": 13,
+      "technical_seed_base": 900100,
+      "expected_parameter_matrix_sha256": "477c4407299306d0c256fc86bde2a1647e123f1241f529b46e228fa09d26ecd2",
+      "reduced_edges": [
+        [
+          "A",
+          "B",
+          0,
+          false
+        ],
+        [
+          "B",
+          "C",
+          0.5,
+          true
+        ]
+      ],
+      "static_template": {
+        "volume_m3": 0.00003,
+        "volume_interval": [
+          0.000029,
+          0.000031
+        ],
+        "dof": 13,
+        "dof_max": 16,
+        "envelope_m": [
+          0.2,
+          0.2,
+          0.01
+        ],
+        "envelope_caps_m": [
+          0.23,
+          0.23,
+          0.02
+        ],
+        "interface": "TECHNICAL_FIXTURE_U4_INTERFACE",
+        "minimum_feature_m": 0.002,
+        "solid_load_path_m": 0.0016,
+        "fluid_nodes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "positive_area_faces": [
+          [
+            "A",
+            "B",
+            1
+          ],
+          [
+            "B",
+            "C",
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "family_id": "TECHNICAL_FIXTURE_PHYSICS",
+      "algorithm": "MIDPOINT_LHS",
+      "parameter_count": 15,
+      "technical_master_seed": 900200,
+      "expected_parameter_matrix_sha256": "e333f4215305799c6713009994a451d874127807f174f9dd78db55f024c1d0ba",
+      "static_template": {
+        "volume_m3": 0.00003,
+        "volume_interval": [
+          0.000029,
+          0.000031
+        ],
+        "dof": 15,
+        "dof_max": 16,
+        "envelope_m": [
+          0.2,
+          0.2,
+          0.01
+        ],
+        "envelope_caps_m": [
+          0.23,
+          0.23,
+          0.02
+        ],
+        "interface": "TECHNICAL_FIXTURE_U4_INTERFACE",
+        "minimum_feature_m": 0.002,
+        "solid_load_path_m": 0.0016,
+        "fluid_nodes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "positive_area_faces": [
+          [
+            "A",
+            "B",
+            1
+          ],
+          [
+            "B",
+            "C",
+            1
+          ]
+        ]
+      }
+    }
+  ],
+  "formal_input_read_count": 0,
+  "final_test_read": false,
+  "addendum_metadata": {
+    "new_content": "S1 synthetic 80-slot technical fixture",
+    "related_legacy_files": [
+      "docs/experiment/gen_enc/GEN_ENC_2C_PREEXECUTION_CONTRACT_ADDENDUM_REV03.md"
+    ],
+    "unchanged_content": "Formal 80-slot inputs and scientific paths remain unread and unwritten",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

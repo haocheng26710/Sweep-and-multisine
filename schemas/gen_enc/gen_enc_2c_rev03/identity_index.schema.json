@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:identity-index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ordered_families",
+    "observed_counts",
+    "identity_index_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_identity_index_rev03_v1"
+    },
+    "ordered_families": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ordinal",
+          "family_id",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "ordinal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "family_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "observed_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "families",
+        "members"
+      ],
+      "properties": {
+        "families": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "members": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 80
+        }
+      }
+    },
+    "identity_index_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen identity_index.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

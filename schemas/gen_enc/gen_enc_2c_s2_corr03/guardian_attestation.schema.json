@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:gen-enc:2c:s2:corr03:guardian-attestation:v2",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "task_id", "dispatch_id", "attempt", "run_id", "release_path", "release_full_sha256", "guardian_approval_path", "guardian_approval_sha256", "guardian_approval_bytes_verified", "approval_is_eventual_corr03_review", "one_way_full_file_attestation", "draft_promotion", "manifest_sha256", "terminal_roots", "formal_authority_bindings", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr03_guardian_attestation_v2"}, "record_kind": {"const": "NEW_CANONICAL_RELEASE_ATTESTATION"}, "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"},
+    "dispatch_id": {"pattern": "^GEN-ENC-2C-S2-CORR03-RELEASE-[A-Z0-9-]+$"}, "attempt": {"type": "integer", "minimum": 1}, "run_id": {"$ref": "#/$defs/hash"}, "release_path": {"type": "string", "minLength": 1}, "release_full_sha256": {"$ref": "#/$defs/hash"},
+    "guardian_approval_path": {"type": "string", "pattern": "GEN_ENC_2C_S2_CORR03.*REVIEW\\.json$"}, "guardian_approval_sha256": {"$ref": "#/$defs/hash"}, "guardian_approval_bytes_verified": {"const": true}, "approval_is_eventual_corr03_review": {"const": true}, "one_way_full_file_attestation": {"const": true}, "draft_promotion": {"const": false},
+    "manifest_sha256": {"type": "object", "additionalProperties": false, "required": ["source", "schema", "fixture", "authority", "allowlist"], "properties": {"source": {"$ref": "#/$defs/hash"}, "schema": {"$ref": "#/$defs/hash"}, "fixture": {"$ref": "#/$defs/hash"}, "authority": {"$ref": "#/$defs/hash"}, "allowlist": {"$ref": "#/$defs/hash"}}},
+    "terminal_roots": {"type": "object", "additionalProperties": false, "required": ["staging", "success", "failure", "temp", "journal"], "properties": {"staging": {"$ref": "#/$defs/run_path"}, "success": {"$ref": "#/$defs/run_path"}, "failure": {"$ref": "#/$defs/run_path"}, "temp": {"$ref": "#/$defs/run_path"}, "journal": {"$ref": "#/$defs/run_path"}}},
+    "formal_authority_bindings": {"$ref": "#/$defs/attested_authorities"},
+    "final_test_read": {"const": false}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "run_path": {"type": "string", "pattern": "[0-9a-f]{64}"},
+    "binding": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "pointer", "bound_before_read"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/hash"}, "pointer": {"type": "string", "pattern": "^/"}, "bound_before_read": {"const": true}}},
+    "attested_authorities": {"type": "object", "additionalProperties": false, "required": ["HAND_DESIGNED", "NEAR_INDEPENDENT", "FIXED_SEED_RANDOM_DISORDERED", "PHYSICS_METAMATERIAL_INSPIRED", "CAD0_MAPPING"], "properties": {
+      "HAND_DESIGNED": {"$ref": "#/$defs/binding"}, "NEAR_INDEPENDENT": {"$ref": "#/$defs/binding"},
+      "FIXED_SEED_RANDOM_DISORDERED": {"type": "object", "additionalProperties": false, "required": ["spec", "seed_split"], "properties": {"spec": {"$ref": "#/$defs/binding"}, "seed_split": {"$ref": "#/$defs/binding"}}},
+      "PHYSICS_METAMATERIAL_INSPIRED": {"$ref": "#/$defs/binding"}, "CAD0_MAPPING": {"$ref": "#/$defs/binding"}
+    }}
+  }
+}

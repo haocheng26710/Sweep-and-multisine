@@ -1,0 +1,21 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr02_technical_substitute_authority_v1",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_kind": "NEAR_ROWS_SUBSTITUTE",
+  "member_count": 20,
+  "formal_input_path": null,
+  "formal_input_sha256": null,
+  "formal_json_pointer": null,
+  "contains_formal_rows": false,
+  "contains_formal_seeds": false,
+  "authorized_for_formal_use": false,
+  "algorithmic_configuration": {
+    "domain_label": "CORR02-TECHNICAL-NEAR-CONFIG",
+    "construction": "indexed_signed_perturbation_schedule",
+    "index_origin": 1,
+    "parameter_count": 18,
+    "amplitude_cycle": [0.01, 0.02, 0.03, 0.04],
+    "sign_rule": "alternate_by_member_and_parameter_parity"
+  },
+  "final_test_read": false
+}

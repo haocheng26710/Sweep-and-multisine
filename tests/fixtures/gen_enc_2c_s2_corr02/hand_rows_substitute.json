@@ -1,0 +1,20 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr02_technical_substitute_authority_v1",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_kind": "HAND_ROWS_SUBSTITUTE",
+  "member_count": 20,
+  "formal_input_path": null,
+  "formal_input_sha256": null,
+  "formal_json_pointer": null,
+  "contains_formal_rows": false,
+  "contains_formal_seeds": false,
+  "authorized_for_formal_use": false,
+  "algorithmic_configuration": {
+    "domain_label": "CORR02-TECHNICAL-HAND-CONFIG",
+    "construction": "indexed_basis_coefficients_from_member_number",
+    "index_origin": 1,
+    "parameter_count": 18,
+    "coefficient_rule": "bounded_rational_cycle_without_external_data"
+  },
+  "final_test_read": false
+}

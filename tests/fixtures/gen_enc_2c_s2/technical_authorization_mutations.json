@@ -1,0 +1,15 @@
+{
+  "identity_class": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY",
+  "mutations": [
+    "canonical-byte-tamper",
+    "task-id-mismatch",
+    "expiry",
+    "revocation",
+    "permission-vector",
+    "mode-vector",
+    "manifest-hash"
+  ],
+  "formal_rows_or_seeds": null,
+  "formal_path_writes": 0,
+  "final_test_read": false
+}

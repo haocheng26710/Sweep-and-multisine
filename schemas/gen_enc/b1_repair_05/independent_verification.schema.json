@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_count": {
+      "maximum": 31,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "authority_read_count": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "checks": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 0,
+      "type": "array"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "INDEPENDENT_VERIFICATION"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-05"
+    },
+    "resealed": {
+      "type": "boolean"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_05_independent_verification_v1"
+    },
+    "status": {
+      "enum": [
+        "PENDING_NON_SUCCESS",
+        "PASS",
+        "FAIL_CLOSED"
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_subject_count": {
+      "enum": [
+        0,
+        27
+      ]
+    },
+    "verification_subject_digest": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      ]
+    },
+    "verification_subject_seal_path": {
+      "const": "VERIFICATION_SUBJECT_SEAL.json"
+    },
+    "verification_subject_seal_sha256": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      ]
+    },
+    "verified_manifest_count": {
+      "maximum": 4,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "verified_member_count": {
+      "maximum": 20,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "status",
+    "verified_member_count",
+    "verified_manifest_count",
+    "authority_read_count",
+    "artifact_count",
+    "checks",
+    "resealed",
+    "claim_ceiling",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "mode",
+    "verification_subject_seal_path",
+    "verification_subject_seal_sha256",
+    "verification_subject_digest",
+    "verification_subject_count"
+  ],
+  "type": "object"
+}

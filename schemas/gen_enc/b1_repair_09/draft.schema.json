@@ -1,0 +1,71 @@
+{
+  "$id": "gen_enc_fast_b1_repair_09_draft_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "const": 0
+    },
+    "authoritative": {
+      "const": false
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "future_release_must_be_new_canonical_bytes": {
+      "const": true
+    },
+    "may_flip_or_promote": {
+      "const": false
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "non_authoritative": {
+      "const": true
+    },
+    "permissions": {
+      "additionalProperties": {
+        "const": false
+      },
+      "maxProperties": 20,
+      "minProperties": 20,
+      "type": "object"
+    },
+    "record_kind": {
+      "const": "DRAFT"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-09"
+    },
+    "run_id": {
+      "type": "null"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_09_draft_v1"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "authoritative",
+    "repair_id",
+    "non_authoritative",
+    "attempt",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "permissions",
+    "may_flip_or_promote",
+    "future_release_must_be_new_canonical_bytes",
+    "mode",
+    "final_test_read"
+  ],
+  "type": "object"
+}

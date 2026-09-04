@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_cardinality": {
+      "const": 31
+    },
+    "authority_allowlist_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "command_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_endpoint": {
+      "const": false
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "generation_terminal_path": {
+      "const": "generation_terminal.json"
+    },
+    "independent_verification_path": {
+      "const": "independent_verification.json"
+    },
+    "member_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 20,
+      "type": "array"
+    },
+    "partial_manifest_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "publication_terminal_path": {
+      "const": "publication_terminal.json"
+    },
+    "record_kind": {
+      "const": "B1_BATCH_INDEX_NON_FINAL"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-01"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_01_batch_index_v1"
+    },
+    "sha256sums_path": {
+      "const": "SHA256SUMS.txt"
+    },
+    "source_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "static_audit_path": {
+      "const": "static_audit.json"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_complete": {
+      "type": "boolean"
+    },
+    "verifier_terminal_path": {
+      "const": "verifier_terminal.json"
+    },
+    "zero_unlisted_required": {
+      "const": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "authority_allowlist_sha256",
+    "source_manifest_sha256",
+    "schema_manifest_sha256",
+    "command_manifest_sha256",
+    "member_paths",
+    "partial_manifest_paths",
+    "static_audit_path",
+    "independent_verification_path",
+    "sha256sums_path",
+    "generation_terminal_path",
+    "verifier_terminal_path",
+    "publication_terminal_path",
+    "verification_complete",
+    "artifact_cardinality",
+    "zero_unlisted_required",
+    "final_endpoint",
+    "claim_ceiling",
+    "final_test_read"
+  ],
+  "type": "object"
+}

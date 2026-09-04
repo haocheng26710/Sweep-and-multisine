@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/gen_enc_2c_s2/s2_task_bound_dispatch.schema.json",
+  "title": "Sole canonical GEN-ENC-2C S2 task-bound dispatch/authorization record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["payload", "record_payload_sha256"],
+  "properties": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "record_kind", "task_id", "dispatch_id", "released", "guardian_approved", "formal_execution_authorized", "revoked", "issued_at", "expires_at", "guardian_review_path", "contract_path", "contract_sha256", "manifest_sha256", "allowed_commands", "allowed_modes", "terminal_roots", "permissions", "evidence_ceiling", "scientific_hypothesis_status", "formal_instance_count", "static_eligibility_run_count", "formal_hashes", "final_test_state", "final_test_read", "addendum_metadata"],
+      "properties": {
+        "schema_version": {"const": "gen_enc_2c_s2_task_bound_dispatch_v1"},
+        "record_kind": {"enum": ["S2_AUTHORIZATION_DRAFT", "S2_GUARDIAN_RELEASE"]},
+        "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"},
+        "dispatch_id": {"type": "string", "pattern": "^GEN-ENC-2C-S2-[A-Z0-9-]+$"},
+        "released": {"type": "boolean"},
+        "guardian_approved": {"type": "boolean"},
+        "formal_execution_authorized": {"type": "boolean"},
+        "revoked": {"type": "boolean"},
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "guardian_review_path": {"type": ["string", "null"]},
+        "contract_path": {"const": "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/s2_preexecution_freeze/implementation_contract.json"},
+        "contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "manifest_sha256": {
+          "type": "object", "additionalProperties": false,
+          "required": ["source", "schema", "fixture", "authority", "allowlist"],
+          "properties": {
+            "source": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "schema": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "fixture": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "authority": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "allowlist": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          }
+        },
+        "allowed_commands": {"const": ["preflight", "formal-generate-static-audit", "verify-formal", "package-results"]},
+        "allowed_modes": {"const": ["S2_PREFLIGHT", "S2_FORMAL_GENERATION_STATIC_AUDIT", "S2_INDEPENDENT_FORMAL_VERIFICATION", "S2_ATOMIC_PACKAGE_RESULTS"]},
+        "terminal_roots": {
+          "type": "object", "additionalProperties": false,
+          "required": ["input", "staging", "success", "failure", "progress"],
+          "properties": {
+            "input": {"type": "string"}, "staging": {"type": "string"}, "success": {"type": "string"},
+            "failure": {"type": "string"}, "progress": {"type": "string"}
+          }
+        },
+        "permissions": {
+          "type": "object", "additionalProperties": false,
+          "required": ["s2_formal_generation_and_static_audit", "timing", "response", "endpoint", "family_comparison", "ranking", "selection", "optimization", "simulation", "comsol", "full_wave", "physical_experiment", "development_read", "validation_read", "final_test_read", "gen_enc_2"],
+          "properties": {
+            "s2_formal_generation_and_static_audit": {"const": true},
+            "timing": {"const": false}, "response": {"const": false}, "endpoint": {"const": false},
+            "family_comparison": {"const": false}, "ranking": {"const": false}, "selection": {"const": false},
+            "optimization": {"const": false}, "simulation": {"const": false}, "comsol": {"const": false},
+            "full_wave": {"const": false}, "physical_experiment": {"const": false}, "development_read": {"const": false},
+            "validation_read": {"const": false}, "final_test_read": {"const": false}, "gen_enc_2": {"const": false}
+          }
+        },
+        "evidence_ceiling": {"const": "E1B_SCIENTIFIC_IDENTITY_PROVENANCE_AND_STATIC_ELIGIBILITY_ONLY"},
+        "scientific_hypothesis_status": {"const": "NOT_TESTED"},
+        "formal_instance_count": {"const": 0},
+        "static_eligibility_run_count": {"const": 0},
+        "formal_hashes": {
+          "type": "object", "additionalProperties": false, "required": ["member", "family", "index"],
+          "properties": {"member": {"type": "null"}, "family": {"type": "null"}, "index": {"type": "null"}}
+        },
+        "final_test_state": {"const": "SEALED"},
+        "final_test_read": {"const": false},
+        "addendum_metadata": {
+          "type": "object", "additionalProperties": false,
+          "required": ["new_content", "related_legacy_files", "unchanged_content", "evidence_level", "overrides"],
+          "properties": {
+            "new_content": {"type": "string"}, "related_legacy_files": {"type": "array", "items": {"type": "string"}},
+            "unchanged_content": {"type": "string"}, "evidence_level": {"const": "E1_TECHNICAL_PREEXECUTION_BINDING_ONLY"},
+            "overrides": {"const": false}
+          }
+        }
+      }
+    },
+    "record_payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

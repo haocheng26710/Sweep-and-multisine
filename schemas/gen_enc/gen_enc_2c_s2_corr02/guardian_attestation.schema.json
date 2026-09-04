@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr02:guardian-attestation:v1",
+  "title": "Canonical one-way guardian RELEASE full-file attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "record_kind", "canonical_attestation_path",
+    "attestation_schema_path", "attestation_schema_sha256", "task_id", "dispatch_id",
+    "attempt", "run_id", "terminal_roots", "release_path", "release_full_sha256",
+    "guardian_review_path", "guardian_review_sha256", "guardian_review_bytes_verified",
+    "one_way_full_file_attestation", "draft_promotion", "manifest_sha256",
+    "formal_authority_bindings", "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr02_guardian_attestation_v1"},
+    "record_kind": {"const": "NEW_CANONICAL_RELEASE_ATTESTATION"},
+    "canonical_attestation_path": {"type": "string", "minLength": 1},
+    "attestation_schema_path": {"const": "schemas/gen_enc/gen_enc_2c_s2_corr02/guardian_attestation.schema.json"},
+    "attestation_schema_sha256": {"$ref": "#/$defs/hash"},
+    "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"},
+    "dispatch_id": {"pattern": "^GEN-ENC-2C-S2-CORR02-RELEASE-[A-Z0-9-]+$"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "run_id": {"$ref": "#/$defs/run_id"},
+    "terminal_roots": {
+      "type": "object", "additionalProperties": false,
+      "required": ["staging", "success", "failure", "temp", "journal"],
+      "properties": {
+        "staging": {"type": "string", "minLength": 1}, "success": {"type": "string", "minLength": 1},
+        "failure": {"type": "string", "minLength": 1}, "temp": {"type": "string", "minLength": 1},
+        "journal": {"type": "string", "minLength": 1}
+      }
+    },
+    "release_path": {"type": "string", "minLength": 1},
+    "release_full_sha256": {"$ref": "#/$defs/hash"},
+    "guardian_review_path": {"type": "string", "minLength": 1},
+    "guardian_review_sha256": {"$ref": "#/$defs/hash"},
+    "guardian_review_bytes_verified": {"const": true},
+    "one_way_full_file_attestation": {"const": true},
+    "draft_promotion": {"const": false},
+    "manifest_sha256": {"$ref": "#/$defs/manifests"},
+    "formal_authority_bindings": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "prefixItems": [
+        {"$ref": "#/$defs/hand_binding"},
+        {"$ref": "#/$defs/near_binding"},
+        {"$ref": "#/$defs/random_binding"},
+        {"$ref": "#/$defs/physics_binding"}
+      ],
+      "items": false
+    },
+    "final_test_read": {"const": false}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_kind", "path", "sha256", "json_pointer", "bound_before_read"],
+      "properties": {
+        "authority_kind": {"type": "string"},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/hash"},
+        "json_pointer": {"type": "string", "pattern": "^/"},
+        "bound_before_read": {"const": true}
+      }
+    },
+    "hand_binding": {"allOf": [{"$ref": "#/$defs/binding"}, {"properties": {"authority_kind": {"const": "HAND_ROWS"}}}]},
+    "near_binding": {"allOf": [{"$ref": "#/$defs/binding"}, {"properties": {"authority_kind": {"const": "NEAR_ROWS"}}}]},
+    "random_binding": {"allOf": [{"$ref": "#/$defs/binding"}, {"properties": {"authority_kind": {"const": "RANDOM_SEEDS"}}}]},
+    "physics_binding": {"allOf": [{"$ref": "#/$defs/binding"}, {"properties": {"authority_kind": {"const": "PHYSICS_SEEDS"}}}]},
+    "manifests": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source", "schema", "fixture", "authority", "allowlist"],
+      "properties": {"source": {"$ref": "#/$defs/hash"}, "schema": {"$ref": "#/$defs/hash"}, "fixture": {"$ref": "#/$defs/hash"}, "authority": {"$ref": "#/$defs/hash"}, "allowlist": {"$ref": "#/$defs/hash"}}
+    }
+  }
+}

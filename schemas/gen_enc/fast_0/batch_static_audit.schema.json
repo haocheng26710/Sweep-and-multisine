@@ -1,0 +1,5 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gen_enc_fast_0_batch_static_audit_v1","type":"object","additionalProperties":false,
+  "required":["schema_version","record_kind","batch_id","member_evidence_paths","member_count","failed_slots_retained","claim_ceiling","formal_static_run","final_test_read"],
+  "properties":{"schema_version":{"const":"gen_enc_fast_0_batch_static_audit_v1"},"record_kind":{"const":"PARTIAL_BATCH_STATIC_AUDIT"},"batch_id":{"enum":["B1","B2","B3","B4"]},"member_evidence_paths":{"type":"array","minItems":20,"maxItems":20,"uniqueItems":true},"member_count":{"const":20},"failed_slots_retained":{"const":true},"claim_ceiling":{"const":"STAGED_IDENTITY_AND_TECHNICAL_VALIDITY_ONLY"},"formal_static_run":{"const":true},"final_test_read":{"const":false}}
+}

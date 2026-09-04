@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_count": {
+      "const": 31
+    },
+    "authority_read_count": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "publication_started": {
+      "const": false
+    },
+    "record_kind": {
+      "const": "VERIFIED_STAGING_NON_PUBLICATION"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-06"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_06_verifier_terminal_v1"
+    },
+    "status": {
+      "const": "VERIFIED_RESEALED_AWAITING_PUBLICATION"
+    },
+    "success_terminal_written": {
+      "const": false
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_subject_count": {
+      "const": 27
+    },
+    "verification_subject_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "verification_subject_seal_path": {
+      "const": "VERIFICATION_SUBJECT_SEAL.json"
+    },
+    "verification_subject_seal_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "verified_member_count": {
+      "const": 20
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "status",
+    "authority_read_count",
+    "verified_member_count",
+    "artifact_count",
+    "publication_started",
+    "success_terminal_written",
+    "claim_ceiling",
+    "final_test_read",
+    "verification_subject_seal_path",
+    "verification_subject_seal_sha256",
+    "verification_subject_digest",
+    "verification_subject_count"
+  ],
+  "type": "object"
+}

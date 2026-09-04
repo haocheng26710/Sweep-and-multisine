@@ -1,0 +1,22 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr03_technical_authority_shape_v2",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_kind": "RANDOM_FAMILY_SPEC_EXACT_SHAPE",
+  "formal_values": false,
+  "parameter_order": ["q0", "q90", "q180", "edge_0_90", "edge_0_180", "edge_0_270", "edge_90_180", "edge_90_270", "edge_180_270", "loss_0", "loss_90", "loss_180", "loss_270"],
+  "draw_addressing": {
+    "golden_gamma_hex": "9e3779b97f4a7c15",
+    "parameter_index_origin": 0,
+    "x_expression": "(member_seed+GOLDEN_GAMMA*(index+1)) mod 2^64",
+    "generator": "SPLITMIX64",
+    "one_uniform_per_coordinate": true
+  },
+  "inverse_cdf": {
+    "uniform_interval": "OPEN_0_1",
+    "draw_count": 13,
+    "volume_logit": "-0.12+0.24*u",
+    "edge": {"zero_atom_probability": 0.5, "zero_when": "u<0.5", "positive_branch": "0.2+0.6*(2*u-1)", "same_uniform_for_atom_and_positive_branch": true},
+    "loss": "0.02+0.06*u"
+  },
+  "final_test_read": false
+}

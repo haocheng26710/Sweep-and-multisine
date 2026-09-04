@@ -1,0 +1,106 @@
+{
+  "$id": "gen_enc_fast_b1_repair_08_publication_journal_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "maximum": 30,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "logical_path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "ownership_token": {
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "phase": {
+            "enum": [
+              "INTENT_DURABLE",
+              "REPLACED",
+              "ROLLED_BACK"
+            ]
+          },
+          "source_sha256": {
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "target_absolute": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "temp_absolute": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "logical_path",
+          "source_sha256",
+          "target_absolute",
+          "temp_absolute",
+          "ownership_token",
+          "phase"
+        ],
+        "type": "object"
+      },
+      "maxItems": 31,
+      "type": "array"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "pointer_absolute": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-08"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "run_root_absolute": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_08_publication_journal_v1"
+    },
+    "state": {
+      "enum": [
+        "PUBLISHING",
+        "COMMITTED",
+        "ROLLED_BACK"
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "batch_id",
+    "repair_id",
+    "run_id",
+    "release_sha256",
+    "run_root_absolute",
+    "pointer_absolute",
+    "state",
+    "entries",
+    "final_test_read"
+  ],
+  "type": "object"
+}

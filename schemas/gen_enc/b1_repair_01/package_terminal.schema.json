@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attestation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "commit_pointer_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "honest_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "authority_reads": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "members": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "published": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "authority_reads",
+        "members",
+        "artifacts",
+        "published"
+      ],
+      "type": "object"
+    },
+    "package_terminal_count": {
+      "const": 1
+    },
+    "reason": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_kind": {
+      "enum": [
+        "FAIL_CLOSED",
+        "VERIFIED_SUCCESS"
+      ]
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-01"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_01_package_terminal_v1"
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "status": {
+      "enum": [
+        "TECHNICAL_FAIL_CLOSED",
+        "VERIFIED_SUCCESS"
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "attestation_sha256",
+    "status",
+    "reason",
+    "honest_counts",
+    "commit_pointer_sha256",
+    "package_terminal_count",
+    "claim_ceiling",
+    "final_test_read",
+    "scientific_hypothesis_status"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:artifact-inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifacts",
+    "authorized_target_count",
+    "unlisted_count",
+    "mixed_state",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_artifact_inventory_rev03_v1"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "bytes",
+          "role"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "authorized_target_count": {
+      "const": 92
+    },
+    "unlisted_count": {
+      "const": 0
+    },
+    "mixed_state": {
+      "const": false
+    },
+    "final_test_read": {
+      "const": false
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen artifact_inventory.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

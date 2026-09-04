@@ -1,0 +1,22 @@
+{
+  "schema_version":"gen_enc_2_timing_optimization_benchmark_fixture_v1",
+  "families":[
+    "HAND_DESIGNED/HAND_01.identity.json",
+    "NEAR_INDEPENDENT/NEAR_01.identity.json",
+    "FIXED_SEED_RANDOM_DISORDERED/RANDOM_01.identity.json",
+    "PHYSICS_METAMATERIAL_INSPIRED/PHYSICS_01.identity.json"
+  ],
+  "frequency_start_index":32,
+  "frequency_count":16,
+  "cell_index":37,
+  "repeat_index":1,
+  "nuisance":{"snr_db":30.0,"common_gain_db":1.0,"sensor_independent_gain_db":-1.0,"common_frequency_axis_shift_relative":0.005,"independent_manufacturing_percent":2.0,"batch_correlated_manufacturing_percent":-2.0,"angle_offset_degrees":3.0},
+  "iterations":64,
+  "rtol":1e-12,
+  "atol":1e-12,
+  "minimum_cpu_speedup":2.73,
+  "minimum_wall_speedup":5.54,
+  "formal_preflight":false,
+  "persist_response":false,
+  "final_test_read":false
+}

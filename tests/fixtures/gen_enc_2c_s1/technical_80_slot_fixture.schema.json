@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "addendum_metadata",
+    "identity_class",
+    "families",
+    "formal_input_read_count",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_s1_technical_80_slot_fixture_v1"
+    },
+    "identity_class": {
+      "const": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY"
+    },
+    "families": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "family_id",
+          "algorithm",
+          "parameter_count",
+          "expected_parameter_matrix_sha256",
+          "static_template"
+        ],
+        "properties": {
+          "family_id": {
+            "enum": [
+              "TECHNICAL_FIXTURE_HAND",
+              "TECHNICAL_FIXTURE_NEAR",
+              "TECHNICAL_FIXTURE_RANDOM",
+              "TECHNICAL_FIXTURE_PHYSICS"
+            ]
+          },
+          "algorithm": {
+            "enum": [
+              "LITERAL_FORMULA",
+              "SPLITMIX64",
+              "MIDPOINT_LHS"
+            ]
+          },
+          "parameter_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "expected_parameter_matrix_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "static_template": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "formal_input_read_count": {
+      "const": 0
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "addendum_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_content",
+        "related_legacy_files",
+        "unchanged_content",
+        "evidence_level",
+        "overrides"
+      ],
+      "properties": {
+        "new_content": {
+          "type": "string"
+        },
+        "related_legacy_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unchanged_content": {
+          "type": "string"
+        },
+        "evidence_level": {
+          "const": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY"
+        },
+        "overrides": {
+          "const": false
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr03_technical_authority_shape_v2",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_kind": "RANDOM_SEED_SPLIT_EXACT_SHAPE",
+  "formal_values": false,
+  "random": [910000001, 910000002, 910000003, 910000004, 910000005, 910000006, 910000007, 910000008, 910000009, 910000010, 910000011, 910000012, 910000013, 910000014, 910000015, 910000016, 910000017, 910000018, 910000019, 910000020],
+  "final_test_read": false
+}

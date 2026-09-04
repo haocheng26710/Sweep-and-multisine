@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr02:technical-substitute-authority:v1",
+  "title": "Non-formal algorithmic synthetic authority substitute",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "identity_class", "authority_kind", "member_count",
+    "formal_input_path", "formal_input_sha256", "formal_json_pointer",
+    "contains_formal_rows", "contains_formal_seeds", "authorized_for_formal_use",
+    "algorithmic_configuration", "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr02_technical_substitute_authority_v1"},
+    "identity_class": {"const": "TECHNICAL_SUBSTITUTE_ONLY"},
+    "authority_kind": {"enum": ["HAND_ROWS_SUBSTITUTE", "NEAR_ROWS_SUBSTITUTE", "RANDOM_SEEDS_SUBSTITUTE", "PHYSICS_SEEDS_SUBSTITUTE"]},
+    "member_count": {"const": 20},
+    "formal_input_path": {"type": "null"},
+    "formal_input_sha256": {"type": "null"},
+    "formal_json_pointer": {"type": "null"},
+    "contains_formal_rows": {"const": false},
+    "contains_formal_seeds": {"const": false},
+    "authorized_for_formal_use": {"const": false},
+    "algorithmic_configuration": {
+      "type": "object", "minProperties": 2,
+      "propertyNames": {"not": {"pattern": "^(formal_|rows?$|seeds?$)"}},
+      "additionalProperties": {"type": ["string", "number", "integer", "boolean", "array", "object", "null"]}
+    },
+    "final_test_read": {"const": false}
+  }
+}

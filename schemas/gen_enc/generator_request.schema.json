@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/gen_enc/generator_request.schema.json",
+  "title": "GEN-ENC-2B technical generator request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["object_class", "rev01_spec_sha256", "matched_cost_sha256", "source_bundle_sha256", "technical_operation"],
+  "properties": {
+    "object_class": {"const": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY"},
+    "rev01_spec_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "matched_cost_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_bundle_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "technical_operation": {"enum": ["RANDOM_SENTINEL", "PHYSICS_SENTINEL", "VOLUME_FIXTURE", "ABSTRACT_CAD_FIXTURE", "TABLE_IDENTITY_CHECK"]}
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:family-manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "family_id",
+    "ordered_members",
+    "observed_counts",
+    "family_manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_family_manifest_rev03_v1"
+    },
+    "family_id": {
+      "enum": [
+        "HAND_DESIGNED",
+        "NEAR_INDEPENDENT",
+        "FIXED_SEED_RANDOM_DISORDERED",
+        "PHYSICS_METAMATERIAL_INSPIRED"
+      ]
+    },
+    "ordered_members": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ordinal",
+          "path",
+          "sha256",
+          "status"
+        ],
+        "properties": {
+          "ordinal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "status": {
+            "enum": [
+              "STATIC_IDENTITY_ELIGIBLE",
+              "COST_INELIGIBLE",
+              "GENERATION_TECHNICAL_FAILURE"
+            ]
+          }
+        }
+      }
+    },
+    "observed_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "members",
+        "eligible",
+        "cost_ineligible",
+        "technical_failure"
+      ],
+      "properties": {
+        "members": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "eligible": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "cost_ineligible": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "technical_failure": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        }
+      }
+    },
+    "family_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen family_manifest.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

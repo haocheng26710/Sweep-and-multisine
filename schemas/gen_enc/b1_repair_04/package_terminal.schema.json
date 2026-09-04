@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attestation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "commit_pointer_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_04/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "honest_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "authority_reads": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "members": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "published": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "authority_reads",
+        "members",
+        "artifacts",
+        "published"
+      ],
+      "type": "object"
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "package_terminal_count": {
+      "const": 1
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_04/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_kind": {
+      "enum": [
+        "FAIL_CLOSED",
+        "VERIFIED_SUCCESS"
+      ]
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-04"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_04_package_terminal_v1"
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "status": {
+      "enum": [
+        "TECHNICAL_FAIL_CLOSED",
+        "VERIFIED_SUCCESS"
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "attestation_sha256",
+    "status",
+    "reason",
+    "honest_counts",
+    "commit_pointer_sha256",
+    "package_terminal_count",
+    "claim_ceiling",
+    "final_test_read",
+    "scientific_hypothesis_status",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "mode"
+  ],
+  "type": "object"
+}

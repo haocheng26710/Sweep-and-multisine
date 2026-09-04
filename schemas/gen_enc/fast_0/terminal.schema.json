@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "gen_enc_fast_0_terminal_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "batch_id", "run_id", "task_id", "release_sha256", "allowlist_sha256", "honest_counts", "package_terminal_count", "science", "final_test_read"],
+  "properties": {"schema_version": {"const": "gen_enc_fast_0_terminal_v1"}, "record_kind": {"enum": ["SUCCESS", "FAIL_CLOSED"]}, "batch_id": {"enum": ["B1", "B2", "B3", "B4"]}, "run_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "task_id": {"type": "string"}, "release_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "allowlist_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "honest_counts": {"type": "object"}, "package_terminal_count": {"const": 1}, "science": {"const": "NOT_TESTED"}, "final_test_read": {"const": false}}
+}

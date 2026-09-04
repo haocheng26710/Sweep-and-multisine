@@ -1,0 +1,253 @@
+{
+  "$defs": {
+    "roots": {
+      "additionalProperties": false,
+      "properties": {
+        "failure": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "pointer": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "side_records": {
+          "type": "string"
+        },
+        "staging": {
+          "type": "string"
+        },
+        "success": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "staging",
+        "run",
+        "pointer",
+        "journal",
+        "success",
+        "failure",
+        "side_records"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "gen_enc_fast_b1_repair_06_verification_subject_seal_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attestation_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "authority_allowlist_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/fast_0_authority_batch_contract_freeze/authority_allowlist.json"
+    },
+    "authority_allowlist_sha256": {
+      "const": "49263e3cab9825840284d18a4d628be73d1273bf6940493878bac5da529c958c"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "command_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_06/command_manifest.json"
+    },
+    "command_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commands_exact": {
+      "const": [
+        "preflight",
+        "generate-staging",
+        "verify"
+      ]
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_06/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "guardian_phase_b_attestation_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/authorizations/GEN_ENC_FAST_PHASE_B/GEN_ENC_FAST_B1_PHASE_B_ONE_WAY_ATTESTATION.json"
+    },
+    "guardian_phase_b_authorization_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/authorizations/GEN_ENC_FAST_PHASE_B/GEN_ENC_FAST_B1_PHASE_B_AUTHORIZATION.json"
+    },
+    "guardian_two_phase_contract_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/contracts/GEN_ENC_FAST_B1_B4_TWO_STAGE_POSTERIOR_ANCHOR_CONTRACT.json"
+    },
+    "guardian_two_phase_contract_sha256": {
+      "const": "526d64e67ddbdb6e15ea2fb0a0f0bb84aae4e90a55f3d9bde44237f34c5027c2"
+    },
+    "guardian_two_phase_review_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/reviews/GEN_ENC_FAST_B1_B4_TWO_STAGE_POSTERIOR_ANCHOR_CONTRACT_REVIEW.json"
+    },
+    "guardian_two_phase_review_sha256": {
+      "const": "c3d21497f26744219656b80de1e639027fee48b2c96171f593381926d7220edd"
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "phase_a_commands_exact": {
+      "const": [
+        "preflight",
+        "generate-staging",
+        "verify"
+      ]
+    },
+    "phase_a_dispatch_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "phase_a_dispatch_path": {
+      "const": "control/PHASE_A_DISPATCH_AUTHORIZATION.json"
+    },
+    "phase_a_permissions": {
+      "const": {
+        "generate_staging": true,
+        "independent_verify": true,
+        "package_results": false,
+        "preflight": true,
+        "publish": false,
+        "recover": false
+      }
+    },
+    "phase_b_dispatch_path": {
+      "const": "control/PHASE_B_DISPATCH_AUTHORIZATION.json"
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_06/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "IMMUTABLE_INDEPENDENT_VERIFICATION_SUBJECT_SEAL"
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-06"
+    },
+    "roots": {
+      "$ref": "#/$defs/roots"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_06/schema_manifest.json"
+    },
+    "schema_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_06_verification_subject_seal_v1"
+    },
+    "source_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_06/source_manifest.json"
+    },
+    "source_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "subject_count": {
+      "const": 27
+    },
+    "subject_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "subject_entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 27,
+      "minItems": 27,
+      "type": "array"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_nonce": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "verification_subject_seal_path": {
+      "const": "VERIFICATION_SUBJECT_SEAL.json"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "repair_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "attestation_sha256",
+    "authority_allowlist_sha256",
+    "source_manifest_sha256",
+    "schema_manifest_sha256",
+    "command_manifest_sha256",
+    "commands_exact",
+    "mode",
+    "roots",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "verification_subject_seal_path",
+    "authority_allowlist_path",
+    "guardian_two_phase_contract_path",
+    "guardian_two_phase_contract_sha256",
+    "guardian_two_phase_review_path",
+    "guardian_two_phase_review_sha256",
+    "phase_a_commands_exact",
+    "phase_a_permissions",
+    "phase_a_dispatch_id",
+    "phase_a_dispatch_path",
+    "guardian_phase_b_authorization_path",
+    "guardian_phase_b_attestation_path",
+    "phase_b_dispatch_path",
+    "source_manifest_path",
+    "schema_manifest_path",
+    "command_manifest_path",
+    "record_kind",
+    "subject_count",
+    "subject_entries",
+    "subject_digest",
+    "verification_nonce"
+  ],
+  "type": "object"
+}

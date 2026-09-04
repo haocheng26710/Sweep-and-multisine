@@ -1,0 +1,5 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gen_enc_fast_0_release_side_record_v1","type":"object","additionalProperties":false,
+  "required":["schema_version","state","task_id","batch_id","run_id","release_sha256","attestation_sha256","allowlist_sha256","source_manifest_sha256","schema_manifest_sha256","command","mode","roots","one_use","final_test_read"],
+  "properties":{"schema_version":{"const":"gen_enc_fast_0_release_side_record_v1"},"state":{"enum":["ISSUED","CONSUMED","REVOKED"]},"task_id":{"type":"string"},"batch_id":{"enum":["B1","B2","B3","B4"]},"run_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"release_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"attestation_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"allowlist_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"source_manifest_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"schema_manifest_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"command":{"type":"string"},"mode":{"type":"string"},"roots":{"type":"object"},"one_use":{"const":true},"final_test_read":{"const":false}}
+}

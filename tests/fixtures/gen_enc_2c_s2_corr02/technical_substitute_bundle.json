@@ -1,0 +1,35 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr02_technical_substitute_bundle_v1",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_count": 4,
+  "contains_formal_rows": false,
+  "contains_formal_seeds": false,
+  "authorized_for_formal_use": false,
+  "authorities": [
+    {
+      "authority_kind": "HAND_ROWS_SUBSTITUTE",
+      "path": "tests/fixtures/gen_enc_2c_s2_corr02/hand_rows_substitute.json",
+      "sha256": "2160f63f2284b4bec1854f04418b0dc777b73916a18b0a95b7908e2c7b608628",
+      "schema_path": "schemas/gen_enc/gen_enc_2c_s2_corr02/technical_substitute_authority.schema.json"
+    },
+    {
+      "authority_kind": "NEAR_ROWS_SUBSTITUTE",
+      "path": "tests/fixtures/gen_enc_2c_s2_corr02/near_rows_substitute.json",
+      "sha256": "0ada64d5e61773393d3006c53891a941ffc2fa6f89ee87a509b882a2d1d7cd97",
+      "schema_path": "schemas/gen_enc/gen_enc_2c_s2_corr02/technical_substitute_authority.schema.json"
+    },
+    {
+      "authority_kind": "RANDOM_SEEDS_SUBSTITUTE",
+      "path": "tests/fixtures/gen_enc_2c_s2_corr02/random_seeds_substitute.json",
+      "sha256": "11cf59e7c2aa32201640aa8b5a00440c7251c4a50492e7c92fe129fdf3d974a9",
+      "schema_path": "schemas/gen_enc/gen_enc_2c_s2_corr02/technical_substitute_authority.schema.json"
+    },
+    {
+      "authority_kind": "PHYSICS_SEEDS_SUBSTITUTE",
+      "path": "tests/fixtures/gen_enc_2c_s2_corr02/physics_seeds_substitute.json",
+      "sha256": "9ba8717c581f9a5e00f60065a7ec7d61dcf1ed76670a42460191a5ffd864aeb5",
+      "schema_path": "schemas/gen_enc/gen_enc_2c_s2_corr02/technical_substitute_authority.schema.json"
+    }
+  ],
+  "final_test_read": false
+}

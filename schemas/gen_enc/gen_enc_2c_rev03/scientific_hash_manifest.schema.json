@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:scientific-hash-manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scientific_entries",
+    "authority_entries",
+    "runtime_binding",
+    "identity_index_sha256",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_scientific_hash_manifest_rev03_v1"
+    },
+    "scientific_entries": {
+      "type": "array",
+      "minItems": 85,
+      "maxItems": 85,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "authority_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "runtime_binding": {
+      "type": "object"
+    },
+    "identity_index_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "final_test_read": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen scientific_hash_manifest.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

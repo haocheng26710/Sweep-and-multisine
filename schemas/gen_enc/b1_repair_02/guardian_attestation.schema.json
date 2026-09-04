@@ -1,0 +1,82 @@
+{
+  "$id": "gen_enc_fast_b1_repair_02_guardian_attestation_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "one_use": {
+      "const": true
+    },
+    "one_way": {
+      "const": true
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "GUARDIAN_ONE_WAY_ATTESTATION"
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-02"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_02_guardian_attestation_v1"
+    },
+    "scope": {
+      "const": "FAST_B1_EXACT_20_IDENTITY_COMPLETE_CAD_STATIC_AND_BATCH_LOCAL_PUBLICATION_ONLY"
+    },
+    "signed_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "task_id",
+    "repair_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "one_way",
+    "one_use",
+    "scope",
+    "signed_at",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256"
+  ],
+  "type": "object"
+}

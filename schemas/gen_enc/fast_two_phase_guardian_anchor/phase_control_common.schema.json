@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gen_enc_fast_b1_b4_two_phase_control_common_v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["task_id", "batch_id", "run_id", "mode", "roots", "final_test_read"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "batch_id": {"enum": ["B1", "B2", "B3", "B4"]},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "mode": {"pattern": "^FORMAL_B[1-4]_EXACT_20_TYPED_CAD$"},
+    "roots": {"type": "object"},
+    "final_test_read": {"const": false}
+  }
+}

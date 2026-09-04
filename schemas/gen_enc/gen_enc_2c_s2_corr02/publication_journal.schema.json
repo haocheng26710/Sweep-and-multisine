@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr02:publication-journal:v1",
+  "title": "Run-owned exact-publication crash-recovery journal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "transaction_id", "run_id", "attempt", "state",
+    "allowlist_path", "allowlist_sha256", "ordered_target_count", "platform_contract",
+    "owned_temp_inventory", "published_inventory", "recovery_action", "terminal_written"
+  ],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr02_publication_journal_v1"},
+    "transaction_id": {"type": "string", "pattern": "^tx-s2-corr02-[0-9a-f]{64}-[0-9]+$"},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "state": {"enum": ["PREPARED", "PUBLISHING", "COMMITTED", "ROLLED_BACK"]},
+    "allowlist_path": {"type": "string", "minLength": 1},
+    "allowlist_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ordered_target_count": {"const": 92},
+    "platform_contract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["platform", "same_volume_replace", "cross_directory_progress", "directory_fsync_required", "unsupported_semantics_fail_closed"],
+      "properties": {
+        "platform": {"const": "WINDOWS"},
+        "same_volume_replace": {"const": "TEMP_AND_TARGET_MUST_SHARE_VOLUME_AT_REPLACE"},
+        "cross_directory_progress": {"const": "SEPARATE_TRANSACTION_STEP_WITH_ROLLBACK"},
+        "directory_fsync_required": {"const": false},
+        "unsupported_semantics_fail_closed": {"const": true}
+      }
+    },
+    "owned_temp_inventory": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "s2-corr02-[0-9a-f]{64}"}},
+    "published_inventory": {"type": "array", "maxItems": 92, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "recovery_action": {"enum": ["NONE", "ROLLBACK_PREPARED", "ROLLBACK_PUBLISHING", "COMPLETE_COMMITTED", "ROLLBACK_COMPLETE"]},
+    "terminal_written": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"const": "ROLLED_BACK"}}, "required": ["state"]},
+      "then": {"properties": {"published_inventory": {"maxItems": 0}, "recovery_action": {"const": "ROLLBACK_COMPLETE"}, "terminal_written": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"state": {"const": "COMMITTED"}}, "required": ["state"]},
+      "then": {"properties": {"published_inventory": {"minItems": 92, "maxItems": 92}, "recovery_action": {"const": "COMPLETE_COMMITTED"}, "terminal_written": {"const": true}}}
+    }
+  ]
+}

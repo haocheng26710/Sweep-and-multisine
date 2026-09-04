@@ -1,0 +1,14 @@
+{
+  "schema_version": "gen_enc_2b_expected_bisection_cases_v1",
+  "object_class": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY",
+  "frozen_before_test_execution": true,
+  "cases": [
+    {"id":"EXACT_MIDPOINT_TIE","function":"IDENTITY","lower":0.0,"upper":1.0,"target":0.5,"tolerance":1e-12,"max_iterations":80,"expected_status":"PASS","expected_value":0.5,"expected_iterations":1},
+    {"id":"DETERMINISTIC_NON_TIE","function":"SQUARE","lower":0.0,"upper":2.0,"target":2.0,"tolerance":1e-12,"max_iterations":80,"expected_status":"PASS","expected_value":1.4142135623733338,"expected_iterations":39,"value_tolerance":1e-12},
+    {"id":"NO_BRACKETED_ROOT","function":"IDENTITY","lower":0.0,"upper":1.0,"target":2.0,"tolerance":1e-12,"max_iterations":80,"expected_status":"FAIL_NO_BRACKETED_ROOT"},
+    {"id":"NONFINITE_ENDPOINT","function":"NONFINITE_UPPER","lower":0.0,"upper":1.0,"target":0.5,"tolerance":1e-12,"max_iterations":80,"expected_status":"FAIL_NONFINITE"},
+    {"id":"ITERATION_EXHAUSTION","function":"SQUARE","lower":0.0,"upper":2.0,"target":2.0,"tolerance":1e-30,"max_iterations":1,"expected_status":"FAIL_MAX_ITERATIONS"}
+  ],
+  "tie_rule": "RETURN_EXACT_MIDPOINT_AS_LOWER_SIDE_TIE_VALUE_WITHOUT_SELECTING_UPPER_INTERVAL",
+  "final_test_read": false
+}

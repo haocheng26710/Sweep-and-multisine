@@ -1,0 +1,5 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gen_enc_fast_0_atomic_commit_pointer_v1","type":"object","additionalProperties":false,
+  "required":["schema_version","batch_id","run_id","immutable_run_directory","batch_index_sha256","sha256sums_sha256","verification_sha256","release_side_record_sha256","atomic","final_endpoint","final_test_read"],
+  "properties":{"schema_version":{"const":"gen_enc_fast_0_atomic_commit_pointer_v1"},"batch_id":{"enum":["B1","B2","B3","B4"]},"run_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"immutable_run_directory":{"type":"string"},"batch_index_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"sha256sums_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"verification_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"release_side_record_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"atomic":{"const":true},"final_endpoint":{"const":false},"final_test_read":{"const":false}}
+}

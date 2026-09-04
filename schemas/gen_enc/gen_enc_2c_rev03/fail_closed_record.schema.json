@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:fail-closed-record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_kind",
+    "task_id",
+    "error_code",
+    "observed_counts",
+    "evidence_level",
+    "scientific_hypothesis_status",
+    "formal_instance_count",
+    "static_eligibility_run_count",
+    "formal_hashes",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_fail_closed_record_rev03_s1_v1"
+    },
+    "record_kind": {
+      "const": "TECHNICAL_FAIL_CLOSED"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "error_code": {
+      "type": "string"
+    },
+    "observed_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "evidence_level": {
+      "const": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY"
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "formal_instance_count": {
+      "const": 0
+    },
+    "static_eligibility_run_count": {
+      "const": 0
+    },
+    "formal_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member",
+        "family",
+        "index"
+      ],
+      "properties": {
+        "member": {
+          "type": "null"
+        },
+        "family": {
+          "type": "null"
+        },
+        "index": {
+          "type": "null"
+        }
+      }
+    },
+    "final_test_read": {
+      "const": false
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen fail_closed_record.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

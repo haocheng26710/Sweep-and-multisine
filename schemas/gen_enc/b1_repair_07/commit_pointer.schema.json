@@ -1,0 +1,102 @@
+{
+  "$id": "gen_enc_fast_b1_repair_07_commit_pointer_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_count": {
+      "const": 31
+    },
+    "atomic": {
+      "const": true
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "batch_index_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_07/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_endpoint": {
+      "const": false
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "immutable_run_directory": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_07/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "ATOMIC_B1_COMMIT_POINTER"
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-07"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_07_commit_pointer_v1"
+    },
+    "sha256sums_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "task_id",
+    "repair_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "immutable_run_directory",
+    "batch_index_sha256",
+    "sha256sums_sha256",
+    "verification_sha256",
+    "artifact_count",
+    "atomic",
+    "final_endpoint",
+    "claim_ceiling",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "mode"
+  ],
+  "type": "object"
+}

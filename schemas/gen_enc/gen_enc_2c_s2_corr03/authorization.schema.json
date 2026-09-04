@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr03:authorization:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["payload", "payload_sha256"],
+  "properties": {
+    "payload_sha256": {"$ref": "#/$defs/hash"},
+    "payload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_kind", "task_id", "dispatch_id", "attempt", "issued_at", "expires_at", "expired", "revoked", "consumed", "reusable", "draft_promoted", "guardian_approval_path", "guardian_approval_sha256", "contract_path", "contract_sha256", "attestation_path", "attestation_schema_path", "attestation_schema_sha256", "manifest_sha256", "terminal_root_bases", "formal_authorities", "permissions", "requested_scope", "commands", "modes", "run_id", "final_test_state", "final_test_read"],
+      "properties": {
+        "schema_version": {"const": "gen_enc_2c_s2_corr03_authorization_v1"},
+        "record_kind": {"enum": ["DRAFT", "RELEASE"]},
+        "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"},
+        "dispatch_id": {"type": "string"},
+        "attempt": {"type": "integer", "minimum": 0},
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "expired": {"type": "boolean"}, "revoked": {"type": "boolean"}, "consumed": {"type": "boolean"},
+        "reusable": {"type": "boolean"}, "draft_promoted": {"type": "boolean"},
+        "guardian_approval_path": {"type": ["string", "null"]},
+        "guardian_approval_sha256": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+        "contract_path": {"type": ["string", "null"]},
+        "contract_sha256": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+        "attestation_path": {"type": ["string", "null"]},
+        "attestation_schema_path": {"type": ["string", "null"]},
+        "attestation_schema_sha256": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+        "manifest_sha256": {"$ref": "#/$defs/manifests_nullable"},
+        "terminal_root_bases": {"$ref": "#/$defs/roots_nullable"},
+        "formal_authorities": {"anyOf": [{"$ref": "#/$defs/formal_authorities"}, {"type": "null"}]},
+        "permissions": {"$ref": "#/$defs/permissions"},
+        "requested_scope": {"type": "object", "additionalProperties": false, "required": ["authoritative", "scope"], "properties": {"authoritative": {"type": "boolean"}, "scope": {"const": "S2_GENERATE_VERIFY_RESEAL_PUBLISH_ONLY"}}},
+        "commands": {"type": "array", "uniqueItems": true, "items": {"enum": ["generate-staging", "independent-verify-reseal", "publish", "recover", "package-results"]}},
+        "modes": {"type": "array", "uniqueItems": true, "items": {"enum": ["S2_FORMAL_GENERATION", "S2_INDEPENDENT_VERIFICATION_RESEAL", "S2_VERIFIED_PUBLICATION", "S2_SAFE_RECOVERY"]}},
+        "run_id": {"type": "null"},
+        "final_test_state": {"const": "SEALED"},
+        "final_test_read": {"const": false}
+      },
+      "allOf": [
+        {"if": {"properties": {"record_kind": {"const": "DRAFT"}}, "required": ["record_kind"]}, "then": {"properties": {
+          "dispatch_id": {"pattern": "^GEN-ENC-2C-S2-CORR03-DRAFT-[A-Z0-9-]+$"}, "attempt": {"const": 0}, "expired": {"const": true}, "revoked": {"const": false}, "consumed": {"const": false}, "reusable": {"const": false}, "draft_promoted": {"const": false},
+          "guardian_approval_path": {"type": "null"}, "guardian_approval_sha256": {"type": "null"}, "contract_path": {"type": "null"}, "contract_sha256": {"type": "null"}, "attestation_path": {"type": "null"}, "attestation_schema_path": {"type": "null"}, "attestation_schema_sha256": {"type": "null"},
+          "manifest_sha256": {"const": {"source": null, "schema": null, "fixture": null, "authority": null, "allowlist": null}},
+          "terminal_root_bases": {"const": {"staging": null, "success": null, "failure": null, "temp": null, "journal": null}},
+          "formal_authorities": {"type": "null"},
+          "permissions": {"const": {"s2_formal_generation_and_static_audit": false, "timing": false, "response": false, "endpoint": false, "comparison": false, "ranking": false, "selection": false, "optimization": false, "simulation": false, "comsol": false, "full_wave": false, "physical_experiment": false, "development_read": false, "validation_read": false, "final_test_read": false, "gen_enc_2": false}},
+          "requested_scope": {"properties": {"authoritative": {"const": false}}}, "commands": {"maxItems": 0}, "modes": {"maxItems": 0}
+        }}},
+        {"if": {"properties": {"record_kind": {"const": "RELEASE"}}, "required": ["record_kind"]}, "then": {"properties": {
+          "dispatch_id": {"pattern": "^GEN-ENC-2C-S2-CORR03-RELEASE-[A-Z0-9-]+$"}, "attempt": {"minimum": 1}, "expired": {"const": false}, "revoked": {"const": false}, "reusable": {"const": false}, "draft_promoted": {"const": false},
+          "guardian_approval_path": {"type": "string", "pattern": "GEN_ENC_2C_S2_CORR03.*REVIEW\\.json$"}, "guardian_approval_sha256": {"$ref": "#/$defs/hash"}, "contract_path": {"type": "string", "minLength": 1}, "contract_sha256": {"$ref": "#/$defs/hash"}, "attestation_path": {"type": "string", "minLength": 1}, "attestation_schema_path": {"const": "schemas/gen_enc/gen_enc_2c_s2_corr03/guardian_attestation.schema.json"}, "attestation_schema_sha256": {"$ref": "#/$defs/hash"},
+          "manifest_sha256": {"$ref": "#/$defs/manifests"}, "terminal_root_bases": {"$ref": "#/$defs/roots"}, "formal_authorities": {"$ref": "#/$defs/formal_authorities"},
+          "permissions": {"const": {"s2_formal_generation_and_static_audit": true, "timing": false, "response": false, "endpoint": false, "comparison": false, "ranking": false, "selection": false, "optimization": false, "simulation": false, "comsol": false, "full_wave": false, "physical_experiment": false, "development_read": false, "validation_read": false, "final_test_read": false, "gen_enc_2": false}},
+          "requested_scope": {"properties": {"authoritative": {"const": true}}}, "commands": {"const": ["generate-staging", "independent-verify-reseal", "publish", "recover", "package-results"]}, "modes": {"const": ["S2_FORMAL_GENERATION", "S2_INDEPENDENT_VERIFICATION_RESEAL", "S2_VERIFIED_PUBLICATION", "S2_SAFE_RECOVERY"]}
+        }}}
+      ]
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "manifests_nullable": {"type": "object", "additionalProperties": false, "required": ["source", "schema", "fixture", "authority", "allowlist"], "properties": {"source": {}, "schema": {}, "fixture": {}, "authority": {}, "allowlist": {}}},
+    "manifests": {"type": "object", "additionalProperties": false, "required": ["source", "schema", "fixture", "authority", "allowlist"], "properties": {"source": {"$ref": "#/$defs/hash"}, "schema": {"$ref": "#/$defs/hash"}, "fixture": {"$ref": "#/$defs/hash"}, "authority": {"$ref": "#/$defs/hash"}, "allowlist": {"$ref": "#/$defs/hash"}}},
+    "roots_nullable": {"type": "object", "additionalProperties": false, "required": ["staging", "success", "failure", "temp", "journal"], "properties": {"staging": {}, "success": {}, "failure": {}, "temp": {}, "journal": {}}},
+    "roots": {"type": "object", "additionalProperties": false, "required": ["staging", "success", "failure", "temp", "journal"], "properties": {"staging": {"type": "string", "minLength": 1}, "success": {"type": "string", "minLength": 1}, "failure": {"type": "string", "minLength": 1}, "temp": {"type": "string", "minLength": 1}, "journal": {"type": "string", "minLength": 1}}},
+    "binding": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "pointer"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/hash"}, "pointer": {"type": "string", "pattern": "^/"}}},
+    "formal_authorities": {"type": "object", "additionalProperties": false, "required": ["HAND_DESIGNED", "NEAR_INDEPENDENT", "FIXED_SEED_RANDOM_DISORDERED", "PHYSICS_METAMATERIAL_INSPIRED", "CAD0_MAPPING"], "properties": {"HAND_DESIGNED": {"$ref": "#/$defs/binding"}, "NEAR_INDEPENDENT": {"$ref": "#/$defs/binding"}, "FIXED_SEED_RANDOM_DISORDERED": {"type": "object", "additionalProperties": false, "required": ["spec", "seed_split"], "properties": {"spec": {"$ref": "#/$defs/binding"}, "seed_split": {"$ref": "#/$defs/binding"}}}, "PHYSICS_METAMATERIAL_INSPIRED": {"$ref": "#/$defs/binding"}, "CAD0_MAPPING": {"$ref": "#/$defs/binding"}}},
+    "permissions": {"type": "object", "additionalProperties": false, "required": ["s2_formal_generation_and_static_audit", "timing", "response", "endpoint", "comparison", "ranking", "selection", "optimization", "simulation", "comsol", "full_wave", "physical_experiment", "development_read", "validation_read", "final_test_read", "gen_enc_2"], "properties": {"s2_formal_generation_and_static_audit": {"type": "boolean"}, "timing": {"type": "boolean"}, "response": {"type": "boolean"}, "endpoint": {"type": "boolean"}, "comparison": {"type": "boolean"}, "ranking": {"type": "boolean"}, "selection": {"type": "boolean"}, "optimization": {"type": "boolean"}, "simulation": {"type": "boolean"}, "comsol": {"type": "boolean"}, "full_wave": {"type": "boolean"}, "physical_experiment": {"type": "boolean"}, "development_read": {"type": "boolean"}, "validation_read": {"type": "boolean"}, "final_test_read": {"type": "boolean"}, "gen_enc_2": {"type": "boolean"}}}
+  }
+}

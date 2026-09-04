@@ -1,0 +1,9 @@
+# GEN-ENC FAST B1 PRE-RELEASE-REPAIR-07
+
+This additive freeze closes the two signing blockers in Advisor-B review SHA256 `4e6194faa10f65de6b377f4389624c9025a61b46204195bc82ac9057bed0ac3f`. The actual uniquely hash-matched review path is `outputs/governance/RESEARCH_ADVANCEMENT_SCOPE_INTEGRITY_ADVISOR/reviews/GEN_ENC_FAST_B1_PRE_RELEASE_REPAIR_06_TWO_PHASE_MECHANICAL_SPLIT_CONFORMANCE_REVIEW.json`; the delegated shorter filename was absent. The corresponding ledger SHA256 is `b5348e4c4b6f09b97d03766ad83569e6f671fa64b4e08de095e35c1bc4c3b5c7`.
+
+Phase-B authorization, attestation, dispatch, and consumed records strictly bind the claim ceiling, verification subject count 27, exact Phase-A release/attestation/handoff paths and hashes, handoff digest, terminal state, 31-artifact graph, subject seal/digest, independent report, verifier terminal, guardian contract/review four fields, task/batch/run/roots/mode, and the exact three Phase-A commands and argv. Runtime checks recompute the canonical handoff digest and reject coherent path re-anchoring before subject or publication-target access.
+
+A schema-valid Phase-A FAIL_CLOSED terminal is permanent for its run and dispatch. Preflight, generation, verification, seal creation, and handoff creation cannot resume on that run. Phase B rejects Phase-A failure or mixed handoff/failure before publication. A caught Phase-B post-copy error is settled by ownership-checked rollback to zero run files and zero pointer with one honest Phase-B failure terminal; crash recovery retains the previously frozen PUBLISHING/COMMITTED rules.
+
+This package contains technical contracts and technical-mirror tests only. It creates no formal Phase-A or Phase-B control bytes, reads no formal authority, performs no formal identity/static/publication work, and leaves `final_test_read=false`.

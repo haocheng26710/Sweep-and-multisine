@@ -1,0 +1,20 @@
+{
+  "schema_version": "gen_enc_2b_expected_canonical_bytes_v1",
+  "object_class": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY",
+  "frozen_before_test_execution": true,
+  "input_object": {
+    "b": 1,
+    "a": [3, 2, 1]
+  },
+  "authoritative_utf8_text": "{\"a\":[3,2,1],\"b\":1}",
+  "authoritative_utf8_byte_length": 19,
+  "authoritative_sha256": "3ce2bce0ad5f581d642ebf7b59c400e6f60fa4416e9fb08e3061bb0a35f6fb2b",
+  "phase_a_literal_typo": {
+    "incorrect_value": 21,
+    "corrected_value": 19,
+    "classification": "CORRECTED_LITERAL_TYPO_NO_CANONICALIZATION_CHANGE"
+  },
+  "newline_allowed": false,
+  "bom_allowed": false,
+  "final_test_read": false
+}

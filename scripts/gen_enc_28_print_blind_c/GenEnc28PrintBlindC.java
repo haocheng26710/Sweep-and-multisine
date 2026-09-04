@@ -1,0 +1,26 @@
+import com.comsol.model.*;
+import com.comsol.model.util.*;
+import java.util.*;
+
+public class GenEnc28PrintBlindC {
+  static final String ROOT="D:/Bristol course/dissertation/program work/";
+  static final String BASE=ROOT+"outputs/gen_enc/GEN_ENC_9_LOSS_3D_BRIDGE/NEAR_01_lossy3d_eta0p02_size1.mph";
+  static final String OUT=ROOT+"scripts/gen_enc_28_print_blind_c/run_output/";
+  static final double AREA=8e-6,EFFECTIVE_LENGTH=.012,HALF=.0362053299278368/2,THICKNESS=.0092;
+  static double volume(double f){return AREA*343*343/(EFFECTIVE_LENGTH*Math.pow(2*Math.PI*f,2));}
+  static String geometry(Model model,double target,double length,boolean resonator){
+    GeomSequence g=model.component("comp1").geom("geom1");double v=volume(target),side=Math.sqrt(v/(4*THICKNESS));String[] tags={"bc_ne","bc_nw","bc_sw","bc_se"};
+    double[][] pos={{HALF-side,HALF-side,0},{-HALF,HALF-side,0},{-HALF,-HALF,0},{HALF-side,-HALF,0}};
+    for(int i=0;i<4;i++){g.feature().create(tags[i],"Block");g.feature(tags[i]).set("size",new double[]{side,side,THICKNESS});g.feature(tags[i]).set("pos",pos[i]);}
+    g.feature().create("bc_plenum","Difference");g.feature("bc_plenum").selection("input").set(new String[]{"plenum"});g.feature("bc_plenum").selection("input2").set(tags);g.feature("bc_plenum").set("selresult","on");
+    if(resonator){g.feature().create("bc_neck","Block");g.feature("bc_neck").set("size",new double[]{.002,.004,length});g.feature("bc_neck").set("pos",new double[]{.011,-.002,THICKNESS});g.feature("bc_neck").set("selresult","on");
+      g.feature().create("bc_cavity","Block");g.feature("bc_cavity").set("size",new double[]{.017,.017,v/(.017*.017)});g.feature("bc_cavity").set("pos",new double[]{.0035,-.0085,THICKNESS+length});g.feature("bc_cavity").set("selresult","on");}
+    g.run();if(HALF-side-.001<.002)throw new RuntimeException("CLEARANCE_FAILURE");return resonator?"geom1_bc_neck_dom":"";
+  }
+  static void ports(Model m){ModelNode c=m.component("comp1");String[] p={"nv0","nv90","nv180","nv270"},s={"port0_face","port90_face","port180_face","port270_face"};for(int i=0;i<4;i++){c.physics("acpr").feature(p[i]).selection().named(s[i]);if(c.selection(s[i]).entities(2).length!=1)throw new RuntimeException("PORT_FAILURE");}}
+  static void nra(Model m,String neck){ModelNode c=m.component("comp1");c.physics("acpr").feature().create("bc_nra","NarrowRegionAcousticsModel",3);c.physics("acpr").feature("bc_nra").selection().named(neck);c.physics("acpr").feature("bc_nra").set("DuctType","RectangularDuct");c.physics("acpr").feature("bc_nra").set("a_rect","2[mm]");c.physics("acpr").feature("bc_nra").set("b_rect","4[mm]");c.physics("acpr").feature("bc_nra").set("rho_mat","userdef");c.physics("acpr").feature("bc_nra").set("rho","1.204[kg/m^3]");c.physics("acpr").feature("bc_nra").set("c_mat","userdef");c.physics("acpr").feature("bc_nra").set("c","343[m/s]");c.physics("acpr").feature("bc_nra").set("mu_mat","userdef");c.physics("acpr").feature("bc_nra").set("mu","1.814e-5[Pa*s]");c.physics("acpr").feature("bc_nra").set("kcond_mat","userdef");c.physics("acpr").feature("bc_nra").set("kcond",".0257[W/(m*K)]");c.physics("acpr").feature("bc_nra").set("Cp_mat","userdef");c.physics("acpr").feature("bc_nra").set("Cp","1005[J/(kg*K)]");c.physics("acpr").feature("bc_nra").set("gamma_mat","userdef");c.physics("acpr").feature("bc_nra").set("gamma","1.4");}
+  static void run(String label,double target,boolean resonator,int size,int[] sources)throws Exception{
+    Model m=ModelUtil.load("m_"+label+size,BASE);String neck=geometry(m,target,.009,resonator);ports(m);if(resonator)nra(m,neck);MeshSequence mesh=m.component("comp1").mesh("mesh1");mesh.feature("size").set("hauto",Integer.toString(size));mesh.run();m.study("std1").feature("step1").set("plist",String.format(Locale.US,"range(%.0f,2,%.0f)",target-130,target+130));try{m.result().dataset().remove("bc_cpt");}catch(Exception ignored){}try{m.result().export().remove("bc_data");}catch(Exception ignored){}m.result().dataset().create("bc_cpt","CutPoint3D");m.result().dataset("bc_cpt").set("pointx",new double[]{0});m.result().dataset("bc_cpt").set("pointy",new double[]{0});m.result().dataset("bc_cpt").set("pointz",new double[]{THICKNESS/2});m.result().export().create("bc_data","Data");m.result().export("bc_data").set("data","bc_cpt");m.result().export("bc_data").set("expr",new String[]{"p"});System.out.printf(Locale.US,"AUDIT %s target=%.0f mesh=%d elements=%d sources=%s%n",label,target,size,mesh.getNumElem(),Arrays.toString(sources));for(int source:sources){m.param().set("src_state",Integer.toString(source));m.study("std1").run();m.result().export("bc_data").set("filename",OUT+label+"_size"+size+"_src"+source+".txt");m.result().export("bc_data").run();}m.save(OUT+label+"_size"+size+".mph");ModelUtil.remove("m_"+label+size);
+  }
+  public static void main(String[] args)throws Exception{ModelUtil.initStandalone(true);if(args!=null&&args.length>0&&args[0].equals("adaptive")){run("BLIND_L0900_A04",1050,true,1,new int[]{0,1,2});run("BLIND_L0900_A06",850,true,1,new int[]{0});return;}int[] all={0,1,2,3};for(double target:new double[]{1050,850}){String a=target==1050?"A04":"A06";run("BLIND_L0900_"+a,target,true,3,all);run("BLIND_CONTROL_"+a,target,false,2,all);run("BLIND_L0900_"+a,target,true,2,all);}}
+}

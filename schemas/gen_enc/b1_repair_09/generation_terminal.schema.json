@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_count": {
+      "const": 29
+    },
+    "authority_read_count": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "member_count": {
+      "const": 20
+    },
+    "publication_started": {
+      "const": false
+    },
+    "record_kind": {
+      "const": "GENERATION_STAGED_NON_SUCCESS"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-09"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_09_generation_terminal_v1"
+    },
+    "status": {
+      "const": "AWAITING_INDEPENDENT_VERIFICATION"
+    },
+    "success_eligible": {
+      "const": false
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "status",
+    "authority_read_count",
+    "member_count",
+    "artifact_count",
+    "success_eligible",
+    "publication_started",
+    "claim_ceiling",
+    "final_test_read"
+  ],
+  "type": "object"
+}

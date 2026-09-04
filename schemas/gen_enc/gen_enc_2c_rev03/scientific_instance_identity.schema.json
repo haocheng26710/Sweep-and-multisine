@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:scientific-instance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "member_id",
+    "family_id",
+    "global_ordinal",
+    "status",
+    "input_provenance",
+    "parameters",
+    "cad_static_audit",
+    "member_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_scientific_instance_rev03_v1"
+    },
+    "member_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*_[0-9]{2}$"
+    },
+    "family_id": {
+      "enum": [
+        "HAND_DESIGNED",
+        "NEAR_INDEPENDENT",
+        "FIXED_SEED_RANDOM_DISORDERED",
+        "PHYSICS_METAMATERIAL_INSPIRED"
+      ]
+    },
+    "global_ordinal": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 80
+    },
+    "status": {
+      "enum": [
+        "STATIC_IDENTITY_ELIGIBLE",
+        "COST_INELIGIBLE",
+        "GENERATION_TECHNICAL_FAILURE"
+      ]
+    },
+    "input_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "authority_path",
+        "authority_sha256",
+        "pointer_or_seed_binding"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "EXACT_ROW",
+            "FIXED_SEED",
+            "MIDPOINT_LHS"
+          ]
+        },
+        "authority_path": {
+          "type": "string"
+        },
+        "authority_sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "pointer_or_seed_binding": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "cad_static_audit": {
+      "$ref": "#/$defs/audit"
+    },
+    "member_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/hash"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounds_pass",
+        "dof",
+        "volume_m3",
+        "envelope_m",
+        "interface_identity",
+        "actual_fluid_component_count",
+        "minimum_feature_m",
+        "solid_load_path_m"
+      ],
+      "properties": {
+        "bounds_pass": {
+          "type": "boolean"
+        },
+        "dof": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "volume_m3": {
+          "type": "number"
+        },
+        "envelope_m": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "items": false
+        },
+        "interface_identity": {
+          "const": "U4_CARDINAL_4PORT_CENTRAL_M1_v1"
+        },
+        "actual_fluid_component_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_feature_m": {
+          "type": "number"
+        },
+        "solid_load_path_m": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen scientific_instance_identity.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

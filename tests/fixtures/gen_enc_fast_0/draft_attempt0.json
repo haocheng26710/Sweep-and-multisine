@@ -1,0 +1,1 @@
+{"schema_version":"gen_enc_fast_0_authorization_v1","record_kind":"DRAFT","authoritative":false,"attempt":0,"run_id":null,"permissions":{"authority_inspection_read":false,"formal_identity_generation":false,"static_eligibility_run":false,"formal_batch_publication":false,"simulation":false,"timing":false,"response":false,"final_test_read":false},"mutable_or_promotable":false}

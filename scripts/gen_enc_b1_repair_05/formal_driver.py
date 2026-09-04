@@ -1,0 +1,549 @@
+"""Standalone repair-05 driver: typed CAD values mechanically determine witnesses."""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from scripts.gen_enc_b1_repair_05 import cad_projection_driver as cad
+import jsonschema
+
+from scripts.gen_enc_b1_repair_05.primitives import atomic_json, canonical, pointer, read_canonical, sha_bytes, sha_file, sha_value
+
+TASK_ID="01a049a7-15ca-79e1-92a2-d3822ba8609d";BATCH_ID="B1";REPAIR="PRE-RELEASE-REPAIR-05"
+FAMILIES=("HAND_DESIGNED","NEAR_INDEPENDENT","FIXED_SEED_RANDOM_DISORDERED","PHYSICS_METAMATERIAL_INSPIRED")
+PREFIX=dict(zip(FAMILIES,("HAND","NEAR","RANDOM","PHYSICS")));SECTORS=("0","90","180","270")
+RANDOM_AXES=("q0","q90","q180","edge_0_90","edge_0_180","edge_0_270","edge_90_180","edge_90_270","edge_180_270","loss_0","loss_90","loss_180","loss_270")
+PHYSICS_AXES=("q0","q90","q180","external_0","external_90","external_180","external_270","ring_0_90","ring_90_180","ring_180_270","ring_270_0","loss_0","loss_90","loss_180","loss_270")
+CLAIM="BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY";MASK=(1<<64)-1;GAMMA=0x9E3779B97F4A7C15
+RUN_DOMAIN=b"GEN-ENC-FAST-B1-PRE-RELEASE-REPAIR-05-RUN-ID-v1"
+PROJECTION_PATH="outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/cad_typed_projection_contract.json"
+DEPENDENCY_PATH="outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/cad_leaf_dependency_matrix.json"
+SUBJECT_SEAL_PATH="VERIFICATION_SUBJECT_SEAL.json"
+MODE="FORMAL_B1_EXACT_20_TYPED_CAD";COMMANDS=("preflight","generate-staging","verify","publish","recover","package-results")
+
+
+class Repair05Error(RuntimeError):pass
+
+
+def derive_run_id(release:Mapping[str,Any])->str:
+    clone=dict(release);clone["run_id"]="0"*64
+    if "roots" in clone:clone["roots"]=exact_roots("0"*64,clone.get("record_kind")=="TECHNICAL_MIRROR_RELEASE")
+    return sha_bytes(RUN_DOMAIN+b"\n"+canonical(clone))
+
+
+def _mix(x:int)->int:
+    z=(x+GAMMA)&MASK;z=((z^(z>>30))*0xBF58476D1CE4E5B9)&MASK;z=((z^(z>>27))*0x94D049BB133111EB)&MASK
+    return (z^(z>>31))&MASK
+
+
+def _uniform(seed:int,index:int)->float:
+    value=((_mix((seed+GAMMA*(index+1))&MASK)>>11)+.5)/(1<<53)
+    return math.nextafter(1.0,0.0) if value==1 else value
+
+
+def _permutation(seed:int,index:int)->list[int]:
+    result=list(range(20))
+    for i in range(19,0,-1):
+        j=_mix((seed+GAMMA*(1+32*index+19-i))&MASK)%(i+1);result[i],result[j]=result[j],result[i]
+    return result
+
+
+def _groups(spec:Mapping[str,Any],axes:Sequence[str],names:Sequence[str])->dict[str,tuple[float,float]]:
+    if tuple(spec.get("parameter_order",()))!=tuple(axes) or spec.get("member_count")!=20 or spec.get("dof")!=len(axes):raise Repair05Error("SPEC_AXES")
+    result={}
+    for item,name in zip(spec.get("parameters",[]),names):
+        if set(item)!={"group","axes","bounds"} or item["group"]!=name or len(item["bounds"])!=2:raise Repair05Error("SPEC_GROUP")
+        lo,hi=map(float,item["bounds"])
+        if not lo<hi:raise Repair05Error("SPEC_BOUND")
+        for axis in item["axes"]:
+            if axis in result:raise Repair05Error("DUP_AXIS")
+            result[axis]=(lo,hi)
+    if tuple(result)!=tuple(axes):raise Repair05Error("GROUP_AXIS_ORDER")
+    return result
+
+
+def parameters(objects:Mapping[str,Any],family:str,ordinal:int)->dict[str,float]:
+    if family in FAMILIES[:2]:
+        row=objects["HAND_ROWS" if family==FAMILIES[0] else "NEAR_ROWS"][ordinal-1]
+        result={"q0":float(row["volume_logit_0"]),"q90":float(row["volume_logit_90"]),"q180":float(row["volume_logit_180"]),"q270":float(row["derived_volume_logit_270"]),**{f"external_{s}":float(row[f"external_aperture_fraction_{s}"]) for s in SECTORS},**{f"loss_{s}":float(row[f"loss_fraction_{s}"]) for s in SECTORS}}
+        result["central_mix" if family==FAMILIES[0] else "shared_alpha"]=float(row["central_mix_aperture_fraction" if family==FAMILIES[0] else "shared_coupling_alpha"]);return result
+    if family==FAMILIES[2]:
+        spec=objects["RANDOM_FAMILY_SPEC"];bounds=_groups(spec,RANDOM_AXES,("VOLUME_LOGIT","RECIPROCAL_EDGE_POSITIVE","LOSS"))
+        if spec.get("uniform_algorithm")!={"interval":"OPEN_0_1_BINARY64","word_to_uniform":"((word>>11)+0.5)/2^53","one_guard":"nextafter(1.0,0.0)"} or spec.get("splitmix64",{}).get("gamma_hex")!="9e3779b97f4a7c15":raise Repair05Error("RANDOM_ALGORITHM")
+        seed=int(objects["RANDOM_FIXED_SEEDS"][ordinal-1]);result={f"external_{s}":.5 for s in SECTORS}
+        for index,axis in enumerate(RANDOM_AXES):
+            lo,hi=bounds[axis];u=_uniform(seed,index);result[axis]=lo+(hi-lo)*u if index<3 or index>=9 else 0.0 if u<.5 else lo+(hi-lo)*(2*u-1)
+        result["q270"]=-(result["q0"]+result["q90"]+result["q180"])/3;return result
+    spec=objects["PHYSICS_FAMILY_SPEC_PARAMETERS_LHS"];bounds=_groups(spec,PHYSICS_AXES,("VOLUME_LOGIT","EXTERNAL_APERTURE","RING_COUPLING","LOSS"));master=int(objects["PHYSICS_MASTER_SEED"])
+    if spec.get("lhs_algorithm")!=["STRATA=20","SAMPLE=(PERMUTATION[row]+0.5)/20","JITTER=false","FISHER_YATES_SPLITMIX64=i19_TO_1"] or spec.get("lhs_master_seed")!=master:raise Repair05Error("PHYSICS_ALGORITHM")
+    result={}
+    for index,axis in enumerate(PHYSICS_AXES):
+        lo,hi=bounds[axis];result[axis]=lo+(hi-lo)*(_permutation(master,index)[ordinal-1]+.5)/20
+    result["q270"]=-(result["q0"]+result["q90"]+result["q180"])/3;return result
+
+
+def _components(nodes:Sequence[str],edges:Sequence[Mapping[str,Any]])->int:
+    unseen=set(nodes);count=0
+    while unseen:
+        count+=1;stack=[unseen.pop()]
+        while stack:
+            node=stack.pop();neighbours=set()
+            for edge in edges:
+                if edge["weight"]>0 and edge["a"]==node:neighbours.add(edge["b"])
+                if edge["weight"]>0 and edge["b"]==node:neighbours.add(edge["a"])
+            for nxt in neighbours&unseen:unseen.remove(nxt);stack.append(nxt)
+    return count
+
+
+def derive_cad_evidence(family:str,params:Mapping[str,float],projection:Mapping[str,Any])->tuple[dict[str,Any],str]:
+    v=projection["values"];rules=v["OWNERSHIP_RULE"]
+    owners=[{"cell_id":x["cell_id"],"owner":x["owner"],"rule":rules["central"] if x["owner"]=="CENTRAL" else rules["sector"],"positive_overlap_volume_m3":float(x["positive_overlap_volume_m3"])} for x in v["OWNERSHIP_CELLS"]]
+    z=float(v["GEOMETRY_SLOT_Z"]);slots=[{"slot_id":x["slot_id"],"sector":x["sector"],"owner_cell_id":x["owner_cell_id"],"coordinates_m":[float(x["coordinates_xy_m"][0]),float(x["coordinates_xy_m"][1]),z],"placement_status":"PLACED_OR_EXPLICIT_ZERO","width_m":float(x["width_m"])} for x in v["SLOT_ROWS"]]
+    common=v["ROOT_COMMON"];bracket=list(map(float,v["ROOT_BRACKET"]));weights=[math.exp(float(params[f"q{s}"])) for s in SECTORS];roots=[]
+    for sector,weight in zip(SECTORS,weights):
+        target=float(v["GEOMETRY_VOLUME"])*float(v["GEOMETRY_TARGET_FRACTION"])*weight/sum(weights);low,high=bracket;trace=[]
+        for iteration in range(common["iterations"]):
+            mid=(low+high)/2;measured=float(common["fixed_volume_m3"])+float(common["linear_coefficient_m2"])*mid;trace.append({"iteration":iteration+1,"low_m":low,"high_m":high,"mid_m":mid,"measured_volume_m3":measured})
+            if measured<target:low=mid
+            else:high=mid
+        root=(low+high)/2;measured=float(common["fixed_volume_m3"])+float(common["linear_coefficient_m2"])*root
+        if abs(measured-target)>float(common["tolerance_m3"]):raise Repair05Error("ROOT_TOLERANCE")
+        roots.append({"sector":sector,"domain_m":list(map(float,common["domain_m"])),"initial_bracket_m":bracket,"final_bracket_m":[low,high],"tolerance_m3":float(common["tolerance_m3"]),"iterations":common["iterations"],"trace":trace,"root_length_m":root,"target_volume_m3":target,"measured_volume_m3":measured,"residual_m3":measured-target})
+    coord=v["U4_COORDINATES"];exceptions=[]
+    for group in v["U4_OBJECTS"]:
+        for item in group["exceptions"]:
+            suffix=item["suffix"];exceptions.append({"exception_id":f"IFX_U4_{int(group['sector']):03d}_{suffix}","sector":group["sector"],"local_coordinates_m":[float(coord["x_m"]),float(coord["suffix_z_m"][suffix])],"feature_m":float(item["feature_m"]),"load_path_m":float(item["load_path_m"]),"participation":v["U4_PARTICIPATION"],"excluded_only_from":"GENERAL_MINIMA"})
+    fields=v["STATIC_FIELDS"];features=[{"witness_id":x["witness_id"],"measured_m":float(x["measured_m"])} for x in fields["general_feature_candidates"]];loads=[{"witness_id":x["witness_id"],"measured_m":float(x["measured_m"])} for x in fields["general_load_candidates"]]
+    graph=v["GRAPH_DEFINITION"];reduced=[{"edge_id":x["edge_id"],"a":x["a"],"b":x["b"],"weight":float(params.get(x["parameter_key"],0.0)),"active":float(params.get(x["parameter_key"],0.0))>0} for x in graph["reduced_edges"]];actual=[{"edge_id":x["edge_id"],"a":x["a"],"b":x["b"],"weight":float(x["positive_area_m2"]),"positive_area_m2":float(x["positive_area_m2"])} for x in graph["actual_edges"]]
+    zero=v["ZERO_EDGE_RULE"];zeros=[{"edge_id":x["edge_id"],"exact_value":zero["exact_zero"],"generator_branch":zero["branch"],"verified_exact_zero":True} for x in reduced if family==zero["family"] and x["weight"]==zero["exact_zero"]]
+    semantic_inputs={"ownership_transforms":v["OWNERSHIP_ALGORITHMS"],"slot_sector_order":v["SLOT_SECTOR_ORDER"],"slot_mapping":v["SLOT_MAPPING"],"slot_required_fields":v["SLOT_BURDEN"],"root_family_rules":v["ROOT_FAMILIES"],"root_domain_proof":v["ROOT_DOMAIN"],"root_derived_proof":v["ROOT_DERIVED_PROOF"],"root_independent_proof":v["ROOT_INDEPENDENT_PROOF"],"minima_fail_rules":v["STATIC_FAIL_RULES"],"solid_metrics":v["SOLID_METRICS"],"solid_eligible_pair":v["SOLID_ELIGIBLE_PAIR"],"graph_terms":v["GRAPH_TERMS"]}
+    approval={"U1":v["APPROVAL_U1"],"U2":v["APPROVAL_U2"],"U3":v["APPROVAL_U3"],"mandatory_carry_forward":v["APPROVAL_CARRY"]}
+    evidence={"schema_version":"gen_enc_fast_b1_repair_05_member_cad_static_v1","ownership_cells":owners,"slot_placements":slots,"volume_root_witnesses":roots,"u4_exception_witnesses":exceptions,"general_minima":{"feature_candidates":features,"load_path_candidates":loads,"measured_minimum_feature_m":min(x["measured_m"] for x in features),"measured_minimum_load_path_m":min(x["measured_m"] for x in loads),"feature_witness_ids":[x["witness_id"] for x in features if x["measured_m"]==min(y["measured_m"] for y in features)],"load_path_witness_ids":[x["witness_id"] for x in loads if x["measured_m"]==min(y["measured_m"] for y in loads)]},"exception_minima":{"measured_minimum_feature_m":min(float(x) for x in fields["exception_feature_candidates"]),"measured_minimum_load_path_m":min(float(x) for x in fields["exception_load_candidates"]),"exception_ids":[x["exception_id"] for x in exceptions]},"reduced_graph":{"nodes":graph["reduced_nodes"],"edges":reduced,"component_count":_components(graph["reduced_nodes"],reduced)},"actual_fluid_graph":{"nodes":graph["actual_nodes"],"edges":actual,"component_count":_components(graph["actual_nodes"],actual)},"random_zero_edge_witnesses":zeros,"thresholds":{"minimum_general_feature_m":float(fields["minimum_general_feature_m"]),"minimum_general_load_path_m":float(fields["minimum_general_load_path_m"])},"semantic_derivation_inputs":semantic_inputs,"typed_projection_approval":approval,"thresholds_copied_as_measurements":False,"complete_witness_semantics":True}
+    eligible=evidence["general_minima"]["measured_minimum_feature_m"]>=evidence["thresholds"]["minimum_general_feature_m"] and evidence["general_minima"]["measured_minimum_load_path_m"]>=evidence["thresholds"]["minimum_general_load_path_m"] and evidence["actual_fluid_graph"]["component_count"]==1
+    return evidence,"ELIGIBLE" if eligible else "COST_INELIGIBLE"
+
+
+def members_from_authority(objects:Mapping[str,Any],entries:Sequence[Mapping[str,Any]],contract:Mapping[str,Any],binding:Mapping[str,Any])->list[dict[str,Any]]:
+    projected=cad.project(objects,entries,contract)
+    if projected["projection_contract_sha256"]!=binding["projection_contract_sha256"] or projected["dependency_matrix_sha256"]!=binding["dependency_structure_sha256"]:raise Repair05Error("PROJECTION_DEPENDENCY_BINDING")
+    result=[]
+    for family in FAMILIES:
+        for ordinal in range(1,6):
+            params=parameters(objects,family,ordinal);evidence,status=derive_cad_evidence(family,params,projected)
+            result.append({"schema_version":"gen_enc_fast_b1_repair_05_member_identity_v1","record_kind":"BATCH_LOCAL_MEMBER_IDENTITY_TYPED_CAD_DERIVED","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"family_id":family,"member_id":f"{PREFIX[family]}_{ordinal:02d}","slot_ordinal":ordinal,"failure_slot_retained":True,"parameter_order":list(params),"parameters":params,"cad_static_evidence":evidence,"typed_projection_provenance":{"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":binding["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":binding["dependency_matrix_sha256"],"dependency_structure_sha256":binding["dependency_structure_sha256"],"semantic_leaf_count":projected["semantic_leaf_count"]},"static_status":status,"claim_ceiling":CLAIM,"scientific_hypothesis_status":"NOT_TESTED","final_test_read":False})
+    return result
+
+
+def pre_read_binding(record:Mapping[str,Any],expected:Mapping[str,Any])->None:
+    for key in ("task_id","batch_id","run_id","projection_contract_path","projection_contract_sha256","dependency_matrix_path","dependency_matrix_sha256","dependency_structure_sha256"):
+        if record.get(key)!=expected.get(key):raise Repair05Error("PRE_READ_BINDING:"+key)
+
+
+def _safe(repo:Path,value:str)->Path:
+    path=(repo/value).resolve()
+    if path==repo or not path.is_relative_to(repo):raise Repair05Error("PATH_CONTAINMENT")
+    return path
+
+
+def load_schemas(root:Path)->dict[str,Any]:
+    result={p.name.removesuffix(".schema.json"):json.loads(p.read_text()) for p in root.glob("*.schema.json")}
+    for schema in result.values():jsonschema.Draft202012Validator.check_schema(schema)
+    return result
+
+
+def validate(value:Any,schemas:Mapping[str,Any],name:str)->None:
+    try:jsonschema.Draft202012Validator(schemas[name]).validate(value)
+    except jsonschema.ValidationError as exc:raise Repair05Error("SCHEMA_"+name+":"+exc.message) from exc
+
+
+def exact_roots(run_id:str,technical:bool=False)->dict[str,str]:
+    base=(".technical_b1_repair_05/" if technical else "outputs/gen_enc/GEN_ENC_FAST_START/b1_repair_05_runs/")+run_id
+    roots={x:f"{base}/{x}" for x in ("staging","run","journal","success","failure","side_records")};roots["pointer"]=(f".technical_b1_repair_05_commit/{run_id}" if technical else f"outputs/gen_enc/GEN_ENC_FAST_START/b1_repair_05_commit/{run_id}");return roots
+
+
+def exact_artifacts()->list[str]:
+    return [f"members/{PREFIX[f]}_{i:02d}.json" for f in FAMILIES for i in range(1,6)]+[f"partial_manifests/{PREFIX[f]}.json" for f in FAMILIES]+["batch_index.json","static_audit.json","independent_verification.json","SHA256SUMS.txt","generation_terminal.json","verifier_terminal.json","publication_terminal.json"]
+
+
+def _hash_lines(root:Path)->bytes:
+    return "".join(f"{sha_file(p)}  {p.relative_to(root).as_posix()}\n" for p in sorted(root.rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt").encode("ascii")
+
+
+def _binding(record:Mapping[str,Any])->dict[str,Any]:
+    keys=("task_id","batch_id","run_id","mode","commands_exact","authority_allowlist_sha256","verification_subject_seal_path","projection_contract_path","projection_contract_sha256","dependency_matrix_path","dependency_matrix_sha256","dependency_structure_sha256","source_manifest_path","source_manifest_sha256","schema_manifest_path","schema_manifest_sha256","command_manifest_path","command_manifest_sha256","roots")
+    return {k:record[k] for k in keys}
+
+
+def validate_control(repo:Path,release_path:Path,attestation_path:Path,schema_root:Path,command:str)->dict[str,Any]:
+    release,raw=read_canonical(release_path);technical=release.get("record_kind")=="TECHNICAL_MIRROR_RELEASE"
+    if technical:
+        if release.get("identity_class")!="TECHNICAL_MIRROR_RELEASE_NEVER_FORMAL" or not (repo/".technical_b1_repair_05_root").is_file():raise Repair05Error("TECHNICAL_ROOT_MARKER")
+    else:validate(release,load_schemas(schema_root),"release")
+    if release.get("record_kind") not in ("RELEASE","TECHNICAL_MIRROR_RELEASE") or release.get("repair_id")!=REPAIR or release.get("task_id")!=TASK_ID or release.get("batch_id")!=BATCH_ID or release.get("mode")!=MODE or release.get("commands_exact")!=list(COMMANDS) or command not in COMMANDS:raise Repair05Error("RELEASE_CONTRACT")
+    if release["run_id"]!=derive_run_id(release):raise Repair05Error("RUN_ID")
+    if datetime.fromisoformat(release["expires_at"]).astimezone(timezone.utc)<=datetime.now(timezone.utc):raise Repair05Error("EXPIRED")
+    if release["roots"]!=exact_roots(release["run_id"],technical):raise Repair05Error("ROOT_TEMPLATE")
+    roots={k:_safe(repo,v) for k,v in release["roots"].items()};vals=list(roots.values())
+    if len({str(x).casefold() for x in vals})!=len(vals) or any(a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(vals) for b in vals[i+1:]):raise Repair05Error("ROOT_EXCLUSIVITY")
+    # Five-field projection/dependency binding is computed from immutable bytes
+    # before any authority or technical-mirror object is opened.
+    if release["projection_contract_path"]!=PROJECTION_PATH or release["dependency_matrix_path"]!=DEPENDENCY_PATH:raise Repair05Error("PROJECTION_PATH")
+    projection_path=_safe(repo,release["projection_contract_path"]);matrix_path=_safe(repo,release["dependency_matrix_path"])
+    if sha_file(projection_path)!=release["projection_contract_sha256"] or sha_file(matrix_path)!=release["dependency_matrix_sha256"]:raise Repair05Error("PROJECTION_FILE_HASH")
+    matrix,_=read_canonical(matrix_path)
+    if matrix.get("dependency_structure_sha256")!=release["dependency_structure_sha256"] or matrix.get("projection_contract_sha256")!=release["projection_contract_sha256"]:raise Repair05Error("DEPENDENCY_STRUCTURE")
+    for name in ("source","schema","command"):
+        if sha_file(_safe(repo,release[f"{name}_manifest_path"]))!=release[f"{name}_manifest_sha256"]:raise Repair05Error("MANIFEST_HASH:"+name)
+    command_manifest,_=read_canonical(_safe(repo,release["command_manifest_path"]))
+    rows=command_manifest.get("entries",[])
+    if command_manifest.get("mode")!=MODE or command_manifest.get("commands_exact")!=list(COMMANDS) or len(rows)!=6 or [row.get("command") for row in rows]!=list(COMMANDS):raise Repair05Error("COMMAND_MANIFEST")
+    attestation,araw=read_canonical(attestation_path)
+    if attestation.get("record_kind") not in ("GUARDIAN_ONE_WAY_ATTESTATION","TECHNICAL_MIRROR_ONE_WAY_ATTESTATION") or attestation.get("release_sha256")!=sha_bytes(raw) or attestation.get("one_way") is not True:raise Repair05Error("ATTESTATION")
+    expected=_binding(release)
+    for key,value in expected.items():
+        if attestation.get(key)!=value:raise Repair05Error("ATTESTATION_BINDING:"+key)
+    side=roots["side_records"];issued_path=side/"ISSUED.json";revoked=side/"REVOKED.json";consumed=side/"CONSUMED.json"
+    if not issued_path.is_file():raise Repair05Error("ISSUED_MISSING")
+    issued,_=read_canonical(issued_path)
+    validate(issued,load_schemas(schema_root),"side_record")
+    if issued.get("state")!="ISSUED" or issued.get("revoked") is not False or issued.get("release_sha256")!=sha_bytes(raw) or issued.get("attestation_sha256")!=sha_bytes(araw):raise Repair05Error("ISSUED")
+    for key,value in expected.items():
+        if issued.get(key)!=value:raise Repair05Error("ISSUED_BINDING:"+key)
+    if revoked.exists():
+        revoked_value,_=read_canonical(revoked);validate(revoked_value,load_schemas(schema_root),"side_record")
+        if consumed.exists() or revoked_value.get("state")!="REVOKED" or revoked_value.get("revoked") is not True:raise Repair05Error("REVOKED_INVALID_STATE")
+        for key,value in {**expected,"release_sha256":sha_bytes(raw),"attestation_sha256":sha_bytes(araw)}.items():
+            if revoked_value.get(key)!=value:raise Repair05Error("REVOKED_BINDING:"+key)
+        raise Repair05Error("REVOKED_VALID_BOUND")
+    if command=="preflight":
+        if consumed.exists():raise Repair05Error("ALREADY_CONSUMED")
+    else:
+        if not consumed.is_file():raise Repair05Error("NOT_CONSUMED")
+        consumed_value,_=read_canonical(consumed)
+        if consumed_value.get("state")!="CONSUMED" or consumed_value.get("revoked") is not False:raise Repair05Error("CONSUMED")
+        for key,value in {**expected,"release_sha256":sha_bytes(raw),"attestation_sha256":sha_bytes(araw)}.items():
+            if consumed_value.get(key)!=value:raise Repair05Error("CONSUMED_BINDING:"+key)
+    context={**expected,"technical":technical,"release":release,"release_sha256":sha_bytes(raw),"attestation_sha256":sha_bytes(araw),"roots_resolved":roots,"schemas":load_schemas(schema_root),"projection":json.loads(projection_path.read_text()),"matrix":matrix,"command_manifest":command_manifest}
+    return {**context,"authority_read_count":authority_read_count(context)}
+
+
+def consume_once(context:Mapping[str,Any])->Path:
+    roots=context["roots_resolved"];issued,_=read_canonical(roots["side_records"]/"ISSUED.json");value={**issued,"state":"CONSUMED"};path=roots["side_records"]/"CONSUMED.json";path.parent.mkdir(parents=True,exist_ok=True)
+    try:
+        with path.open("xb") as stream:stream.write(canonical(value));stream.flush();os.fsync(stream.fileno())
+    except FileExistsError as exc:raise Repair05Error("ALREADY_CONSUMED") from exc
+    return path
+
+
+def _receipt_binding(context:Mapping[str,Any])->dict[str,Any]:
+    return {**_binding(context["release"]),"release_sha256":context["release_sha256"],"attestation_sha256":context["attestation_sha256"]}
+
+
+def authority_read_count(context:Mapping[str,Any])->int:
+    directory=context["roots_resolved"]["side_records"]/"AUTHORITY_READS"
+    if not directory.exists():return 0
+    paths=sorted(directory.glob("*.json"));expected=_receipt_binding(context)
+    if [p.name for p in paths]!=[f"{i:04d}.json" for i in range(1,len(paths)+1)]:raise Repair05Error("READ_RECEIPT_SEQUENCE")
+    for ordinal,path in enumerate(paths,1):
+        value,_=read_canonical(path);validate(value,context["schemas"],"authority_read_receipt")
+        if value.get("ordinal")!=ordinal:raise Repair05Error("READ_RECEIPT_ORDINAL")
+        for key,want in expected.items():
+            if value.get(key)!=want:raise Repair05Error("READ_RECEIPT_BINDING:"+key)
+    return len(paths)
+
+
+def record_authority_read(context:Mapping[str,Any],phase:str,purpose:str,path_label:str,expected_sha256:str)->int:
+    ordinal=authority_read_count(context)+1;directory=context["roots_resolved"]["side_records"]/"AUTHORITY_READS";directory.mkdir(parents=True,exist_ok=True)
+    value={"schema_version":"gen_enc_fast_b1_repair_05_authority_read_receipt_v1","record_kind":"CUMULATIVE_AUTHORITY_READ_RECEIPT","repair_id":REPAIR,**_receipt_binding(context),"ordinal":ordinal,"phase":phase,"purpose":purpose,"path_label":path_label,"expected_sha256":expected_sha256,"final_test_read":False};validate(value,context["schemas"],"authority_read_receipt")
+    path=directory/f"{ordinal:04d}.json"
+    with path.open("xb") as stream:stream.write(canonical(value));stream.flush();os.fsync(stream.fileno())
+    return ordinal
+
+
+def load_objects(repo:Path,context:Mapping[str,Any])->tuple[dict[str,Any],list[dict[str,Any]],int]:
+    release=context["release"]
+    if context["technical"]:
+        bundle_path=_safe(repo,release["technical_bundle_path"])
+        if sha_file(bundle_path)!=release["technical_bundle_sha256"]:raise Repair05Error("TECHNICAL_BUNDLE_HASH")
+        bundle,_=read_canonical(bundle_path)
+        if bundle.get("identity_class")!="TECHNICAL_MIRROR_ONLY_NEVER_FORMAL_AUTHORITY":raise Repair05Error("TECHNICAL_BUNDLE_CLASS")
+        if not release.get("simulate_formal_read_accounting",False):return bundle["objects"],bundle["authority_entries"],authority_read_count(context)
+        fail_after=release.get("technical_fail_after_reads");result={}
+        for entry in bundle["authority_entries"]:
+            data=canonical(bundle["objects"][entry["purpose"]]);count=record_authority_read(context,"DRIVER_GENERATION",entry["purpose"],"TECHNICAL_MIRROR:"+entry["purpose"],sha_bytes(data))
+            if fail_after==count:raise Repair05Error("INJECT_AUTHORITY_READ_FAILURE")
+            result[entry["purpose"]]=bundle["objects"][entry["purpose"]]
+        return result,bundle["authority_entries"],authority_read_count(context)
+    allow_path=_safe(repo,release["authority_allowlist_path"])
+    if sha_file(allow_path)!=release["authority_allowlist_sha256"]:raise Repair05Error("ALLOWLIST_HASH")
+    allow=json.loads(allow_path.read_text());objects={}
+    for entry in allow["entries"]:
+        path=_safe(repo,entry["path"])
+        with path.open("rb") as stream:
+            record_authority_read(context,"DRIVER_GENERATION",entry["purpose"],entry["path"],entry["sha256"]);data=stream.read()
+        if sha_bytes(data)!=entry["sha256"]:raise Repair05Error("AUTHORITY_HASH")
+        objects[entry["purpose"]]=pointer(json.loads(data.decode("utf-8")),entry["pointer"])
+    return objects,allow["entries"],authority_read_count(context)
+
+
+def build_staging(stage:Path,objects:Mapping[str,Any],entries:Sequence[Mapping[str,Any]],context:Mapping[str,Any])->dict[str,Any]:
+    if stage.exists():raise Repair05Error("STAGE_EXISTS")
+    binding={k:context[k] for k in ("projection_contract_sha256","dependency_matrix_sha256","dependency_structure_sha256")};members=members_from_authority(objects,entries,context["projection"],binding);stage.mkdir(parents=True)
+    for member in members:validate(member,context["schemas"],"member_identity");atomic_json(stage/f"members/{member['member_id']}.json",member)
+    for family in FAMILIES:
+        selected=[m for m in members if m["family_id"]==family];manifest={"schema_version":"gen_enc_fast_b1_repair_05_partial_family_manifest_v1","record_kind":"PARTIAL_FAMILY_MANIFEST_EXACTLY_5_OF_20","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"family_id":family,"slot_ordinals":[1,2,3,4,5],"member_entries":[{"member_id":m["member_id"],"path":f"members/{m['member_id']}.json","sha256":sha_file(stage/f"members/{m['member_id']}.json"),"static_status":m["static_status"],"failure_slot_retained":True} for m in selected],"complete_family_manifest":False,"claim_ceiling":CLAIM,"final_test_read":False};validate(manifest,context["schemas"],"partial_family_manifest");atomic_json(stage/f"partial_manifests/{PREFIX[family]}.json",manifest)
+    counts={s:sum(m["static_status"]==s for m in members) for s in ("ELIGIBLE","COST_INELIGIBLE","TEMPLATE_VALIDITY_REJECTED","FAIL_CLOSED")};audit={"schema_version":"gen_enc_fast_b1_repair_05_static_audit_v1","record_kind":"COMPLETE_BATCH_LOCAL_STATIC_AUDIT_20","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"member_paths":[f"members/{m['member_id']}.json" for m in members],"member_count":20,"complete_cad_witness_count":20,"failed_slots_retained":True,"status_counts":counts,"authority_read_count_at_generation":context["authority_read_count"],"claim_ceiling":CLAIM,"final_test_read":False};validate(audit,context["schemas"],"static_audit");atomic_json(stage/"static_audit.json",audit)
+    report={"schema_version":"gen_enc_fast_b1_repair_05_independent_verification_v1","record_kind":"INDEPENDENT_VERIFICATION","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"status":"PENDING_NON_SUCCESS","verified_member_count":0,"verified_manifest_count":0,"authority_read_count":0,"artifact_count":0,"checks":[],"resealed":False,"verification_subject_seal_path":SUBJECT_SEAL_PATH,"verification_subject_seal_sha256":None,"verification_subject_digest":None,"verification_subject_count":0,"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":context["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":context["dependency_matrix_sha256"],"dependency_structure_sha256":context["dependency_structure_sha256"],"mode":MODE,"claim_ceiling":CLAIM,"final_test_read":False};atomic_json(stage/"independent_verification.json",report)
+    index={"schema_version":"gen_enc_fast_b1_repair_05_batch_index_v1","record_kind":"B1_BATCH_INDEX_NON_FINAL","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"mode":MODE,"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":context["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":context["dependency_matrix_sha256"],"dependency_structure_sha256":context["dependency_structure_sha256"],"authority_allowlist_sha256":context["release"].get("authority_allowlist_sha256","0"*64),"source_manifest_sha256":context["source_manifest_sha256"],"schema_manifest_sha256":context["schema_manifest_sha256"],"command_manifest_sha256":context["command_manifest_sha256"],"member_paths":[f"members/{PREFIX[f]}_{i:02d}.json" for f in FAMILIES for i in range(1,6)],"partial_manifest_paths":[f"partial_manifests/{PREFIX[f]}.json" for f in FAMILIES],"static_audit_path":"static_audit.json","independent_verification_path":"independent_verification.json","sha256sums_path":"SHA256SUMS.txt","generation_terminal_path":"generation_terminal.json","verifier_terminal_path":"verifier_terminal.json","publication_terminal_path":"publication_terminal.json","verification_complete":False,"artifact_cardinality":31,"zero_unlisted_required":True,"final_endpoint":False,"claim_ceiling":CLAIM,"final_test_read":False};validate(index,context["schemas"],"batch_index");atomic_json(stage/"batch_index.json",index)
+    terminal={"schema_version":"gen_enc_fast_b1_repair_05_generation_terminal_v1","record_kind":"GENERATION_STAGED_NON_SUCCESS","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"status":"AWAITING_INDEPENDENT_VERIFICATION","authority_read_count":context["authority_read_count"],"member_count":20,"artifact_count":29,"success_eligible":False,"publication_started":False,"claim_ceiling":CLAIM,"final_test_read":False};validate(terminal,context["schemas"],"generation_terminal");atomic_json(stage/"generation_terminal.json",terminal);(stage/"SHA256SUMS.txt").write_bytes(_hash_lines(stage))
+    if len([p for p in stage.rglob("*") if p.is_file()])!=29:raise Repair05Error("GENERATION_CARDINALITY")
+    return {"status":"STAGED_NON_SUCCESS","authority_read_count":context["authority_read_count"],"member_count":20,"artifact_count":29}
+
+
+def terminal_value(context:Mapping[str,Any],success:bool,counts:Mapping[str,int],reason:str,pointer_sha:str|None)->dict[str,Any]:
+    return {"schema_version":"gen_enc_fast_b1_repair_05_package_terminal_v1","record_kind":"VERIFIED_SUCCESS" if success else "FAIL_CLOSED","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"mode":MODE,"release_sha256":context["release_sha256"],"attestation_sha256":context["attestation_sha256"],"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":context["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":context["dependency_matrix_sha256"],"dependency_structure_sha256":context["dependency_structure_sha256"],"status":"VERIFIED_SUCCESS" if success else "TECHNICAL_FAIL_CLOSED","reason":reason,"honest_counts":dict(counts),"commit_pointer_sha256":pointer_sha,"package_terminal_count":1,"claim_ceiling":CLAIM,"scientific_hypothesis_status":"NOT_TESTED","final_test_read":False}
+
+
+def write_terminal(context:Mapping[str,Any],success:bool,counts:Mapping[str,int],reason:str,pointer_sha:str|None=None)->Path:
+    roots=context["roots_resolved"];sp=roots["success"]/"VERIFIED_SUCCESS.json";fp=roots["failure"]/"FAIL_CLOSED.json"
+    if sp.exists() or fp.exists():raise Repair05Error("SINGLE_TERMINAL")
+    value=terminal_value(context,success,counts,reason,pointer_sha);validate(value,context["schemas"],"package_terminal");path=sp if success else fp;path.parent.mkdir(parents=True,exist_ok=True)
+    with path.open("xb") as stream:stream.write(canonical(value));stream.flush();os.fsync(stream.fileno())
+    return path
+
+
+def _temp(target:Path,run_id:str,index:int)->Path:
+    # Target-derived but bounded for Windows MAX_PATH: the digest binds the
+    # complete run id, index, and resolved target bytes.
+    suffix=sha_value({"run_id":run_id,"index":index,"target":str(target.resolve())})[:16]
+    return target.with_name(f".r05.{index:02d}.{suffix}.tmp")
+def _token(run_id:str,index:int,target:Path,temp:Path)->str:return sha_value({"run_id":run_id,"index":index,"target":str(target.resolve()),"temp":str(temp.resolve())})
+
+
+def verification_subject_paths()->list[str]:
+    return [f"members/{PREFIX[f]}_{i:02d}.json" for f in FAMILIES for i in range(1,6)]+[f"partial_manifests/{PREFIX[f]}.json" for f in FAMILIES]+["static_audit.json","generation_terminal.json","batch_index.json"]
+
+
+def verify_subject_seal(root:Path,context:Mapping[str,Any],report:Mapping[str,Any],verifier:Mapping[str,Any])->dict[str,Any]:
+    if context["verification_subject_seal_path"]!=SUBJECT_SEAL_PATH:raise Repair05Error("SUBJECT_SEAL_CONTROL_PATH")
+    path=context["roots_resolved"]["side_records"]/SUBJECT_SEAL_PATH;seal,_=read_canonical(path);validate(seal,context["schemas"],"verification_subject_seal")
+    expected_binding={**_binding(context["release"]),"release_sha256":context["release_sha256"],"attestation_sha256":context["attestation_sha256"]}
+    for key,want in expected_binding.items():
+        if seal.get(key)!=want:raise Repair05Error("SUBJECT_SEAL_BINDING:"+key)
+    paths=verification_subject_paths();entries=[{"path":rel,"sha256":sha_file(root/rel)} for rel in paths];digest=sha_value({"domain":"GEN-ENC-FAST-B1-REPAIR-05-VERIFICATION-SUBJECT-v1","entries":entries})
+    if seal["subject_count"]!=27 or seal["subject_entries"]!=entries or seal["subject_digest"]!=digest:raise Repair05Error("SUBJECT_SEAL_SUBJECT_MISMATCH")
+    seal_sha=sha_file(path);expected={"verification_subject_seal_path":SUBJECT_SEAL_PATH,"verification_subject_seal_sha256":seal_sha,"verification_subject_digest":digest,"verification_subject_count":27}
+    for name,record in (("REPORT",report),("VERIFIER_TERMINAL",verifier)):
+        for key,want in expected.items():
+            if record.get(key)!=want:raise Repair05Error("SUBJECT_SEAL_"+name+":"+key)
+    return {**expected,"subject_entries":entries}
+
+
+def verified_stage_gate(root:Path,context:Mapping[str,Any])->dict[str,Any]:
+    logical=exact_artifacts();actual={p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    if actual!=set(logical):raise Repair05Error("VERIFIED_GATE_GRAPH")
+    if (root/"SHA256SUMS.txt").read_bytes()!=_hash_lines(root):raise Repair05Error("VERIFIED_GATE_SHA256SUMS")
+    members=[]
+    for family in FAMILIES:
+        for ordinal in range(1,6):
+            member,_=read_canonical(root/f"members/{PREFIX[family]}_{ordinal:02d}.json");validate(member,context["schemas"],"member_identity")
+            if member["family_id"]!=family or member["slot_ordinal"]!=ordinal:raise Repair05Error("VERIFIED_GATE_MEMBER_ORDER")
+            members.append(member)
+    for family in FAMILIES:
+        manifest,_=read_canonical(root/f"partial_manifests/{PREFIX[family]}.json");validate(manifest,context["schemas"],"partial_family_manifest");selected=[m for m in members if m["family_id"]==family]
+        expected=[{"member_id":m["member_id"],"path":f"members/{m['member_id']}.json","sha256":sha_file(root/f"members/{m['member_id']}.json"),"static_status":m["static_status"],"failure_slot_retained":True} for m in selected]
+        if manifest["member_entries"]!=expected or manifest["slot_ordinals"]!=[1,2,3,4,5]:raise Repair05Error("VERIFIED_GATE_MANIFEST")
+    audit,_=read_canonical(root/"static_audit.json");validate(audit,context["schemas"],"static_audit")
+    if audit["member_paths"]!=[f"members/{m['member_id']}.json" for m in members] or audit["status_counts"]!={s:sum(m["static_status"]==s for m in members) for s in ("ELIGIBLE","COST_INELIGIBLE","TEMPLATE_VALIDITY_REJECTED","FAIL_CLOSED")}:raise Repair05Error("VERIFIED_GATE_AUDIT")
+    generation,_=read_canonical(root/"generation_terminal.json");report,_=read_canonical(root/"independent_verification.json");index,_=read_canonical(root/"batch_index.json");verifier,_=read_canonical(root/"verifier_terminal.json");publication,_=read_canonical(root/"publication_terminal.json")
+    for name,value in (("generation_terminal",generation),("independent_verification",report),("batch_index",index),("verifier_terminal",verifier),("publication_terminal",publication)):validate(value,context["schemas"],name)
+    if generation["status"]!="AWAITING_INDEPENDENT_VERIFICATION" or generation["member_count"]!=20 or generation["artifact_count"]!=29:raise Repair05Error("VERIFIED_GATE_GENERATION")
+    checks=["TYPED_CAD_349_LEAVES","20_MEMBER_DEEP_RECOMPUTE","31_GRAPH_ZERO_UNLISTED"]
+    if report["status"]!="PASS" or report["resealed"] is not True or report["verified_member_count"]!=20 or report["verified_manifest_count"]!=4 or report["artifact_count"]!=31 or report["checks"]!=checks:raise Repair05Error("VERIFIED_GATE_REPORT")
+    if index["verification_complete"] is not True or index["artifact_cardinality"]!=31 or index["member_paths"]!=[f"members/{m['member_id']}.json" for m in members] or index["partial_manifest_paths"]!=[f"partial_manifests/{PREFIX[f]}.json" for f in FAMILIES]:raise Repair05Error("VERIFIED_GATE_INDEX")
+    if verifier["status"]!="VERIFIED_RESEALED_AWAITING_PUBLICATION" or verifier["verified_member_count"]!=20 or verifier["artifact_count"]!=31 or publication!={"schema_version":"gen_enc_fast_b1_repair_05_publication_terminal_v1","record_kind":"PUBLICATION_INTENT_NON_SUCCESS","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"status":"AWAITING_MULTI_TARGET_ATOMIC_PUBLICATION","target_count":31,"published_count":0,"commit_pointer_written":False,"success_terminal_written":False,"claim_ceiling":CLAIM,"final_test_read":False}:raise Repair05Error("VERIFIED_GATE_TERMINALS")
+    verify_subject_seal(root,context,report,verifier)
+    for record_name,record in (("INDEX",index),("REPORT",report)):
+        for key,want in (("task_id",TASK_ID),("batch_id",BATCH_ID),("run_id",context["run_id"]),("mode",MODE),("projection_contract_path",PROJECTION_PATH),("projection_contract_sha256",context["projection_contract_sha256"]),("dependency_matrix_path",DEPENDENCY_PATH),("dependency_matrix_sha256",context["dependency_matrix_sha256"]),("dependency_structure_sha256",context["dependency_structure_sha256"])):
+            if record.get(key)!=want:raise Repair05Error("VERIFIED_GATE_"+record_name+"_BINDING:"+key)
+    cumulative=authority_read_count(context)
+    if not (audit["authority_read_count_at_generation"]==generation["authority_read_count"]<=report["authority_read_count"]==verifier["authority_read_count"]==cumulative):raise Repair05Error("VERIFIED_GATE_READ_COUNT")
+    return {"members":20,"artifacts":31,"authority_reads":cumulative}
+
+
+def publish(stage:Path,run:Path,journal:Path,pointer_path:Path,context:Mapping[str,Any])->dict[str,Any]:
+    logical=exact_artifacts();verified_stage_gate(stage,context)
+    if run.exists():raise Repair05Error("PUBLISH_INPUT")
+    run.mkdir(parents=True);entries=[];fault=os.environ.get("GEN_ENC_B1_REPAIR05_FAULT") if context["technical"] else None
+    state={"schema_version":"gen_enc_fast_b1_repair_05_publication_journal_v1","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"release_sha256":context["release_sha256"],"run_root_absolute":str(run.resolve()),"pointer_absolute":str(pointer_path.resolve()),"state":"PUBLISHING","entries":entries,"final_test_read":False}
+    for index,rel in enumerate(logical):
+        source,target=stage/rel,run/rel;target.parent.mkdir(parents=True,exist_ok=True);temp=_temp(target,context["run_id"],index);entry={"index":index,"logical_path":rel,"source_sha256":sha_file(source),"target_absolute":str(target.resolve()),"temp_absolute":str(temp.resolve()),"ownership_token":_token(context["run_id"],index,target,temp),"phase":"INTENT_DURABLE"};entries.append(entry);atomic_json(journal,state)
+        if fault==f"copy:{index}":raise Repair05Error("INJECT_COPY")
+        with source.open("rb") as src,temp.open("xb") as dst:shutil.copyfileobj(src,dst);dst.flush();os.fsync(dst.fileno())
+        if fault==f"fsync:{index}":raise Repair05Error("INJECT_FSYNC")
+        os.replace(temp,target)
+        if fault==f"kill:{index}":os._exit(86)
+        if fault==f"replace:{index}":raise Repair05Error("INJECT_REPLACE")
+        entry["phase"]="REPLACED";atomic_json(journal,state)
+        if fault==f"journal:{index}":raise Repair05Error("INJECT_JOURNAL")
+    if fault=="after-targets":os._exit(87)
+    pointer=_pointer_value(run,context)
+    state={**state,"state":"COMMITTED","entries":[{**e,"phase":"REPLACED"} for e in entries]};atomic_json(journal,state)
+    if fault in ("pointer","after-commit"):os._exit(88)
+    pointer_path.parent.mkdir(parents=True,exist_ok=True);atomic_json(pointer_path,pointer)
+    if fault=="after-pointer":os._exit(89)
+    return {"published":31,"pointer_sha256":sha_file(pointer_path)}
+
+
+def _pointer_value(run:Path,context:Mapping[str,Any])->dict[str,Any]:
+    value={"schema_version":"gen_enc_fast_b1_repair_05_commit_pointer_v1","record_kind":"ATOMIC_B1_COMMIT_POINTER","repair_id":REPAIR,"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"mode":MODE,"release_sha256":context["release_sha256"],"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":context["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":context["dependency_matrix_sha256"],"dependency_structure_sha256":context["dependency_structure_sha256"],"immutable_run_directory":context["roots"]["run"],"batch_index_sha256":sha_file(run/"batch_index.json"),"sha256sums_sha256":sha_file(run/"SHA256SUMS.txt"),"verification_sha256":sha_file(run/"independent_verification.json"),"artifact_count":31,"atomic":True,"final_endpoint":False,"claim_ceiling":CLAIM,"final_test_read":False};validate(value,context["schemas"],"commit_pointer");return value
+
+
+def rollback(journal:Path,run:Path,pointer:Path,context:Mapping[str,Any])->int:
+    state,_=read_canonical(journal);validate(state,context["schemas"],"journal")
+    if state["state"]!="PUBLISHING" or pointer.exists() or (context["roots_resolved"]["success"]/"VERIFIED_SUCCESS.json").exists():raise Repair05Error("ROLLBACK_STATE_FORBIDDEN")
+    removed=0;logical=exact_artifacts()
+    for entry in reversed(state["entries"]):
+        i=entry["index"];target=Path(entry["target_absolute"]);temp=Path(entry["temp_absolute"])
+        if i>=31 or entry["logical_path"]!=logical[i] or target.resolve()!=(run/logical[i]).resolve() or temp!=_temp(target,state["run_id"],i) or entry["ownership_token"]!=_token(state["run_id"],i,target,temp):raise Repair05Error("RECOVERY_OWNERSHIP")
+        for path in (temp,target):
+            if not path.resolve().is_relative_to(run.resolve()):raise Repair05Error("RECOVERY_CONTAINMENT")
+            if path.is_file():path.unlink();removed+=1
+    atomic_json(journal,{**state,"state":"ROLLED_BACK","entries":[{**e,"phase":"ROLLED_BACK"} for e in state["entries"]]});return removed
+
+
+def recover_transaction(context:Mapping[str,Any])->dict[str,Any]:
+    roots=context["roots_resolved"];journal_path=roots["journal"]/"publication.json";pointer_path=roots["pointer"]/"B1.json";success=roots["success"]/"VERIFIED_SUCCESS.json";failure=roots["failure"]/"FAIL_CLOSED.json"
+    if success.exists():
+        if failure.exists() or not journal_path.is_file() or not pointer_path.is_file():raise Repair05Error("RECOVER_SUCCESS_INCOMPLETE")
+        state,_=read_canonical(journal_path);validate(state,context["schemas"],"journal")
+        if state["state"]!="COMMITTED":raise Repair05Error("RECOVER_SUCCESS_JOURNAL")
+        packaged=package_results(context);return {"status":"ALREADY_VERIFIED_SUCCESS_IDEMPOTENT","terminal_sha256":packaged["terminal_sha256"],"pointer_sha256":sha_file(pointer_path),"mutated":False}
+    if failure.exists():return {"status":"ALREADY_FAIL_CLOSED_IDEMPOTENT","terminal_sha256":sha_file(failure),"mutated":False}
+    counts={"authority_reads":authority_read_count(context),"members":0,"artifacts":0,"published":0}
+    _observe_counts(roots,counts);counts["published"]=0
+    if not journal_path.is_file():
+        terminal=write_terminal(context,False,counts,"RECOVERY_NO_JOURNAL_FAIL_CLOSED");return {"status":"TECHNICAL_FAIL_CLOSED","terminal_sha256":sha_file(terminal),"mutated":True}
+    state,_=read_canonical(journal_path);validate(state,context["schemas"],"journal")
+    if state["state"]=="PUBLISHING":
+        _observe_counts(roots,counts);counts["published"]=0
+        removed=rollback(journal_path,roots["run"],pointer_path,context);terminal=write_terminal(context,False,counts,"RECOVERY_ROLLED_BACK_INCOMPLETE_PUBLISHING");return {"status":"TECHNICAL_FAIL_CLOSED","removed":removed,"terminal_sha256":sha_file(terminal),"mutated":True}
+    if state["state"]=="COMMITTED":
+        verified_stage_gate(roots["run"],context)
+        logical=exact_artifacts()
+        if len(state["entries"])!=31:raise Repair05Error("RECOVER_COMMITTED_CARDINALITY")
+        for i,e in enumerate(state["entries"]):
+            target=Path(e["target_absolute"]);temp=Path(e["temp_absolute"])
+            if e["index"]!=i or e["logical_path"]!=logical[i] or target.resolve()!=(roots["run"]/logical[i]).resolve() or temp!=_temp(target,state["run_id"],i) or e["ownership_token"]!=_token(state["run_id"],i,target,temp) or e["phase"]!="REPLACED" or sha_file(target)!=e["source_sha256"]:raise Repair05Error("RECOVER_COMMITTED_GRAPH")
+        pointer_value=_pointer_value(roots["run"],context)
+        if pointer_path.exists():
+            existing,_=read_canonical(pointer_path)
+            if existing!=pointer_value:raise Repair05Error("RECOVER_POINTER_MISMATCH")
+        else:pointer_path.parent.mkdir(parents=True,exist_ok=True);atomic_json(pointer_path,pointer_value)
+        counts.update(members=20,artifacts=31,published=31);terminal=write_terminal(context,True,counts,"RECOVERED_COMMITTED_POINTER_LAST",sha_file(pointer_path));return {"status":"VERIFIED_SUCCESS","terminal_sha256":sha_file(terminal),"pointer_sha256":sha_file(pointer_path),"mutated":True}
+    if state["state"]=="ROLLED_BACK":
+        if pointer_path.exists() or any(p.is_file() for p in roots["run"].rglob("*")):raise Repair05Error("RECOVER_ROLLED_BACK_DIRTY")
+        terminal=write_terminal(context,False,counts,"RECOVERY_ALREADY_ROLLED_BACK");return {"status":"TECHNICAL_FAIL_CLOSED","terminal_sha256":sha_file(terminal),"mutated":True}
+    raise Repair05Error("RECOVER_STATE")
+
+
+def package_results(context:Mapping[str,Any])->dict[str,Any]:
+    roots=context["roots_resolved"];terminals=list(roots["success"].glob("*.json"))+list(roots["failure"].glob("*.json"))
+    if len(terminals)!=1:raise Repair05Error("TERMINAL_CARDINALITY")
+    terminal,_=read_canonical(terminals[0]);validate(terminal,context["schemas"],"package_terminal")
+    for key,value in {**_binding(context["release"]),"release_sha256":context["release_sha256"],"attestation_sha256":context["attestation_sha256"]}.items():
+        if key in terminal and terminal[key]!=value:raise Repair05Error("PACKAGE_BINDING:"+key)
+    cumulative=authority_read_count(context)
+    if terminal["honest_counts"]["authority_reads"]!=cumulative:raise Repair05Error("PACKAGE_READ_COUNT")
+    if terminal["record_kind"]=="VERIFIED_SUCCESS":
+        pointer_path=roots["pointer"]/"B1.json";pointer,_=read_canonical(pointer_path);validate(pointer,context["schemas"],"commit_pointer")
+        if terminal["commit_pointer_sha256"]!=sha_file(pointer_path):raise Repair05Error("PACKAGE_POINTER")
+        expected={"task_id":TASK_ID,"batch_id":BATCH_ID,"run_id":context["run_id"],"mode":MODE,"release_sha256":context["release_sha256"],"projection_contract_path":PROJECTION_PATH,"projection_contract_sha256":context["projection_contract_sha256"],"dependency_matrix_path":DEPENDENCY_PATH,"dependency_matrix_sha256":context["dependency_matrix_sha256"],"dependency_structure_sha256":context["dependency_structure_sha256"]}
+        for key,value in expected.items():
+            if pointer.get(key)!=value:raise Repair05Error("PACKAGE_POINTER_BINDING:"+key)
+        run=roots["run"]
+        verified_stage_gate(run,context)
+        if {p.relative_to(run).as_posix() for p in run.rglob("*") if p.is_file()}!=set(exact_artifacts()):raise Repair05Error("PACKAGE_GRAPH")
+        index,_=read_canonical(run/"batch_index.json");report,_=read_canonical(run/"independent_verification.json");validate(index,context["schemas"],"batch_index");validate(report,context["schemas"],"independent_verification")
+        for record_name,record in (("INDEX",index),("REPORT",report)):
+            for key,value in {k:v for k,v in expected.items() if k!="release_sha256"}.items():
+                if record.get(key)!=value:raise Repair05Error("PACKAGE_"+record_name+"_BINDING:"+key)
+        if (run/"SHA256SUMS.txt").read_bytes()!=_hash_lines(run):raise Repair05Error("PACKAGE_SHA256SUMS")
+        if pointer["batch_index_sha256"]!=sha_file(run/"batch_index.json") or pointer["verification_sha256"]!=sha_file(run/"independent_verification.json") or pointer["sha256sums_sha256"]!=sha_file(run/"SHA256SUMS.txt"):raise Repair05Error("PACKAGE_RESEAL")
+    else:
+        observed={"authority_reads":cumulative,"members":0,"artifacts":0,"published":0};_observe_counts(roots,observed);observed["published"]=0
+        if terminal["honest_counts"]!=observed:raise Repair05Error("PACKAGE_FAILURE_HISTORICAL_COUNTS")
+        if (roots["pointer"]/"B1.json").exists() or any(p.is_file() for p in roots["run"].rglob("*")):raise Repair05Error("PACKAGE_FAILURE_COMMITTED_RESIDUE")
+    return {"status":terminal["status"],"terminal_sha256":sha_file(terminals[0])}
+
+
+def parser()->argparse.ArgumentParser:
+    p=argparse.ArgumentParser();p.add_argument("command",choices=["preflight","generate-staging","publish","recover","package-results"])
+    for name in ("repo-root","release","guardian-attestation","schema-root","projection-contract","dependency-matrix"):p.add_argument("--"+name,required=True,type=Path)
+    return p
+
+
+def _check_cli_paths(ns:argparse.Namespace,repo:Path,context:Mapping[str,Any],raw_argv:Sequence[str])->None:
+    if ns.projection_contract.as_posix()!=PROJECTION_PATH or ns.dependency_matrix.as_posix()!=DEPENDENCY_PATH:raise Repair05Error("ARGV_PROJECTION_PATH")
+    if ns.projection_contract.resolve()!=_safe(repo,context["projection_contract_path"]) or ns.dependency_matrix.resolve()!=_safe(repo,context["dependency_matrix_path"]):raise Repair05Error("ARGV_PROJECTION_RESOLUTION")
+    if not context["technical"]:
+        expected={"repo_root":Path("."),"release":Path("outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/control/RELEASE.json"),"guardian_attestation":Path("outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_05/control/GUARDIAN_ATTESTATION.json"),"schema_root":Path("schemas/gen_enc/b1_repair_05")}
+        if any(getattr(ns,key)!=value for key,value in expected.items()):raise Repair05Error("ARGV_FORMAL_EXACT")
+        row=next((x for x in context["command_manifest"]["entries"] if x["command"]==ns.command),None)
+        if row is None or list(raw_argv)!=row["argv_after_python"][2:]:raise Repair05Error("ARGV_BYTE_EXACT")
+
+
+def _observe_counts(roots:Mapping[str,Path],counts:dict[str,int])->None:
+    stage=roots["staging"]
+    if stage.exists():
+        counts["members"]=len(list((stage/"members").glob("*.json"))) if (stage/"members").exists() else 0
+        counts["artifacts"]=len([p for p in stage.rglob("*") if p.is_file()])
+    run=roots["run"]
+    counts["published"]=len([p for p in run.rglob("*") if p.is_file()]) if run.exists() else 0
+
+
+def main(argv:Sequence[str]|None=None)->int:
+    raw_argv=list(sys.argv[1:] if argv is None else argv);ns=parser().parse_args(raw_argv);context=None;counts={"authority_reads":0,"members":0,"artifacts":0,"published":0}
+    try:
+        repo=ns.repo_root.resolve();context=validate_control(repo,ns.release.resolve(),ns.guardian_attestation.resolve(),ns.schema_root.resolve(),ns.command);roots=context["roots_resolved"]
+        counts["authority_reads"]=context["authority_read_count"]
+        _check_cli_paths(ns,repo,context,raw_argv)
+        if ns.command=="preflight":
+            for name in ("staging","run","journal","success","failure","pointer"):
+                if roots[name].exists():raise Repair05Error("PREFLIGHT_ROOT_EXISTS:"+name)
+            consume_once(context);result={"status":"PREFLIGHT_CONSUMED_NO_AUTHORITY_READ","authority_read_count":context["authority_read_count"],"run_id":context["run_id"]}
+        elif ns.command=="generate-staging":
+            objects,entries,reads=load_objects(ns.repo_root.resolve(),context);context={**context,"authority_read_count":reads};counts["authority_reads"]=reads;result=build_staging(roots["staging"],objects,entries,context);counts.update(members=20,artifacts=29)
+        elif ns.command=="publish":
+            counts["authority_reads"]=authority_read_count(context);publication=publish(roots["staging"],roots["run"],roots["journal"]/"publication.json",roots["pointer"]/"B1.json",context);counts.update(members=20,artifacts=31,published=31);terminal=write_terminal(context,True,counts,"POINTER_LAST_PUBLISHED",publication["pointer_sha256"])
+            if context["technical"] and os.environ.get("GEN_ENC_B1_REPAIR05_FAULT")=="after-success":os._exit(90)
+            result={**publication,"terminal_sha256":sha_file(terminal),"status":"VERIFIED_SUCCESS"}
+        elif ns.command=="recover":
+            result=recover_transaction(context)
+        else:result=package_results(context)
+        print(json.dumps(result,sort_keys=True));return 0
+    except BaseException as exc:
+        if context is not None and ns.command not in ("preflight","package-results"):
+            counts["authority_reads"]=authority_read_count(context)
+            roots=context["roots_resolved"];sp=roots["success"]/"VERIFIED_SUCCESS.json";fp=roots["failure"]/"FAIL_CLOSED.json"
+            if not sp.exists() and not fp.exists():
+                journal=roots["journal"]/"publication.json"
+                if journal.is_file():
+                    try:
+                        state,_=read_canonical(journal)
+                        if state.get("state")=="PUBLISHING" and not (roots["pointer"]/"B1.json").exists():rollback(journal,roots["run"],roots["pointer"]/"B1.json",context)
+                    except BaseException as rollback_exc:raise Repair05Error("FAILURE_ROLLBACK:"+str(rollback_exc)) from rollback_exc
+                _observe_counts(roots,counts);counts["published"]=0
+                try:write_terminal(context,False,counts,type(exc).__name__+":"+str(exc))
+                except BaseException:raise
+        print(json.dumps({"status":"FAIL_CLOSED","error":type(exc).__name__+":"+str(exc),"authority_read_count":counts["authority_reads"]},sort_keys=True),file=sys.stderr);return 2
+
+
+if __name__=="__main__":raise SystemExit(main())

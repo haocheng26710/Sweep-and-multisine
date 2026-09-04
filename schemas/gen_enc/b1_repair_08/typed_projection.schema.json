@@ -1,0 +1,770 @@
+{
+  "$id": "gen_enc_fast_b1_repair_08_typed_projection_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dependency_matrix": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "consumers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "pointer": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "selector_id": {
+            "type": "string"
+          },
+          "value_sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "pointer",
+          "selector_id",
+          "category",
+          "consumers",
+          "value_sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 349,
+      "minItems": 349,
+      "type": "array"
+    },
+    "dependency_matrix_sha256": {
+      "type": "string"
+    },
+    "projection_contract_sha256": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "semantic_leaf_count": {
+      "type": "number"
+    },
+    "unused_leaf_allowlist": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "pointer",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "maxItems": 193,
+      "minItems": 193,
+      "type": "array"
+    },
+    "unused_leaf_count": {
+      "type": "number"
+    },
+    "values": {
+      "additionalProperties": false,
+      "properties": {
+        "APPROVAL_CARRY": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        },
+        "APPROVAL_U1": {
+          "additionalProperties": false,
+          "properties": {
+            "selection": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "selection"
+          ],
+          "type": "object"
+        },
+        "APPROVAL_U2": {
+          "additionalProperties": false,
+          "properties": {
+            "selection": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "selection"
+          ],
+          "type": "object"
+        },
+        "APPROVAL_U3": {
+          "additionalProperties": false,
+          "properties": {
+            "selection": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "selection"
+          ],
+          "type": "object"
+        },
+        "GEOMETRY_SLOT_Z": {
+          "type": "number"
+        },
+        "GEOMETRY_TARGET_FRACTION": {
+          "type": "number"
+        },
+        "GEOMETRY_VOLUME": {
+          "type": "number"
+        },
+        "GRAPH_DEFINITION": {
+          "additionalProperties": false,
+          "properties": {
+            "actual_edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "b": {
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "type": "string"
+                  },
+                  "positive_area_m2": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "positive_area_m2"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "actual_nodes": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 5,
+              "minItems": 5,
+              "type": "array"
+            },
+            "reduced_edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "b": {
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "type": "string"
+                  },
+                  "parameter_key": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "parameter_key"
+                ],
+                "type": "object"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            },
+            "reduced_nodes": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            }
+          },
+          "required": [
+            "reduced_nodes",
+            "reduced_edges",
+            "actual_nodes",
+            "actual_edges"
+          ],
+          "type": "object"
+        },
+        "GRAPH_TERMS": {
+          "additionalProperties": false,
+          "properties": {
+            "bfs_rule": {
+              "type": "string"
+            },
+            "positive_edge_rule": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "positive_edge_rule",
+            "bfs_rule"
+          ],
+          "type": "object"
+        },
+        "OWNERSHIP_ALGORITHMS": {
+          "additionalProperties": false,
+          "properties": {
+            "coordinate_frame": {
+              "type": "string"
+            },
+            "sector_rotations_deg": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            }
+          },
+          "required": [
+            "coordinate_frame",
+            "sector_rotations_deg"
+          ],
+          "type": "object"
+        },
+        "OWNERSHIP_CELLS": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cell_id": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "positive_overlap_volume_m3": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "cell_id",
+              "owner",
+              "positive_overlap_volume_m3"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "OWNERSHIP_RULE": {
+          "additionalProperties": false,
+          "properties": {
+            "central": {
+              "type": "string"
+            },
+            "sector": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "central",
+            "sector"
+          ],
+          "type": "object"
+        },
+        "ROOT_BRACKET": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "ROOT_COMMON": {
+          "additionalProperties": false,
+          "properties": {
+            "domain_m": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "fixed_volume_m3": {
+              "type": "number"
+            },
+            "iterations": {
+              "type": "number"
+            },
+            "linear_coefficient_m2": {
+              "type": "number"
+            },
+            "tolerance_m3": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "domain_m",
+            "tolerance_m3",
+            "iterations",
+            "fixed_volume_m3",
+            "linear_coefficient_m2"
+          ],
+          "type": "object"
+        },
+        "ROOT_DERIVED_PROOF": {
+          "additionalProperties": false,
+          "properties": {
+            "equation": {
+              "type": "string"
+            },
+            "strict_monotone": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "strict_monotone",
+            "equation"
+          ],
+          "type": "object"
+        },
+        "ROOT_DOMAIN": {
+          "additionalProperties": false,
+          "properties": {
+            "root_length_m": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            }
+          },
+          "required": [
+            "root_length_m"
+          ],
+          "type": "object"
+        },
+        "ROOT_FAMILIES": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "family_id": {
+                "type": "string"
+              },
+              "same_root_contract": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "family_id",
+              "same_root_contract"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "ROOT_INDEPENDENT_PROOF": {
+          "additionalProperties": false,
+          "properties": {
+            "bracket_verified": {
+              "type": "boolean"
+            },
+            "method": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "bracket_verified",
+            "method"
+          ],
+          "type": "object"
+        },
+        "SLOT_BURDEN": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array"
+        },
+        "SLOT_MAPPING": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 10,
+          "type": "array"
+        },
+        "SLOT_ROWS": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "coordinates_xy_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "owner_cell_id": {
+                "type": "string"
+              },
+              "sector": {
+                "type": "string"
+              },
+              "slot_id": {
+                "type": "string"
+              },
+              "width_m": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "slot_id",
+              "sector",
+              "owner_cell_id",
+              "coordinates_xy_m",
+              "width_m"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "type": "array"
+        },
+        "SLOT_SECTOR_ORDER": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "SOLID_ELIGIBLE_PAIR": {
+          "additionalProperties": false,
+          "properties": {
+            "rule": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "rule"
+          ],
+          "type": "object"
+        },
+        "SOLID_METRICS": {
+          "additionalProperties": false,
+          "properties": {
+            "feature_metric": {
+              "type": "string"
+            },
+            "load_path_metric": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "feature_metric",
+            "load_path_metric"
+          ],
+          "type": "object"
+        },
+        "STATIC_FAIL_RULES": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "STATIC_FIELDS": {
+          "additionalProperties": false,
+          "properties": {
+            "exception_feature_candidates": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1,
+              "minItems": 1,
+              "type": "array"
+            },
+            "exception_load_candidates": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1,
+              "minItems": 1,
+              "type": "array"
+            },
+            "general_feature_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "general_load_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "minimum_general_feature_m": {
+              "type": "number"
+            },
+            "minimum_general_load_path_m": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "general_feature_candidates",
+            "general_load_candidates",
+            "exception_feature_candidates",
+            "exception_load_candidates",
+            "minimum_general_feature_m",
+            "minimum_general_load_path_m"
+          ],
+          "type": "object"
+        },
+        "U4_COORDINATES": {
+          "additionalProperties": false,
+          "properties": {
+            "suffix_z_m": {
+              "additionalProperties": false,
+              "properties": {
+                "RIM": {
+                  "type": "number"
+                },
+                "RIM_BOTTOM": {
+                  "type": "number"
+                },
+                "RIM_TOP": {
+                  "type": "number"
+                },
+                "SHOULDER_LOWER": {
+                  "type": "number"
+                },
+                "SHOULDER_UPPER": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "RIM_BOTTOM",
+                "RIM_TOP",
+                "SHOULDER_LOWER",
+                "SHOULDER_UPPER",
+                "RIM"
+              ],
+              "type": "object"
+            },
+            "x_m": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x_m",
+            "suffix_z_m"
+          ],
+          "type": "object"
+        },
+        "U4_COUNTS": {
+          "additionalProperties": false,
+          "properties": {
+            "per_sector": {
+              "type": "number"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "total",
+            "per_sector"
+          ],
+          "type": "object"
+        },
+        "U4_OBJECTS": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "exceptions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "feature_m": {
+                      "type": "number"
+                    },
+                    "load_path_m": {
+                      "type": "number"
+                    },
+                    "suffix": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "suffix",
+                    "feature_m",
+                    "load_path_m"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 5,
+                "minItems": 5,
+                "type": "array"
+              },
+              "sector": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sector",
+              "exceptions"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "U4_PARTICIPATION": {
+          "type": "string"
+        },
+        "ZERO_EDGE_RULE": {
+          "additionalProperties": false,
+          "properties": {
+            "branch": {
+              "type": "string"
+            },
+            "comparison": {
+              "type": "string"
+            },
+            "exact_zero": {
+              "type": "number"
+            },
+            "family": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "family",
+            "exact_zero",
+            "branch",
+            "comparison"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "OWNERSHIP_CELLS",
+        "OWNERSHIP_RULE",
+        "OWNERSHIP_ALGORITHMS",
+        "SLOT_ROWS",
+        "SLOT_SECTOR_ORDER",
+        "SLOT_MAPPING",
+        "SLOT_BURDEN",
+        "GEOMETRY_VOLUME",
+        "GEOMETRY_TARGET_FRACTION",
+        "GEOMETRY_SLOT_Z",
+        "ROOT_COMMON",
+        "ROOT_FAMILIES",
+        "ROOT_DOMAIN",
+        "ROOT_DERIVED_PROOF",
+        "ROOT_INDEPENDENT_PROOF",
+        "ROOT_BRACKET",
+        "U4_COORDINATES",
+        "U4_OBJECTS",
+        "U4_COUNTS",
+        "U4_PARTICIPATION",
+        "STATIC_FIELDS",
+        "STATIC_FAIL_RULES",
+        "SOLID_METRICS",
+        "SOLID_ELIGIBLE_PAIR",
+        "GRAPH_DEFINITION",
+        "GRAPH_TERMS",
+        "ZERO_EDGE_RULE",
+        "APPROVAL_U1",
+        "APPROVAL_U2",
+        "APPROVAL_U3",
+        "APPROVAL_CARRY"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "values",
+    "semantic_leaf_count",
+    "dependency_matrix",
+    "dependency_matrix_sha256",
+    "unused_leaf_allowlist",
+    "unused_leaf_count",
+    "projection_contract_sha256"
+  ],
+  "type": "object"
+}

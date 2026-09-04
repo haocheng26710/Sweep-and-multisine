@@ -1,0 +1,21 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr02_technical_substitute_authority_v1",
+  "identity_class": "TECHNICAL_SUBSTITUTE_ONLY",
+  "authority_kind": "RANDOM_SEEDS_SUBSTITUTE",
+  "member_count": 20,
+  "formal_input_path": null,
+  "formal_input_sha256": null,
+  "formal_json_pointer": null,
+  "contains_formal_rows": false,
+  "contains_formal_seeds": false,
+  "authorized_for_formal_use": false,
+  "algorithmic_configuration": {
+    "domain_label": "CORR02-TECHNICAL-RANDOM-CONFIG",
+    "construction": "sha256_counter_stream_from_technical_domain_and_member_index",
+    "index_origin": 1,
+    "parameter_count": 18,
+    "zero_rule": "designated_zero_slots_are_exact_numeric_zero",
+    "external_entropy": false
+  },
+  "final_test_read": false
+}

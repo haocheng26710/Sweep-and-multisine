@@ -1,5 +1,21 @@
 # Changelog
 
+## TRANS-1 — compact two-port physical pilot (unreleased)
+
+- Archived and hash-verified 15 real REW TXT plus 15 MDAT files as N×6, S×6 and N-return×3; preserved the source ZIP byte-for-byte with SHA-256 `af68c8cb235500d72dd96b0a5cbdc6d09c4f436fec2307038e82c19951193a02`.
+- Applied the fixed FORMAL-1 200–8000 Hz, 48-points/octave, 1/12-octave dB preprocessing contract and retained all 15 repeats without outcome-based selection or automatic deletion.
+- Found a 2.069 dB primary-band demeaned N−S spectral effect, 2.165 times the current within-condition p95; N-return−S reproduced 2.079 dB with 0.851 effect-curve correlation.
+- Found a predeclared 1850/3800 Hz low-minus-high contrast of 2.753 dB (95% CI 2.178–3.094), supporting two-state magnitude-spectrum encoding within one closure while withholding four-direction, cross-assembly, phase and exact-model-prediction claims.
+- Added machine-readable QC, repeatability, effect and fixed-window tables, repeat-bootstrap uncertainty, PNG/SVG figures and a complete SHA-256 artifact closure; final-test remained sealed and unread.
+
+## V2.5 S1–S3 — revised-repeat joint real-data analysis (unreleased)
+
+- Preserved and hash-verified 86 real TXT plus 86 MDAT files across single-entry S1, U4SYM S2 and U4HR S3; copied the two new source ZIPs into dedicated real-experiment archive directories.
+- Implemented the user-requested single-campaign 5-of-6 / 3-of-4 rule as an outcome-independent farthest-from-group-median flag, with all-repeat sensitivity retained and no raw deletion.
+- Found a larger within-campaign direction spectral effect for U4HR than U4SYM, but no support for the frozen HR01/03/05/07 diagonal direction-code mapping; same-campaign classification remains exploratory.
+- Added fixed-channel, mechanism-correlation, repeat-bootstrap, direction-label permutation and post-hoc frequency-localisation outputs, plus a rendered analysis workbook and SHA-256 artifact closure.
+- Documented the S2 open-channel note mismatch, retained final-test sealed/unread and selected no-print Scheme 3A multi-port/common-cavity simulation as the next diagnostic step.
+
 ## SUP-1 + SUP-2R — existing-data mechanism reanalysis (unreleased)
 
 - Corrected the supplemental identity model so HOM-A reuses authoritative U4SYM AS01 B01/B02 and HET-ABDF reuses U4ENC AS01 B03/B04; no duplicate acquisition was requested or performed.

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/gen_enc/source_bundle_manifest.schema.json",
+  "title": "GEN-ENC-2B canonical source bundle manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evidence_level", "entries", "instance_manifest_sha256_by_family"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2b_source_bundle_manifest_v1"},
+    "evidence_level": {"const": "E1_TECHNICAL_CONFORMANCE_AND_SOURCE_IDENTITY"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "byte_length", "role"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "byte_length": {"type": "integer", "minimum": 0},
+          "role": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "instance_manifest_sha256_by_family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["HAND_DESIGNED", "NEAR_INDEPENDENT", "FIXED_SEED_RANDOM_DISORDERED", "PHYSICS_METAMATERIAL_INSPIRED"],
+      "properties": {
+        "HAND_DESIGNED": {"type": "null"},
+        "NEAR_INDEPENDENT": {"type": "null"},
+        "FIXED_SEED_RANDOM_DISORDERED": {"type": "null"},
+        "PHYSICS_METAMATERIAL_INSPIRED": {"type": "null"}
+      }
+    }
+  }
+}

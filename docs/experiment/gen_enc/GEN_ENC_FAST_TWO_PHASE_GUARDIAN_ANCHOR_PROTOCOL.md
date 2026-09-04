@@ -1,0 +1,13 @@
+# GEN-ENC FAST B1–B4 two-phase guardian posterior-anchor protocol
+
+This protocol freezes one implementation and state machine for B1–B4. Per batch, only the task id, fixed five ordinal members per family, run id, roots, Phase-A control bytes, Phase-B guardian bytes, and dispatch/consumption records may differ. Scientific algorithms, CAD projection, dependency matrix, schemas, command interface, 27-subject seal, 31-artifact graph, claim ceiling, 80-member obligation, 92-object final integration, and sealed final-test state do not change.
+
+Authority is the guardian contract `GEN_ENC_FAST_B1_B4_TWO_STAGE_POSTERIOR_ANCHOR_CONTRACT.json` (SHA256 `526d64e67ddbdb6e15ea2fb0a0f0bb84aae4e90a55f3d9bde44237f34c5027c2`) and its ACCEPT review (SHA256 `c3d21497f26744219656b80de1e639027fee48b2c96171f593381926d7220edd`). Repair-05 release bytes are explicitly not Phase-A authority because they authorize all six commands and publication.
+
+Phase A uses new canonical release, one-way scope attestation, and dispatch bytes. Its exact commands are `preflight`, `generate-staging`, and `verify`. It can create staging, cumulative authority-read receipts, the immutable 27-subject seal, independent report, verifier terminal, and canonical handoff. It cannot publish, recover, package, create a commit pointer, or create a success package. The terminal state is `PHASE_A_VERIFIED_HANDOFF_STOP`, with publication/pointer/success counts all zero.
+
+Phase B begins only after the guardian observes the Phase-A handoff and creates new canonical authorization and attestation bytes in the guardian-owned authorization root. The intermediate controller supplies exact paths and the already-known expected SHA256 values in a distinct task-bound Phase-B dispatch. The executor checks expected hashes before canonical/schema/binding validation and before any staging or target access. It never scans for alternatives, derives expected hashes, uses environment fallbacks, or rewrites guardian records.
+
+The state sequence is `PHASE_A_ISSUED → PHASE_A_CONSUMED → PHASE_A_VERIFIED_HANDOFF_STOP`, followed by independent `PHASE_B_ISSUED → PHASE_B_CONSUMED → PUBLISHING → COMMITTED → PACKAGED`. Phase-B recover alone handles publication crashes. Pointer-last, package-after-pointer, exactly one terminal, immutable one-use records, cumulative honest counts, zero-unlisted cardinality, and subject/graph rehashing remain mandatory.
+
+Evidence remains batch-local identity, complete CAD/static evidence, and technical validity only. No batch supports family/global/cross-family, matched-cost, performance, direction, timing, full-wave, physical, `NO_IMPROVEMENT`, final-80, or final-92 conclusions. `final_test_read=false` throughout.

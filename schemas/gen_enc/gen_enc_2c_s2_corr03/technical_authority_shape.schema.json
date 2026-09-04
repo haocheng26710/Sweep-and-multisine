@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr03:technical-authority-shape:v2",
+  "oneOf": [{"$ref": "#/$defs/hand"}, {"$ref": "#/$defs/near"}, {"$ref": "#/$defs/random_spec"}, {"$ref": "#/$defs/random_seed_split"}, {"$ref": "#/$defs/physics"}],
+  "$defs": {
+    "number": {"type": "number", "minimum": -1, "maximum": 1},
+    "base": {
+      "type": "object",
+      "required": ["schema_version", "identity_class", "authority_kind", "formal_values", "final_test_read"],
+      "properties": {
+        "schema_version": {"const": "gen_enc_2c_s2_corr03_technical_authority_shape_v2"},
+        "identity_class": {"const": "TECHNICAL_SUBSTITUTE_ONLY"},
+        "authority_kind": {"type": "string"},
+        "formal_values": {"const": false},
+        "final_test_read": {"const": false}
+      }
+    },
+    "hand_row": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member_id", "volume_logit_0", "volume_logit_90", "volume_logit_180", "derived_volume_logit_270", "external_aperture_fraction_0", "external_aperture_fraction_90", "external_aperture_fraction_180", "external_aperture_fraction_270", "central_mix_aperture_fraction", "loss_fraction_0", "loss_fraction_90", "loss_fraction_180", "loss_fraction_270"],
+      "properties": {
+        "member_id": {"type": "string", "pattern": "^HAND_[0-9]{2}$"},
+        "volume_logit_0": {"$ref": "#/$defs/number"}, "volume_logit_90": {"$ref": "#/$defs/number"}, "volume_logit_180": {"$ref": "#/$defs/number"}, "derived_volume_logit_270": {"$ref": "#/$defs/number"},
+        "external_aperture_fraction_0": {"$ref": "#/$defs/number"}, "external_aperture_fraction_90": {"$ref": "#/$defs/number"}, "external_aperture_fraction_180": {"$ref": "#/$defs/number"}, "external_aperture_fraction_270": {"$ref": "#/$defs/number"},
+        "central_mix_aperture_fraction": {"type": "number", "minimum": 0.1, "maximum": 0.3},
+        "loss_fraction_0": {"$ref": "#/$defs/number"}, "loss_fraction_90": {"$ref": "#/$defs/number"}, "loss_fraction_180": {"$ref": "#/$defs/number"}, "loss_fraction_270": {"$ref": "#/$defs/number"}
+      }
+    },
+    "near_row": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member_id", "volume_logit_0", "volume_logit_90", "volume_logit_180", "derived_volume_logit_270", "external_aperture_fraction_0", "external_aperture_fraction_90", "external_aperture_fraction_180", "external_aperture_fraction_270", "shared_coupling_alpha", "loss_fraction_0", "loss_fraction_90", "loss_fraction_180", "loss_fraction_270"],
+      "properties": {
+        "member_id": {"type": "string", "pattern": "^NEAR_[0-9]{2}$"},
+        "volume_logit_0": {"$ref": "#/$defs/number"}, "volume_logit_90": {"$ref": "#/$defs/number"}, "volume_logit_180": {"$ref": "#/$defs/number"}, "derived_volume_logit_270": {"$ref": "#/$defs/number"},
+        "external_aperture_fraction_0": {"$ref": "#/$defs/number"}, "external_aperture_fraction_90": {"$ref": "#/$defs/number"}, "external_aperture_fraction_180": {"$ref": "#/$defs/number"}, "external_aperture_fraction_270": {"$ref": "#/$defs/number"},
+        "shared_coupling_alpha": {"type": "number", "minimum": 0.03, "maximum": 0.07},
+        "loss_fraction_0": {"$ref": "#/$defs/number"}, "loss_fraction_90": {"$ref": "#/$defs/number"}, "loss_fraction_180": {"$ref": "#/$defs/number"}, "loss_fraction_270": {"$ref": "#/$defs/number"}
+      }
+    },
+    "hand": {"unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/base"}, {"type": "object", "required": ["rows"], "properties": {"authority_kind": {"const": "HAND_ROWS_EXACT_SHAPE"}, "rows": {"type": "array", "minItems": 20, "maxItems": 20, "items": {"$ref": "#/$defs/hand_row"}}}}]},
+    "near": {"unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/base"}, {"type": "object", "required": ["rows"], "properties": {"authority_kind": {"const": "NEAR_ROWS_EXACT_SHAPE"}, "rows": {"type": "array", "minItems": 20, "maxItems": 20, "items": {"$ref": "#/$defs/near_row"}}}}]},
+    "random_spec": {
+      "unevaluatedProperties": false,
+      "allOf": [{"$ref": "#/$defs/base"}, {"type": "object", "required": ["parameter_order", "inverse_cdf", "draw_addressing"], "properties": {
+        "authority_kind": {"const": "RANDOM_FAMILY_SPEC_EXACT_SHAPE"},
+        "parameter_order": {"const": ["q0", "q90", "q180", "edge_0_90", "edge_0_180", "edge_0_270", "edge_90_180", "edge_90_270", "edge_180_270", "loss_0", "loss_90", "loss_180", "loss_270"]},
+        "draw_addressing": {"type": "object", "additionalProperties": false, "required": ["golden_gamma_hex", "parameter_index_origin", "x_expression", "generator", "one_uniform_per_coordinate"], "properties": {"golden_gamma_hex": {"const": "9e3779b97f4a7c15"}, "parameter_index_origin": {"const": 0}, "x_expression": {"const": "(member_seed+GOLDEN_GAMMA*(index+1)) mod 2^64"}, "generator": {"const": "SPLITMIX64"}, "one_uniform_per_coordinate": {"const": true}}},
+        "inverse_cdf": {"type": "object", "additionalProperties": false, "required": ["uniform_interval", "draw_count", "volume_logit", "edge", "loss"], "properties": {"uniform_interval": {"const": "OPEN_0_1"}, "draw_count": {"const": 13}, "volume_logit": {"const": "-0.12+0.24*u"}, "loss": {"const": "0.02+0.06*u"}, "edge": {"type": "object", "additionalProperties": false, "required": ["zero_atom_probability", "zero_when", "positive_branch", "same_uniform_for_atom_and_positive_branch"], "properties": {"zero_atom_probability": {"const": 0.5}, "zero_when": {"const": "u<0.5"}, "positive_branch": {"const": "0.2+0.6*(2*u-1)"}, "same_uniform_for_atom_and_positive_branch": {"const": true}}}}
+      }}}]
+    },
+    "random_seed_split": {"unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/base"}, {"type": "object", "required": ["random"], "properties": {"authority_kind": {"const": "RANDOM_SEED_SPLIT_EXACT_SHAPE"}, "random": {"type": "array", "minItems": 20, "maxItems": 20, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}}}}]},
+    "physics": {
+      "unevaluatedProperties": false,
+      "allOf": [{"$ref": "#/$defs/base"}, {"type": "object", "required": ["master_seed", "parameter_order", "bounds", "lhs", "permutation_algorithm"], "properties": {
+        "authority_kind": {"const": "PHYSICS_MASTER_SPEC_EXACT_SHAPE"}, "master_seed": {"type": "integer", "minimum": 1},
+        "parameter_order": {"const": ["q0", "q90", "q180", "external_0", "external_90", "external_180", "external_270", "ring_0_90", "ring_90_180", "ring_180_270", "ring_270_0", "loss_0", "loss_90", "loss_180", "loss_270"]},
+        "bounds": {"type": "array", "minItems": 15, "maxItems": 15, "items": {"type": "array", "minItems": 2, "maxItems": 2, "prefixItems": [{"type": "number"}, {"type": "number"}], "items": false}},
+        "lhs": {"type": "object", "additionalProperties": false, "required": ["strata", "sample", "jitter"], "properties": {"strata": {"const": 20}, "sample": {"const": "L+(U-L)*(perm[r]+0.5)/20"}, "jitter": {"const": false}}},
+        "permutation_algorithm": {"type": "object", "additionalProperties": false, "required": ["golden_gamma_hex", "parameter_index_origin", "generator", "loop", "x_expression", "j_expression"], "properties": {"golden_gamma_hex": {"const": "9e3779b97f4a7c15"}, "parameter_index_origin": {"const": 0}, "generator": {"const": "SPLITMIX64"}, "loop": {"const": "i=19..1"}, "x_expression": {"const": "(master_seed+GOLDEN_GAMMA*(1+32*parameter_index+(19-i))) mod 2^64"}, "j_expression": {"const": "splitmix64(x)%(i+1)"}}}
+      }}]
+    }
+  }
+}

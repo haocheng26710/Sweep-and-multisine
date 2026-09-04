@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "commit_pointer_written": {
+      "const": false
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "published_count": {
+      "maximum": 31,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "record_kind": {
+      "const": "PUBLICATION_INTENT_NON_SUCCESS"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-08"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_08_publication_terminal_v1"
+    },
+    "status": {
+      "const": "AWAITING_MULTI_TARGET_ATOMIC_PUBLICATION"
+    },
+    "success_terminal_written": {
+      "const": false
+    },
+    "target_count": {
+      "const": 31
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "status",
+    "target_count",
+    "published_count",
+    "commit_pointer_written",
+    "success_terminal_written",
+    "claim_ceiling",
+    "final_test_read"
+  ],
+  "type": "object"
+}

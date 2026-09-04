@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr02:fail-closed-terminal:v1",
+  "title": "Atomic honest-count FAIL_CLOSED terminal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "terminal_kind", "terminal_status", "task_id", "dispatch_id",
+    "attempt", "run_id", "fatal_stage", "error_code", "error_sha256",
+    "observed_counts", "formal_hashes", "package_terminal_count", "atomic_write",
+    "evidence_level", "scientific_hypothesis_status", "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr02_fail_closed_terminal_v1"},
+    "terminal_kind": {"const": "FAIL_CLOSED"},
+    "terminal_status": {"const": "FAIL_CLOSED_S2_CORR02_INCOMPLETE"},
+    "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"},
+    "dispatch_id": {"type": ["string", "null"]},
+    "attempt": {"type": "integer", "minimum": 0},
+    "run_id": {"anyOf": [{"type": "string", "pattern": "^[0-9a-f]{64}$"}, {"type": "null"}]},
+    "fatal_stage": {"type": "string", "minLength": 1},
+    "error_code": {"type": "string", "minLength": 1},
+    "error_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "observed_counts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["formal_authority_files_read", "formal_rows_read", "formal_seeds_read", "formal_members_created", "formal_paths_existing", "published_paths", "static_eligibility_runs", "final_test_reads"],
+      "properties": {
+        "formal_authority_files_read": {"type": "integer", "minimum": 0},
+        "formal_rows_read": {"type": "integer", "minimum": 0},
+        "formal_seeds_read": {"type": "integer", "minimum": 0},
+        "formal_members_created": {"type": "integer", "minimum": 0},
+        "formal_paths_existing": {"type": "integer", "minimum": 0, "maximum": 92},
+        "published_paths": {"type": "integer", "minimum": 0, "maximum": 92},
+        "static_eligibility_runs": {"type": "integer", "minimum": 0},
+        "final_test_reads": {"type": "integer", "minimum": 0}
+      }
+    },
+    "formal_hashes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member", "family", "index", "results", "progress"],
+      "properties": {"member": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "family": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "index": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "results": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "progress": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}
+    },
+    "package_terminal_count": {"const": 1},
+    "atomic_write": {"const": true},
+    "evidence_level": {"const": "E1_TECHNICAL_PREEXECUTION_CORRECTION_ONLY"},
+    "scientific_hypothesis_status": {"const": "NOT_TESTED"},
+    "final_test_read": {"const": false}
+  }
+}

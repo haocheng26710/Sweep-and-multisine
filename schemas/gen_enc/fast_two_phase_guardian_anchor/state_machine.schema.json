@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gen_enc_fast_b1_b4_two_phase_state_machine_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_freeze_task_id", "contract_sha256", "applies_to", "phase_a", "phase_b", "terminal_rules", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_fast_b1_b4_two_phase_state_machine_v1"},
+    "protocol_freeze_task_id": {"const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"},
+    "contract_sha256": {"const": "526d64e67ddbdb6e15ea2fb0a0f0bb84aae4e90a55f3d9bde44237f34c5027c2"},
+    "applies_to": {"const": ["B1", "B2", "B3", "B4"]},
+    "phase_a": {"type": "object"},
+    "phase_b": {"type": "object"},
+    "terminal_rules": {"type": "object"},
+    "final_test_read": {"const": false}
+  }
+}

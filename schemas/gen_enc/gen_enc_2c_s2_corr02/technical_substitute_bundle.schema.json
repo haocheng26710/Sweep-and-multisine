@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:s2:corr02:technical-substitute-bundle:v1",
+  "title": "Four-authority technical substitute bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "identity_class", "authority_count", "contains_formal_rows", "contains_formal_seeds", "authorized_for_formal_use", "authorities", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr02_technical_substitute_bundle_v1"},
+    "identity_class": {"const": "TECHNICAL_SUBSTITUTE_ONLY"},
+    "authority_count": {"const": 4},
+    "contains_formal_rows": {"const": false},
+    "contains_formal_seeds": {"const": false},
+    "authorized_for_formal_use": {"const": false},
+    "authorities": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "prefixItems": [
+        {"$ref": "#/$defs/hand"}, {"$ref": "#/$defs/near"},
+        {"$ref": "#/$defs/random"}, {"$ref": "#/$defs/physics"}
+      ],
+      "items": false
+    },
+    "final_test_read": {"const": false}
+  },
+  "$defs": {
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_kind", "path", "sha256", "schema_path"],
+      "properties": {
+        "authority_kind": {"type": "string"},
+        "path": {"type": "string", "pattern": "^tests/fixtures/gen_enc_2c_s2_corr02/"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "schema_path": {"const": "schemas/gen_enc/gen_enc_2c_s2_corr02/technical_substitute_authority.schema.json"}
+      }
+    },
+    "hand": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"authority_kind": {"const": "HAND_ROWS_SUBSTITUTE"}}}]},
+    "near": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"authority_kind": {"const": "NEAR_ROWS_SUBSTITUTE"}}}]},
+    "random": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"authority_kind": {"const": "RANDOM_SEEDS_SUBSTITUTE"}}}]},
+    "physics": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"authority_kind": {"const": "PHYSICS_SEEDS_SUBSTITUTE"}}}]}
+  }
+}

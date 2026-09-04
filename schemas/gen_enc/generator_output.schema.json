@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/gen_enc/generator_output.schema.json",
+  "title": "GEN-ENC-2B technical output",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["object_class"],
+  "properties": {
+    "object_class": {"const": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY"},
+    "scientific_manifest_write_allowed": {"const": false}
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["scientific_instance_manifest"]},
+      {"required": ["instance_manifest_sha256_by_family"]},
+      {"required": ["response_payload"]}
+    ]
+  }
+}

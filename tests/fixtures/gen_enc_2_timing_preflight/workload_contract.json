@@ -1,0 +1,18 @@
+{
+  "schema_version": "gen_enc_2_timing_preflight_workload_fixture_v1",
+  "member_id": "HAND_01",
+  "member_global_ordinal": 1,
+  "nuisance_cells": 3675,
+  "repeats_per_cell": 2,
+  "complete_units": 7350,
+  "states_degrees": [0, 90, 180, 270],
+  "ports": 4,
+  "computed_frequencies": 256,
+  "representative_complex_value_count": 30105600,
+  "frequency_block_size": 32,
+  "frequency_blocks_per_unit": 8,
+  "projection_multiplier": 560,
+  "projection_derivation": "(4 families*20 members*(4 development+24 validation angles)*4 ports)/(1 member*4 development states*4 ports)=560",
+  "response_artifacts": 0,
+  "final_test_read": false
+}

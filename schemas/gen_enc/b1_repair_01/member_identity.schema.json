@@ -1,0 +1,876 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "cad_static_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_fluid_graph": {
+          "additionalProperties": false,
+          "properties": {
+            "component_count": {
+              "const": 1
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "b": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "positive_area_m2": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "weight": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "weight",
+                  "positive_area_m2"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "nodes": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 5,
+              "minItems": 5,
+              "type": "array"
+            }
+          },
+          "required": [
+            "nodes",
+            "edges",
+            "component_count"
+          ],
+          "type": "object"
+        },
+        "authority_binding": {
+          "additionalProperties": false,
+          "properties": {
+            "all_leaf_manifest_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "leaf_count": {
+              "minimum": 13,
+              "type": "integer"
+            },
+            "model_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "schema_version": {
+              "const": "gen_enc_fast_b1_repair_01_cad_authority_model_v1"
+            },
+            "sections": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "parts": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "leaf_count": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "leaf_manifest_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "pointer": {
+                          "type": "string"
+                        },
+                        "purpose": {
+                          "pattern": "^CAD0_MULTI_SOURCE_(0[1-9]|1[0-3])$",
+                          "type": "string"
+                        },
+                        "value_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "purpose",
+                        "pointer",
+                        "value_sha256",
+                        "leaf_count",
+                        "leaf_manifest_sha256"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 32,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "section_sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "parts",
+                  "section_sha256"
+                ],
+                "type": "object"
+              },
+              "maxItems": 32,
+              "minItems": 1,
+              "type": "array"
+            },
+            "source_count": {
+              "const": 13
+            },
+            "sources": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "leaf_count": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "leaf_manifest_sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "object_sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "path": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "pointer": {
+                    "type": "string"
+                  },
+                  "purpose": {
+                    "pattern": "^CAD0_MULTI_SOURCE_(0[1-9]|1[0-3])$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "purpose",
+                  "path",
+                  "sha256",
+                  "pointer",
+                  "object_sha256",
+                  "leaf_count",
+                  "leaf_manifest_sha256"
+                ],
+                "type": "object"
+              },
+              "maxItems": 13,
+              "minItems": 13,
+              "type": "array"
+            }
+          },
+          "required": [
+            "schema_version",
+            "sources",
+            "sections",
+            "source_count",
+            "leaf_count",
+            "all_leaf_manifest_sha256",
+            "model_sha256"
+          ],
+          "type": "object"
+        },
+        "complete_witness_semantics": {
+          "const": true
+        },
+        "exception_minima": {
+          "additionalProperties": false,
+          "properties": {
+            "exception_ids": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "minItems": 20,
+              "type": "array"
+            },
+            "measured_minimum_feature_m": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "measured_minimum_load_path_m": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "measured_minimum_feature_m",
+            "measured_minimum_load_path_m",
+            "exception_ids"
+          ],
+          "type": "object"
+        },
+        "general_minima": {
+          "additionalProperties": false,
+          "properties": {
+            "feature_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            },
+            "feature_witness_ids": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "load_path_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "load_path_witness_ids": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "measured_minimum_feature_m": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "measured_minimum_load_path_m": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "feature_candidates",
+            "load_path_candidates",
+            "measured_minimum_feature_m",
+            "measured_minimum_load_path_m",
+            "feature_witness_ids",
+            "load_path_witness_ids"
+          ],
+          "type": "object"
+        },
+        "ownership_cells": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cell_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "owner": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "positive_overlap_volume_m3": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "rule": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "cell_id",
+              "owner",
+              "rule",
+              "positive_overlap_volume_m3"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "random_zero_edge_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "edge_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "exact_value": {
+                "const": 0.0
+              },
+              "generator_branch": {
+                "const": "U_LT_0P5_ATOM"
+              },
+              "verified_exact_zero": {
+                "const": true
+              }
+            },
+            "required": [
+              "edge_id",
+              "exact_value",
+              "generator_branch",
+              "verified_exact_zero"
+            ],
+            "type": "object"
+          },
+          "maxItems": 6,
+          "minItems": 0,
+          "type": "array"
+        },
+        "reduced_graph": {
+          "additionalProperties": false,
+          "properties": {
+            "component_count": {
+              "maximum": 4,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "b": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "weight",
+                  "active"
+                ],
+                "type": "object"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            },
+            "nodes": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            }
+          },
+          "required": [
+            "nodes",
+            "edges",
+            "component_count"
+          ],
+          "type": "object"
+        },
+        "schema_version": {
+          "const": "gen_enc_fast_b1_repair_01_member_cad_static_v1"
+        },
+        "slot_placements": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "coordinates_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              "owner_cell_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "placement_status": {
+                "const": "PLACED_OR_EXPLICIT_ZERO"
+              },
+              "sector": {
+                "enum": [
+                  "0",
+                  "90",
+                  "180",
+                  "270"
+                ]
+              },
+              "slot_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "width_m": {
+                "minimum": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "slot_id",
+              "sector",
+              "owner_cell_id",
+              "coordinates_m",
+              "placement_status",
+              "width_m"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "type": "array"
+        },
+        "thresholds": {
+          "additionalProperties": false,
+          "properties": {
+            "minimum_general_feature_m": {
+              "const": 0.002
+            },
+            "minimum_general_load_path_m": {
+              "const": 0.0016
+            }
+          },
+          "required": [
+            "minimum_general_feature_m",
+            "minimum_general_load_path_m"
+          ],
+          "type": "object"
+        },
+        "thresholds_copied_as_measurements": {
+          "const": false
+        },
+        "u4_exception_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "exception_id": {
+                "pattern": "^IFX_U4_[0-9]{3}_[A-Z_]+$",
+                "type": "string"
+              },
+              "excluded_only_from": {
+                "const": "GENERAL_MINIMA"
+              },
+              "feature_m": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "load_path_m": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "local_coordinates_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "participation": {
+                "const": "U4_INTERFACE_EXCEPTION_ONLY"
+              },
+              "sector": {
+                "enum": [
+                  "0",
+                  "90",
+                  "180",
+                  "270"
+                ]
+              }
+            },
+            "required": [
+              "exception_id",
+              "sector",
+              "local_coordinates_m",
+              "feature_m",
+              "load_path_m",
+              "participation",
+              "excluded_only_from"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "type": "array"
+        },
+        "volume_root_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "final_bracket_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "initial_bracket_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "iterations": {
+                "const": 80
+              },
+              "measured_volume_m3": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "residual_m3": {
+                "type": "number"
+              },
+              "root_length_m": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "sector": {
+                "enum": [
+                  "0",
+                  "90",
+                  "180",
+                  "270"
+                ]
+              },
+              "target_volume_m3": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "trace": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "high_m": {
+                      "type": "number"
+                    },
+                    "iteration": {
+                      "maximum": 80,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "low_m": {
+                      "type": "number"
+                    },
+                    "measured_volume_m3": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "mid_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "iteration",
+                    "low_m",
+                    "high_m",
+                    "mid_m",
+                    "measured_volume_m3"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 80,
+                "minItems": 80,
+                "type": "array"
+              }
+            },
+            "required": [
+              "sector",
+              "initial_bracket_m",
+              "final_bracket_m",
+              "iterations",
+              "trace",
+              "root_length_m",
+              "target_volume_m3",
+              "measured_volume_m3",
+              "residual_m3"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "ownership_cells",
+        "slot_placements",
+        "volume_root_witnesses",
+        "u4_exception_witnesses",
+        "general_minima",
+        "exception_minima",
+        "reduced_graph",
+        "actual_fluid_graph",
+        "random_zero_edge_witnesses",
+        "thresholds",
+        "thresholds_copied_as_measurements",
+        "complete_witness_semantics",
+        "authority_binding"
+      ],
+      "type": "object"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "failure_slot_retained": {
+      "const": true
+    },
+    "family_id": {
+      "enum": [
+        "HAND_DESIGNED",
+        "NEAR_INDEPENDENT",
+        "FIXED_SEED_RANDOM_DISORDERED",
+        "PHYSICS_METAMATERIAL_INSPIRED"
+      ]
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "input_provenance": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "SEALED_ROW"
+            },
+            "row_index_zero_based": {
+              "maximum": 4,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "row_index_zero_based"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "draw_count": {
+              "const": 13
+            },
+            "kind": {
+              "const": "RANDOM_FIXED_MEMBER_SEED"
+            },
+            "member_seed": {
+              "type": "integer"
+            },
+            "nextafter_guard": {
+              "const": true
+            },
+            "seed_index_zero_based": {
+              "maximum": 4,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "spec_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "member_seed",
+            "seed_index_zero_based",
+            "draw_count",
+            "nextafter_guard",
+            "spec_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "PHYSICS_FISHER_YATES_MIDPOINT_LHS"
+            },
+            "lhs_jitter": {
+              "const": false
+            },
+            "master_seed": {
+              "type": "integer"
+            },
+            "member_identity_seed": {
+              "type": "integer"
+            },
+            "seed_index_zero_based": {
+              "maximum": 4,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "spec_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "master_seed",
+            "member_identity_seed",
+            "seed_index_zero_based",
+            "lhs_jitter",
+            "spec_sha256"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "member_id": {
+      "pattern": "^(HAND|NEAR|RANDOM|PHYSICS)_0[1-5]$"
+    },
+    "parameter_order": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "type": "array"
+    },
+    "parameters": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "minProperties": 1,
+      "type": "object"
+    },
+    "record_kind": {
+      "const": "BATCH_LOCAL_MEMBER_IDENTITY_COMPLETE_AUTHORITY_DERIVED_CAD_STATIC"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-01"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_01_member_identity_v1"
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "slot_ordinal": {
+      "maximum": 5,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "static_status": {
+      "enum": [
+        "ELIGIBLE",
+        "COST_INELIGIBLE",
+        "TEMPLATE_VALIDITY_REJECTED",
+        "FAIL_CLOSED"
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "family_id",
+    "member_id",
+    "slot_ordinal",
+    "failure_slot_retained",
+    "input_provenance",
+    "parameter_order",
+    "parameters",
+    "cad_static_evidence",
+    "static_status",
+    "claim_ceiling",
+    "final_test_read",
+    "scientific_hypothesis_status"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,283 @@
+{
+  "$id": "gen_enc_fast_two_phase_guardian_phase_a_handoff_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_graph_count": {
+      "type": "number"
+    },
+    "artifact_graph_digest": {
+      "type": "string"
+    },
+    "artifact_graph_entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 31,
+      "minItems": 31,
+      "type": "array"
+    },
+    "authority_allowlist_path": {
+      "type": "string"
+    },
+    "authority_allowlist_sha256": {
+      "type": "string"
+    },
+    "authority_read_count": {
+      "type": "number"
+    },
+    "batch_id": {
+      "type": "string"
+    },
+    "command_manifest_path": {
+      "type": "string"
+    },
+    "command_manifest_sha256": {
+      "type": "string"
+    },
+    "commit_pointer_count": {
+      "type": "number"
+    },
+    "dependency_matrix_path": {
+      "type": "string"
+    },
+    "dependency_matrix_sha256": {
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "type": "string"
+    },
+    "final_test_read": {
+      "type": "boolean"
+    },
+    "formal_publication_count": {
+      "type": "number"
+    },
+    "guardian_two_phase_contract_path": {
+      "type": "string"
+    },
+    "guardian_two_phase_contract_sha256": {
+      "type": "string"
+    },
+    "guardian_two_phase_review_path": {
+      "type": "string"
+    },
+    "guardian_two_phase_review_sha256": {
+      "type": "string"
+    },
+    "handoff_digest": {
+      "type": "string"
+    },
+    "independent_report_path": {
+      "type": "string"
+    },
+    "independent_report_sha256": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "phase_a_attestation_path": {
+      "type": "string"
+    },
+    "phase_a_attestation_sha256": {
+      "type": "string"
+    },
+    "phase_a_commands_exact": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "phase_a_dispatch_id": {
+      "type": "string"
+    },
+    "phase_a_exact_argv": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "type": "array"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "phase_a_release_path": {
+      "type": "string"
+    },
+    "phase_a_release_sha256": {
+      "type": "string"
+    },
+    "phase_a_task_id": {
+      "type": "string"
+    },
+    "projection_contract_path": {
+      "type": "string"
+    },
+    "projection_contract_sha256": {
+      "type": "string"
+    },
+    "record_kind": {
+      "type": "string"
+    },
+    "repair_id": {
+      "type": "string"
+    },
+    "roots": {
+      "additionalProperties": false,
+      "properties": {
+        "failure": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "pointer": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "side_records": {
+          "type": "string"
+        },
+        "staging": {
+          "type": "string"
+        },
+        "success": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "staging",
+        "run",
+        "journal",
+        "success",
+        "failure",
+        "side_records",
+        "pointer"
+      ],
+      "type": "object"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "schema_manifest_path": {
+      "type": "string"
+    },
+    "schema_manifest_sha256": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "sha256sums_sha256": {
+      "type": "string"
+    },
+    "source_manifest_path": {
+      "type": "string"
+    },
+    "source_manifest_sha256": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "success_package_count": {
+      "type": "number"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "verification_subject_count": {
+      "type": "number"
+    },
+    "verification_subject_digest": {
+      "type": "string"
+    },
+    "verification_subject_seal_path": {
+      "type": "string"
+    },
+    "verification_subject_seal_sha256": {
+      "type": "string"
+    },
+    "verifier_terminal_path": {
+      "type": "string"
+    },
+    "verifier_terminal_sha256": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "state",
+    "repair_id",
+    "task_id",
+    "phase_a_task_id",
+    "batch_id",
+    "run_id",
+    "mode",
+    "phase_a_release_path",
+    "phase_a_release_sha256",
+    "phase_a_attestation_path",
+    "phase_a_attestation_sha256",
+    "phase_a_dispatch_id",
+    "phase_a_commands_exact",
+    "phase_a_exact_argv",
+    "roots",
+    "verification_subject_seal_path",
+    "verification_subject_seal_sha256",
+    "verification_subject_digest",
+    "verification_subject_count",
+    "independent_report_path",
+    "independent_report_sha256",
+    "verifier_terminal_path",
+    "verifier_terminal_sha256",
+    "artifact_graph_count",
+    "artifact_graph_entries",
+    "artifact_graph_digest",
+    "sha256sums_sha256",
+    "authority_read_count",
+    "source_manifest_sha256",
+    "schema_manifest_sha256",
+    "command_manifest_sha256",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "formal_publication_count",
+    "commit_pointer_count",
+    "success_package_count",
+    "final_test_read",
+    "handoff_digest",
+    "authority_allowlist_path",
+    "authority_allowlist_sha256",
+    "source_manifest_path",
+    "schema_manifest_path",
+    "command_manifest_path",
+    "guardian_two_phase_contract_path",
+    "guardian_two_phase_contract_sha256",
+    "guardian_two_phase_review_path",
+    "guardian_two_phase_review_sha256"
+  ],
+  "type": "object"
+}

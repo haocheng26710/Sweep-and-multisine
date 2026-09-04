@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:gen-enc:2c:s2:corr03:publication-terminal:v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "status", "task_id", "dispatch_id", "release_full_sha256", "run_id", "verifier_terminal_sha256", "journal_sha256", "allowlist_sha256", "published_count", "partial_publication_count", "transaction_state", "package_terminal_count", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr03_publication_terminal_v1"}, "record_kind": {"const": "PUBLICATION_SUCCESS"}, "status": {"const": "PUBLISHED_SUCCESS"}, "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"}, "dispatch_id": {"type": "string", "minLength": 1}, "release_full_sha256": {"$ref": "#/$defs/hash"}, "run_id": {"$ref": "#/$defs/hash"}, "verifier_terminal_sha256": {"$ref": "#/$defs/hash"}, "journal_sha256": {"$ref": "#/$defs/hash"}, "allowlist_sha256": {"$ref": "#/$defs/hash"}, "published_count": {"const": 92}, "partial_publication_count": {"const": 0}, "transaction_state": {"const": "COMMITTED"}, "package_terminal_count": {"const": 1}, "final_test_read": {"const": false}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

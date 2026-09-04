@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:gen-enc:2c:s2:corr03:fail-closed-terminal:v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "status", "task_id", "dispatch_id", "run_id", "fatal_stage", "error_code", "honest_observed_counts", "published_count_after_rollback", "package_terminal_count", "atomic_write", "science", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr03_fail_closed_terminal_v1"}, "record_kind": {"const": "FAIL_CLOSED"}, "status": {"const": "FAIL_CLOSED_S2_CORR03_INCOMPLETE"}, "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"}, "dispatch_id": {"type": ["string", "null"]}, "run_id": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]}, "fatal_stage": {"enum": ["AUTHORIZATION", "AUTHORITY_BIND", "AUTHORITY_READ", "GENERATION", "VERIFICATION", "RESEAL", "PUBLICATION", "RECOVERY", "PACKAGE"]}, "error_code": {"type": "string", "minLength": 1},
+    "honest_observed_counts": {"type": "object", "additionalProperties": false, "required": ["authority_files_read", "rows_read", "seeds_read", "members_staged", "members_verified", "artifacts_staged", "artifacts_published", "static_audits"], "properties": {"authority_files_read": {"type": "integer", "minimum": 0, "maximum": 6}, "rows_read": {"type": "integer", "minimum": 0, "maximum": 40}, "seeds_read": {"type": "integer", "minimum": 0, "maximum": 21}, "members_staged": {"type": "integer", "minimum": 0, "maximum": 80}, "members_verified": {"type": "integer", "minimum": 0, "maximum": 80}, "artifacts_staged": {"type": "integer", "minimum": 0, "maximum": 92}, "artifacts_published": {"type": "integer", "minimum": 0, "maximum": 92}, "static_audits": {"type": "integer", "minimum": 0, "maximum": 80}}},
+    "published_count_after_rollback": {"const": 0}, "package_terminal_count": {"const": 1}, "atomic_write": {"const": true}, "science": {"const": "NOT_TESTED"}, "final_test_read": {"const": false}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

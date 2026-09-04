@@ -17,6 +17,7 @@ data/raw_audio/**
 data/stimuli/**
 data/processed/**
 data/mock/**
+data/real_experiment/**
 outputs/*
 
 # Keep directory placeholders and templates.
@@ -31,3 +32,10 @@ outputs/*
 !data/mock/
 !data/**/.gitkeep
 !data/metadata/measurements.csv
+!data/real_experiment/
+!data/real_experiment/README.md
+!data/real_experiment/LEGACY_DATASET_INDEX.csv
+!data/real_experiment/*/
+!data/real_experiment/*/README.md
+!data/real_experiment/*/metadata/
+!data/real_experiment/*/metadata/**

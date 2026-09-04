@@ -1,0 +1,1134 @@
+{
+  "$id": "gen_enc_fast_b1_repair_02_member_identity_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "cad_static_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_fluid_graph": {
+          "additionalProperties": false,
+          "properties": {
+            "component_count": {
+              "type": "number"
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "b": {
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "type": "string"
+                  },
+                  "positive_area_m2": {
+                    "type": "number"
+                  },
+                  "weight": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "weight",
+                  "positive_area_m2"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "nodes": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 5,
+              "minItems": 5,
+              "type": "array"
+            }
+          },
+          "required": [
+            "nodes",
+            "edges",
+            "component_count"
+          ],
+          "type": "object"
+        },
+        "complete_witness_semantics": {
+          "type": "boolean"
+        },
+        "exception_minima": {
+          "additionalProperties": false,
+          "properties": {
+            "exception_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "minItems": 20,
+              "type": "array"
+            },
+            "measured_minimum_feature_m": {
+              "type": "number"
+            },
+            "measured_minimum_load_path_m": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "measured_minimum_feature_m",
+            "measured_minimum_load_path_m",
+            "exception_ids"
+          ],
+          "type": "object"
+        },
+        "general_minima": {
+          "additionalProperties": false,
+          "properties": {
+            "feature_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "feature_witness_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "load_path_candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "measured_m": {
+                    "type": "number"
+                  },
+                  "witness_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witness_id",
+                  "measured_m"
+                ],
+                "type": "object"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "load_path_witness_ids": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "measured_minimum_feature_m": {
+              "type": "number"
+            },
+            "measured_minimum_load_path_m": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "feature_candidates",
+            "load_path_candidates",
+            "measured_minimum_feature_m",
+            "measured_minimum_load_path_m",
+            "feature_witness_ids",
+            "load_path_witness_ids"
+          ],
+          "type": "object"
+        },
+        "ownership_cells": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cell_id": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "positive_overlap_volume_m3": {
+                "type": "number"
+              },
+              "rule": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "cell_id",
+              "owner",
+              "rule",
+              "positive_overlap_volume_m3"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "random_zero_edge_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "edge_id": {
+                "type": "string"
+              },
+              "exact_value": {
+                "type": "number"
+              },
+              "generator_branch": {
+                "type": "string"
+              },
+              "verified_exact_zero": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "edge_id",
+              "exact_value",
+              "generator_branch",
+              "verified_exact_zero"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "minItems": 0,
+          "type": "array"
+        },
+        "reduced_graph": {
+          "additionalProperties": false,
+          "properties": {
+            "component_count": {
+              "type": "number"
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "b": {
+                    "type": "string"
+                  },
+                  "edge_id": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "edge_id",
+                  "a",
+                  "b",
+                  "weight",
+                  "active"
+                ],
+                "type": "object"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            },
+            "nodes": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            }
+          },
+          "required": [
+            "nodes",
+            "edges",
+            "component_count"
+          ],
+          "type": "object"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "semantic_derivation_inputs": {
+          "additionalProperties": false,
+          "properties": {
+            "graph_terms": {
+              "additionalProperties": false,
+              "properties": {
+                "bfs_rule": {
+                  "type": "string"
+                },
+                "positive_edge_rule": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "positive_edge_rule",
+                "bfs_rule"
+              ],
+              "type": "object"
+            },
+            "minima_fail_rules": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "ownership_transforms": {
+              "additionalProperties": false,
+              "properties": {
+                "coordinate_frame": {
+                  "type": "string"
+                },
+                "sector_rotations_deg": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "maxItems": 4,
+                  "minItems": 4,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "coordinate_frame",
+                "sector_rotations_deg"
+              ],
+              "type": "object"
+            },
+            "root_derived_proof": {
+              "additionalProperties": false,
+              "properties": {
+                "equation": {
+                  "type": "string"
+                },
+                "strict_monotone": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "strict_monotone",
+                "equation"
+              ],
+              "type": "object"
+            },
+            "root_domain_proof": {
+              "additionalProperties": false,
+              "properties": {
+                "root_length_m": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "root_length_m"
+              ],
+              "type": "object"
+            },
+            "root_family_rules": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "family_id": {
+                    "type": "string"
+                  },
+                  "same_root_contract": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "family_id",
+                  "same_root_contract"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "root_independent_proof": {
+              "additionalProperties": false,
+              "properties": {
+                "bracket_verified": {
+                  "type": "boolean"
+                },
+                "method": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bracket_verified",
+                "method"
+              ],
+              "type": "object"
+            },
+            "slot_mapping": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "slot_required_fields": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 12,
+              "minItems": 12,
+              "type": "array"
+            },
+            "slot_sector_order": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            "solid_eligible_pair": {
+              "additionalProperties": false,
+              "properties": {
+                "rule": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "rule"
+              ],
+              "type": "object"
+            },
+            "solid_metrics": {
+              "additionalProperties": false,
+              "properties": {
+                "feature_metric": {
+                  "type": "string"
+                },
+                "load_path_metric": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "feature_metric",
+                "load_path_metric"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "ownership_transforms",
+            "slot_sector_order",
+            "slot_mapping",
+            "slot_required_fields",
+            "root_family_rules",
+            "root_domain_proof",
+            "root_derived_proof",
+            "root_independent_proof",
+            "minima_fail_rules",
+            "solid_metrics",
+            "solid_eligible_pair",
+            "graph_terms"
+          ],
+          "type": "object"
+        },
+        "slot_placements": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "coordinates_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              "owner_cell_id": {
+                "type": "string"
+              },
+              "placement_status": {
+                "type": "string"
+              },
+              "sector": {
+                "type": "string"
+              },
+              "slot_id": {
+                "type": "string"
+              },
+              "width_m": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "slot_id",
+              "sector",
+              "owner_cell_id",
+              "coordinates_m",
+              "placement_status",
+              "width_m"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "type": "array"
+        },
+        "thresholds": {
+          "additionalProperties": false,
+          "properties": {
+            "minimum_general_feature_m": {
+              "type": "number"
+            },
+            "minimum_general_load_path_m": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "minimum_general_feature_m",
+            "minimum_general_load_path_m"
+          ],
+          "type": "object"
+        },
+        "thresholds_copied_as_measurements": {
+          "type": "boolean"
+        },
+        "typed_projection_approval": {
+          "additionalProperties": false,
+          "properties": {
+            "U1": {
+              "additionalProperties": false,
+              "properties": {
+                "selection": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selection"
+              ],
+              "type": "object"
+            },
+            "U2": {
+              "additionalProperties": false,
+              "properties": {
+                "selection": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selection"
+              ],
+              "type": "object"
+            },
+            "U3": {
+              "additionalProperties": false,
+              "properties": {
+                "selection": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selection"
+              ],
+              "type": "object"
+            },
+            "mandatory_carry_forward": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            }
+          },
+          "required": [
+            "U1",
+            "U2",
+            "U3",
+            "mandatory_carry_forward"
+          ],
+          "type": "object"
+        },
+        "u4_exception_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "exception_id": {
+                "type": "string"
+              },
+              "excluded_only_from": {
+                "type": "string"
+              },
+              "feature_m": {
+                "type": "number"
+              },
+              "load_path_m": {
+                "type": "number"
+              },
+              "local_coordinates_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "participation": {
+                "type": "string"
+              },
+              "sector": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "exception_id",
+              "sector",
+              "local_coordinates_m",
+              "feature_m",
+              "load_path_m",
+              "participation",
+              "excluded_only_from"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "type": "array"
+        },
+        "volume_root_witnesses": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "domain_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "final_bracket_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "initial_bracket_m": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "iterations": {
+                "type": "number"
+              },
+              "measured_volume_m3": {
+                "type": "number"
+              },
+              "residual_m3": {
+                "type": "number"
+              },
+              "root_length_m": {
+                "type": "number"
+              },
+              "sector": {
+                "type": "string"
+              },
+              "target_volume_m3": {
+                "type": "number"
+              },
+              "tolerance_m3": {
+                "type": "number"
+              },
+              "trace": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "high_m": {
+                      "type": "number"
+                    },
+                    "iteration": {
+                      "type": "number"
+                    },
+                    "low_m": {
+                      "type": "number"
+                    },
+                    "measured_volume_m3": {
+                      "type": "number"
+                    },
+                    "mid_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "iteration",
+                    "low_m",
+                    "high_m",
+                    "mid_m",
+                    "measured_volume_m3"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 80,
+                "minItems": 80,
+                "type": "array"
+              }
+            },
+            "required": [
+              "sector",
+              "domain_m",
+              "initial_bracket_m",
+              "final_bracket_m",
+              "tolerance_m3",
+              "iterations",
+              "trace",
+              "root_length_m",
+              "target_volume_m3",
+              "measured_volume_m3",
+              "residual_m3"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "ownership_cells",
+        "slot_placements",
+        "volume_root_witnesses",
+        "u4_exception_witnesses",
+        "general_minima",
+        "exception_minima",
+        "reduced_graph",
+        "actual_fluid_graph",
+        "random_zero_edge_witnesses",
+        "thresholds",
+        "semantic_derivation_inputs",
+        "typed_projection_approval",
+        "thresholds_copied_as_measurements",
+        "complete_witness_semantics"
+      ],
+      "type": "object"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "failure_slot_retained": {
+      "type": "boolean"
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "member_id": {
+      "type": "string"
+    },
+    "parameter_order": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 18,
+      "minItems": 13,
+      "type": "array"
+    },
+    "parameters": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "central_mix": {
+              "type": "number"
+            },
+            "external_0": {
+              "type": "number"
+            },
+            "external_180": {
+              "type": "number"
+            },
+            "external_270": {
+              "type": "number"
+            },
+            "external_90": {
+              "type": "number"
+            },
+            "loss_0": {
+              "type": "number"
+            },
+            "loss_180": {
+              "type": "number"
+            },
+            "loss_270": {
+              "type": "number"
+            },
+            "loss_90": {
+              "type": "number"
+            },
+            "q0": {
+              "type": "number"
+            },
+            "q180": {
+              "type": "number"
+            },
+            "q270": {
+              "type": "number"
+            },
+            "q90": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "q0",
+            "q90",
+            "q180",
+            "q270",
+            "external_0",
+            "external_90",
+            "external_180",
+            "external_270",
+            "loss_0",
+            "loss_90",
+            "loss_180",
+            "loss_270",
+            "central_mix"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "external_0": {
+              "type": "number"
+            },
+            "external_180": {
+              "type": "number"
+            },
+            "external_270": {
+              "type": "number"
+            },
+            "external_90": {
+              "type": "number"
+            },
+            "loss_0": {
+              "type": "number"
+            },
+            "loss_180": {
+              "type": "number"
+            },
+            "loss_270": {
+              "type": "number"
+            },
+            "loss_90": {
+              "type": "number"
+            },
+            "q0": {
+              "type": "number"
+            },
+            "q180": {
+              "type": "number"
+            },
+            "q270": {
+              "type": "number"
+            },
+            "q90": {
+              "type": "number"
+            },
+            "shared_alpha": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "q0",
+            "q90",
+            "q180",
+            "q270",
+            "external_0",
+            "external_90",
+            "external_180",
+            "external_270",
+            "loss_0",
+            "loss_90",
+            "loss_180",
+            "loss_270",
+            "shared_alpha"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "edge_0_180": {
+              "type": "number"
+            },
+            "edge_0_270": {
+              "type": "number"
+            },
+            "edge_0_90": {
+              "type": "number"
+            },
+            "edge_180_270": {
+              "type": "number"
+            },
+            "edge_90_180": {
+              "type": "number"
+            },
+            "edge_90_270": {
+              "type": "number"
+            },
+            "external_0": {
+              "type": "number"
+            },
+            "external_180": {
+              "type": "number"
+            },
+            "external_270": {
+              "type": "number"
+            },
+            "external_90": {
+              "type": "number"
+            },
+            "loss_0": {
+              "type": "number"
+            },
+            "loss_180": {
+              "type": "number"
+            },
+            "loss_270": {
+              "type": "number"
+            },
+            "loss_90": {
+              "type": "number"
+            },
+            "q0": {
+              "type": "number"
+            },
+            "q180": {
+              "type": "number"
+            },
+            "q270": {
+              "type": "number"
+            },
+            "q90": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "external_0",
+            "external_90",
+            "external_180",
+            "external_270",
+            "q0",
+            "q90",
+            "q180",
+            "edge_0_90",
+            "edge_0_180",
+            "edge_0_270",
+            "edge_90_180",
+            "edge_90_270",
+            "edge_180_270",
+            "loss_0",
+            "loss_90",
+            "loss_180",
+            "loss_270",
+            "q270"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "external_0": {
+              "type": "number"
+            },
+            "external_180": {
+              "type": "number"
+            },
+            "external_270": {
+              "type": "number"
+            },
+            "external_90": {
+              "type": "number"
+            },
+            "loss_0": {
+              "type": "number"
+            },
+            "loss_180": {
+              "type": "number"
+            },
+            "loss_270": {
+              "type": "number"
+            },
+            "loss_90": {
+              "type": "number"
+            },
+            "q0": {
+              "type": "number"
+            },
+            "q180": {
+              "type": "number"
+            },
+            "q270": {
+              "type": "number"
+            },
+            "q90": {
+              "type": "number"
+            },
+            "ring_0_90": {
+              "type": "number"
+            },
+            "ring_180_270": {
+              "type": "number"
+            },
+            "ring_270_0": {
+              "type": "number"
+            },
+            "ring_90_180": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "q0",
+            "q90",
+            "q180",
+            "external_0",
+            "external_90",
+            "external_180",
+            "external_270",
+            "ring_0_90",
+            "ring_90_180",
+            "ring_180_270",
+            "ring_270_0",
+            "loss_0",
+            "loss_90",
+            "loss_180",
+            "loss_270",
+            "q270"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "record_kind": {
+      "const": "BATCH_LOCAL_MEMBER_IDENTITY_TYPED_CAD_DERIVED"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-02"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_02_member_identity_v1"
+    },
+    "scientific_hypothesis_status": {
+      "type": "string"
+    },
+    "slot_ordinal": {
+      "type": "number"
+    },
+    "static_status": {
+      "type": "string"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "typed_projection_provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_matrix_path": {
+          "type": "string"
+        },
+        "dependency_matrix_sha256": {
+          "type": "string"
+        },
+        "dependency_structure_sha256": {
+          "type": "string"
+        },
+        "projection_contract_path": {
+          "type": "string"
+        },
+        "projection_contract_sha256": {
+          "type": "string"
+        },
+        "semantic_leaf_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "projection_contract_path",
+        "projection_contract_sha256",
+        "dependency_matrix_path",
+        "dependency_matrix_sha256",
+        "dependency_structure_sha256",
+        "semantic_leaf_count"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "family_id",
+    "member_id",
+    "slot_ordinal",
+    "failure_slot_retained",
+    "parameter_order",
+    "parameters",
+    "cad_static_evidence",
+    "typed_projection_provenance",
+    "static_status",
+    "claim_ceiling",
+    "scientific_hypothesis_status",
+    "final_test_read"
+  ],
+  "type": "object"
+}

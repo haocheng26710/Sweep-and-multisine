@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:gen-enc:2c:s2:corr03:cad0-technical-facts:v2",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "identity_class", "formal_member_values", "facts", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr03_cad0_technical_facts_v2"}, "identity_class": {"const": "TECHNICAL_CONTRACT_FACTS_ONLY"}, "formal_member_values": {"const": false}, "final_test_read": {"const": false},
+    "facts": {"type": "object", "additionalProperties": false, "required": ["root_span_m", "root_length_bounds_m", "fixed_volume_m3", "inner_area_m2", "cavity_area_m2", "internal_z_m", "collar_z_m", "central_half_side_m", "window_centres_m", "minimum_feature_m", "minimum_load_path_m", "ownership_algorithm", "connectivity_algorithm", "solid_load_path_algorithm", "interface_exception_witnesses"], "properties": {
+      "root_span_m": {"const": 0.058926678767398356}, "root_length_bounds_m": {"const": [0.002,0.030]}, "fixed_volume_m3": {"const": 0.0000021848}, "inner_area_m2": {"const": 0.000004}, "cavity_area_m2": {"const": 0.0001054}, "internal_z_m": {"const": [0.002,0.0102]}, "collar_z_m": {"const": [0.0015,0.0107]}, "central_half_side_m": {"const": 0.019073321232601637}, "window_centres_m": {"const": [-0.0096,0,0.0096]}, "minimum_feature_m": {"const": 0.002}, "minimum_load_path_m": {"const": 0.0016},
+      "ownership_algorithm": {"const": "CAD0_EXACT_CELL_OWNERSHIP"}, "connectivity_algorithm": {"const": "CAD0_POSITIVE_AREA_FACE_BFS"}, "solid_load_path_algorithm": {"const": "CAD0_Z_PARTITION_MINIMUM"},
+      "interface_exception_witnesses": {"type": "array", "minItems": 20, "maxItems": 20, "items": {"type": "object", "additionalProperties": false, "required": ["id", "feature_m", "load_path_m"], "properties": {"id": {"pattern": "^IFX_U4_(000|090|180|270)_(RIM_BOTTOM|RIM_TOP|SHOULDER_LOWER|SHOULDER_UPPER|RIM)$"}, "feature_m": {"const": 0.0005}, "load_path_m": {"const": 0.0015}}}}
+    }}
+  }
+}

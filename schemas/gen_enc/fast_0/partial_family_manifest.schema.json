@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "gen_enc_fast_0_partial_family_manifest_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "batch_id", "family_id", "slot_ordinals", "members", "complete_family_manifest", "claim_ceiling", "failed_slots_retained", "final_test_read"],
+  "properties": {"schema_version": {"const": "gen_enc_fast_0_partial_family_manifest_v1"}, "record_kind": {"const": "PARTIAL_FAMILY_MANIFEST"}, "batch_id": {"enum": ["B1", "B2", "B3", "B4"]}, "family_id": {"type": "string"}, "slot_ordinals": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "integer", "minimum": 1, "maximum": 20}, "uniqueItems": true}, "members": {"type": "array", "minItems": 5, "maxItems": 5}, "complete_family_manifest": {"const": false}, "claim_ceiling": {"const": "STAGED_IDENTITY_AND_TECHNICAL_VALIDITY_ONLY"}, "failed_slots_retained": {"const": true}, "final_test_read": {"const": false}}
+}

@@ -1,0 +1,303 @@
+{
+  "$id": "gen_enc_fast_b1_repair_02_release_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "const": 1
+    },
+    "authoritative": {
+      "const": true
+    },
+    "authority_allowlist_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/fast_0_authority_batch_contract_freeze/authority_allowlist.json"
+    },
+    "authority_allowlist_sha256": {
+      "const": "49263e3cab9825840284d18a4d628be73d1273bf6940493878bac5da529c958c"
+    },
+    "authority_triples": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "pointer": {
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "pointer"
+        ],
+        "type": "object"
+      },
+      "maxItems": 20,
+      "minItems": 20,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "command_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/command_manifest.json"
+    },
+    "command_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commands_exact": {
+      "const": [
+        "preflight",
+        "generate-staging",
+        "verify",
+        "publish",
+        "recover",
+        "package-results"
+      ]
+    },
+    "consumption_record_name": {
+      "const": "CONSUMED.json"
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "guardian_review_sha256": {
+      "const": "f96a71e850ceaefa9c2267c2641d6307c9c98af38b53aa8ef3893fef5de2c8fd"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20"
+    },
+    "one_use": {
+      "const": true
+    },
+    "permissions": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_read": {
+          "const": true
+        },
+        "comparison": {
+          "const": false
+        },
+        "direction": {
+          "const": false
+        },
+        "final80": {
+          "const": false
+        },
+        "final92": {
+          "const": false
+        },
+        "final_test_read": {
+          "const": false
+        },
+        "full_wave": {
+          "const": false
+        },
+        "identity_generation": {
+          "const": true
+        },
+        "matched_cost": {
+          "const": false
+        },
+        "no_improvement": {
+          "const": false
+        },
+        "optimization": {
+          "const": false
+        },
+        "performance": {
+          "const": false
+        },
+        "physical": {
+          "const": false
+        },
+        "publication": {
+          "const": true
+        },
+        "ranking": {
+          "const": false
+        },
+        "response": {
+          "const": false
+        },
+        "selection": {
+          "const": false
+        },
+        "simulation": {
+          "const": false
+        },
+        "static_audit": {
+          "const": true
+        },
+        "timing": {
+          "const": false
+        }
+      },
+      "required": [
+        "authority_read",
+        "identity_generation",
+        "static_audit",
+        "publication",
+        "timing",
+        "response",
+        "performance",
+        "comparison",
+        "ranking",
+        "selection",
+        "optimization",
+        "matched_cost",
+        "direction",
+        "no_improvement",
+        "simulation",
+        "full_wave",
+        "physical",
+        "final80",
+        "final92",
+        "final_test_read"
+      ],
+      "type": "object"
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "RELEASE"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-02"
+    },
+    "revocation_record_name": {
+      "const": "REVOKED.json"
+    },
+    "roots": {
+      "additionalProperties": false,
+      "properties": {
+        "failure": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "journal": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "pointer": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "run": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "side_records": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "staging": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "success": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "staging",
+        "run",
+        "pointer",
+        "journal",
+        "success",
+        "failure",
+        "side_records"
+      ],
+      "type": "object"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/schema_manifest.json"
+    },
+    "schema_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_02_release_v1"
+    },
+    "source_manifest_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_02/source_manifest.json"
+    },
+    "source_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "authoritative",
+    "repair_id",
+    "attempt",
+    "task_id",
+    "batch_id",
+    "run_id",
+    "commands_exact",
+    "mode",
+    "issued_at",
+    "expires_at",
+    "one_use",
+    "guardian_review_sha256",
+    "authority_allowlist_path",
+    "authority_allowlist_sha256",
+    "authority_triples",
+    "source_manifest_path",
+    "source_manifest_sha256",
+    "schema_manifest_path",
+    "schema_manifest_sha256",
+    "command_manifest_path",
+    "command_manifest_sha256",
+    "permissions",
+    "roots",
+    "revocation_record_name",
+    "consumption_record_name",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256"
+  ],
+  "type": "object"
+}

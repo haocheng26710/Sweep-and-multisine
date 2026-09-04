@@ -1,0 +1,7 @@
+# GEN-ENC FAST B1 PRE-RELEASE-REPAIR-06 results
+
+Repair-06 freezes the B1 implementation of the guardian-accepted B1–B4 two-phase posterior-anchor protocol. Phase A is now a genuinely separate three-command, zero-publication authorization surface; Repair-05 bytes cannot be reused. Phase B accepts only publish/recover/package and requires externally delivered expected SHA256 values for guardian authorization, guardian attestation, and the distinct controller dispatch.
+
+The final technical suite passed 41/41 in 183.56 s. It exercises the canonical Phase-A handoff, zero publication stop, external-hash and binding falsifiers, coordinated subject replacement, independent Phase-A and Phase-B eight-process one-use races, all 20 real target kill points, and the four commit boundaries. Historical regressions passed unchanged: Repair-05 59/59, Repair-04 28/28, Repair-03 48/48, Repair-02 31/31, Repair-01 51/51, and original freeze 44/44, for 302 final passing tests. All temporary failure and crash residue is retained, including the initial Phase-B race-terminal failure and the duplicate-required/long-path iteration.
+
+Formal state remains zero: no formal authority reads, members, static runs, publication, release, guardian attestation, dispatch/side record, pointer, terminal, or final-test read. The package is blocked pending intermediate-controller and Advisor-B mechanical split conformance review; formal Phase A may only be generated afterward by the authorized sequence.

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/gen_enc/technical_fixture.schema.json",
+  "title": "GEN-ENC-2B technical fixture",
+  "type": "object",
+  "required": ["object_class"],
+  "properties": {
+    "object_class": {"const": "TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY"}
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["scientific_instance_manifest"]},
+      {"required": ["instance_manifest_sha256"]},
+      {"required": ["scientific_response"]}
+    ]
+  }
+}

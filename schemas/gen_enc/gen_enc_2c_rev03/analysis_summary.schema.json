@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gen-enc:2c:rev03:analysis-summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "terminal_status",
+    "evidence_level",
+    "scientific_hypothesis_status",
+    "observed_counts",
+    "formal_hashes",
+    "final_test_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gen_enc_2c_analysis_summary_rev03_v1"
+    },
+    "terminal_status": {
+      "enum": [
+        "COMPLETE_STATIC_IDENTITY_AUDIT",
+        "FAIL_CLOSED_TECHNICAL"
+      ]
+    },
+    "evidence_level": {
+      "const": "E1B_SCIENTIFIC_IDENTITY_PROVENANCE_AND_STATIC_ELIGIBILITY"
+    },
+    "scientific_hypothesis_status": {
+      "const": "NOT_TESTED"
+    },
+    "observed_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "formal_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member",
+        "family",
+        "index"
+      ],
+      "properties": {
+        "member": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "family": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "index": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "final_test_read": {
+      "const": false
+    }
+  },
+  "x-addendum-metadata": {
+    "new_content": "S1 frozen analysis_summary.schema.json",
+    "related_legacy_files": [
+      "outputs/gen_enc/GEN_ENC_2C_SCIENTIFIC_IDENTITY_GENERATION/phase_a_integration_rev03/future_execution_contract.json"
+    ],
+    "unchanged_content": "All legacy schemas, artifacts and scientific conclusions remain unchanged",
+    "evidence_level": "E1_TECHNICAL_IMPLEMENTATION_CONFORMANCE_ONLY",
+    "overrides": false
+  }
+}

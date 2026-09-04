@@ -1,0 +1,19 @@
+{
+  "schema_version": "gen_enc_3a_synthetic_geometry_fixture_v1",
+  "state_order_degrees": [0, 90, 180, 270],
+  "pair_order": [[0, 90], [0, 180], [0, 270], [90, 180], [90, 270], [180, 270]],
+  "z_real": [[1.0, -1.0, 0.0, 0.0], [2.0, 0.0, -2.0, 0.0]],
+  "z_imag": [[1.0, 0.0, -1.0, 0.0], [0.0, 2.0, 0.0, -2.0]],
+  "expected_pair_distances": [3.605551275463989, 4.58257569495584, 3.1622776601683795, 3.1622776601683795, 4.123105625617661, 3.0],
+  "expected_d_min": 3.0,
+  "expected_weakest_pair_index": 5,
+  "expected_pair_anisotropy": 1.5275252316519468,
+  "expected_gram_0_1": [-1.0, 5.0],
+  "tail_fixture": {
+    "values": [1.0, 2.0, 3.0, 4.0],
+    "weights": [0.1, 0.2, 0.3, 0.4],
+    "tail_mass": 0.25,
+    "expected_lower": 1.6,
+    "expected_upper": 4.0
+  }
+}

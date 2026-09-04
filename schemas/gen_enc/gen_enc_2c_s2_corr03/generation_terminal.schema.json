@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:gen-enc:2c:s2:corr03:generation-terminal:v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "record_kind", "task_id", "dispatch_id", "release_full_sha256", "run_id", "status", "staging_tree_sha256", "artifact_count", "member_count", "member_self_hash_null_count", "verification_complete", "publication_started", "success_eligible", "final_test_read"],
+  "properties": {
+    "schema_version": {"const": "gen_enc_2c_s2_corr03_generation_terminal_v1"}, "record_kind": {"const": "GENERATION_STAGED"}, "task_id": {"const": "01a048bd-dc5e-7e93-87e6-72d299ebaa4d"}, "dispatch_id": {"type": "string", "minLength": 1}, "release_full_sha256": {"$ref": "#/$defs/hash"}, "run_id": {"$ref": "#/$defs/hash"}, "status": {"const": "STAGED_AWAITING_INDEPENDENT_VERIFICATION"}, "staging_tree_sha256": {"$ref": "#/$defs/hash"}, "artifact_count": {"const": 92}, "member_count": {"const": 80}, "member_self_hash_null_count": {"const": 0}, "verification_complete": {"const": false}, "publication_started": {"const": false}, "success_eligible": {"const": false}, "final_test_read": {"const": false}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

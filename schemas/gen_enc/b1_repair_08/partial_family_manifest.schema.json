@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "const": "B1"
+    },
+    "claim_ceiling": {
+      "const": "BATCH_LOCAL_IDENTITY_COMPLETE_CAD_STATIC_AND_TECHNICAL_VALIDITY_ONLY"
+    },
+    "complete_family_manifest": {
+      "const": false
+    },
+    "family_id": {
+      "enum": [
+        "HAND_DESIGNED",
+        "NEAR_INDEPENDENT",
+        "FIXED_SEED_RANDOM_DISORDERED",
+        "PHYSICS_METAMATERIAL_INSPIRED"
+      ]
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "member_entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "failure_slot_retained": {
+            "const": true
+          },
+          "member_id": {
+            "pattern": "^(HAND|NEAR|RANDOM|PHYSICS)_0[1-5]$"
+          },
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "static_status": {
+            "enum": [
+              "ELIGIBLE",
+              "COST_INELIGIBLE",
+              "TEMPLATE_VALIDITY_REJECTED",
+              "FAIL_CLOSED"
+            ]
+          }
+        },
+        "required": [
+          "member_id",
+          "path",
+          "sha256",
+          "static_status",
+          "failure_slot_retained"
+        ],
+        "type": "object"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "type": "array"
+    },
+    "record_kind": {
+      "const": "PARTIAL_FAMILY_MANIFEST_EXACTLY_5_OF_20"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-08"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_08_partial_family_manifest_v1"
+    },
+    "slot_ordinals": {
+      "const": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "repair_id",
+    "task_id",
+    "batch_id",
+    "family_id",
+    "slot_ordinals",
+    "member_entries",
+    "complete_family_manifest",
+    "claim_ceiling",
+    "final_test_read"
+  ],
+  "type": "object"
+}

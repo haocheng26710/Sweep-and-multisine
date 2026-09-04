@@ -1,0 +1,13 @@
+{
+  "schema_version": "gen_enc_2c_s2_corr03_cad0_technical_facts_v2", "identity_class": "TECHNICAL_CONTRACT_FACTS_ONLY", "formal_member_values": false,
+  "facts": {
+    "root_span_m": 0.058926678767398356, "root_length_bounds_m": [0.002,0.030], "fixed_volume_m3": 0.0000021848, "inner_area_m2": 0.000004, "cavity_area_m2": 0.0001054, "internal_z_m": [0.002,0.0102], "collar_z_m": [0.0015,0.0107], "central_half_side_m": 0.019073321232601637, "window_centres_m": [-0.0096,0,0.0096], "minimum_feature_m": 0.002, "minimum_load_path_m": 0.0016,
+    "ownership_algorithm": "CAD0_EXACT_CELL_OWNERSHIP", "connectivity_algorithm": "CAD0_POSITIVE_AREA_FACE_BFS", "solid_load_path_algorithm": "CAD0_Z_PARTITION_MINIMUM",
+    "interface_exception_witnesses": [
+      {"id":"IFX_U4_000_RIM_BOTTOM","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_000_RIM_TOP","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_000_SHOULDER_LOWER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_000_SHOULDER_UPPER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_000_RIM","feature_m":0.0005,"load_path_m":0.0015},
+      {"id":"IFX_U4_090_RIM_BOTTOM","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_090_RIM_TOP","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_090_SHOULDER_LOWER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_090_SHOULDER_UPPER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_090_RIM","feature_m":0.0005,"load_path_m":0.0015},
+      {"id":"IFX_U4_180_RIM_BOTTOM","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_180_RIM_TOP","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_180_SHOULDER_LOWER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_180_SHOULDER_UPPER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_180_RIM","feature_m":0.0005,"load_path_m":0.0015},
+      {"id":"IFX_U4_270_RIM_BOTTOM","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_270_RIM_TOP","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_270_SHOULDER_LOWER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_270_SHOULDER_UPPER","feature_m":0.0005,"load_path_m":0.0015},{"id":"IFX_U4_270_RIM","feature_m":0.0005,"load_path_m":0.0015}
+    ]
+  }, "final_test_read": false
+}

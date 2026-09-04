@@ -1,0 +1,1 @@
+{"expected":{"fixture_run_status":"PASS_EXPECTATION_MATCH","observed_subject_status":"TEMPLATE_VALIDITY_REJECTED","ordered_reason_codes":["DEGENERATE_BOUNDARY_FACE"]},"fixture_id":"FX_ZERO_AREA_FACE","inputs":{"polygon":[[0,0],[1,0],[2,0]]},"label":"TECHNICAL_FIXTURE_ONLY_NOT_SCIENTIFIC_IDENTITY","scenario":"zero_area","schema_version":"gen_enc_cad_1_synthetic_fixture_v1"}

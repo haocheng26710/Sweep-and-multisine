@@ -1,0 +1,150 @@
+{
+  "$id": "gen_enc_fast_b1_repair_07_guardian_attestation_v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authority_allowlist_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/fast_0_authority_batch_contract_freeze/authority_allowlist.json"
+    },
+    "batch_id": {
+      "const": "B1"
+    },
+    "dependency_matrix_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_07/cad_leaf_dependency_matrix.json"
+    },
+    "dependency_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dependency_structure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "final_test_read": {
+      "const": false
+    },
+    "guardian_phase_b_attestation_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/authorizations/GEN_ENC_FAST_PHASE_B/GEN_ENC_FAST_B1_PHASE_B_ONE_WAY_ATTESTATION.json"
+    },
+    "guardian_phase_b_authorization_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/authorizations/GEN_ENC_FAST_PHASE_B/GEN_ENC_FAST_B1_PHASE_B_AUTHORIZATION.json"
+    },
+    "guardian_two_phase_contract_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/contracts/GEN_ENC_FAST_B1_B4_TWO_STAGE_POSTERIOR_ANCHOR_CONTRACT.json"
+    },
+    "guardian_two_phase_contract_sha256": {
+      "const": "526d64e67ddbdb6e15ea2fb0a0f0bb84aae4e90a55f3d9bde44237f34c5027c2"
+    },
+    "guardian_two_phase_review_path": {
+      "const": "outputs/governance/RESEARCH_SCOPE_CONTRACTION_AUDIT/reviews/GEN_ENC_FAST_B1_B4_TWO_STAGE_POSTERIOR_ANCHOR_CONTRACT_REVIEW.json"
+    },
+    "guardian_two_phase_review_sha256": {
+      "const": "c3d21497f26744219656b80de1e639027fee48b2c96171f593381926d7220edd"
+    },
+    "mode": {
+      "const": "FORMAL_B1_EXACT_20_TYPED_CAD"
+    },
+    "one_use": {
+      "const": true
+    },
+    "one_way": {
+      "const": true
+    },
+    "phase_a_commands_exact": {
+      "const": [
+        "preflight",
+        "generate-staging",
+        "verify"
+      ]
+    },
+    "phase_a_dispatch_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "phase_a_dispatch_path": {
+      "const": "control/PHASE_A_DISPATCH_AUTHORIZATION.json"
+    },
+    "phase_a_permissions": {
+      "const": {
+        "generate_staging": true,
+        "independent_verify": true,
+        "package_results": false,
+        "preflight": true,
+        "publish": false,
+        "recover": false
+      }
+    },
+    "phase_b_dispatch_path": {
+      "const": "control/PHASE_B_DISPATCH_AUTHORIZATION.json"
+    },
+    "projection_contract_path": {
+      "const": "outputs/gen_enc/GEN_ENC_FAST_START/b1_preexecution_repair_07/cad_typed_projection_contract.json"
+    },
+    "projection_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "record_kind": {
+      "const": "GUARDIAN_ONE_WAY_ATTESTATION"
+    },
+    "release_sha256": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_id": {
+      "const": "PRE-RELEASE-REPAIR-07"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "gen_enc_fast_b1_repair_07_guardian_attestation_v1"
+    },
+    "scope": {
+      "const": "FAST_B1_EXACT_20_IDENTITY_COMPLETE_CAD_STATIC_AND_BATCH_LOCAL_PUBLICATION_ONLY"
+    },
+    "signed_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "task_id": {
+      "const": "01a049a7-15ca-79e1-92a2-d3822ba8609d"
+    },
+    "verification_subject_seal_path": {
+      "const": "VERIFICATION_SUBJECT_SEAL.json"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_kind",
+    "task_id",
+    "repair_id",
+    "batch_id",
+    "run_id",
+    "release_sha256",
+    "one_way",
+    "one_use",
+    "scope",
+    "signed_at",
+    "final_test_read",
+    "projection_contract_path",
+    "projection_contract_sha256",
+    "dependency_matrix_path",
+    "dependency_matrix_sha256",
+    "dependency_structure_sha256",
+    "mode",
+    "verification_subject_seal_path",
+    "authority_allowlist_path",
+    "guardian_two_phase_contract_path",
+    "guardian_two_phase_contract_sha256",
+    "guardian_two_phase_review_path",
+    "guardian_two_phase_review_sha256",
+    "phase_a_commands_exact",
+    "phase_a_permissions",
+    "phase_a_dispatch_id",
+    "phase_a_dispatch_path",
+    "guardian_phase_b_authorization_path",
+    "guardian_phase_b_attestation_path",
+    "phase_b_dispatch_path"
+  ],
+  "type": "object"
+}
